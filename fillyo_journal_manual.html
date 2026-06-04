@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FILLYO 업무일지 설치 매뉴얼</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#0B1F3A;--blue:#1352A8;--teal:#0A7C6E;--teal-l:#E4F5F3;
+  --orange:#E65100;--yellow:#F9A825;--red:#C62828;--red-l:#FFEBEE;
+  --green:#1B5E20;--green-l:#E8F5E9;
+  --gray:#546E7A;--border:#DDE4EE;--bg:#EEF2F8;--text:#1A2332;
+  --white:#fff;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:#F5F7FA;color:var(--text);line-height:1.6}
+
+/* 표지 */
+.cover{background:var(--navy);color:white;padding:60px 40px;text-align:center}
+.cover-logo{font-size:52px;margin-bottom:12px}
+.cover-title{font-size:32px;font-weight:900;color:var(--yellow);margin-bottom:8px;letter-spacing:-0.5px}
+.cover-sub{font-size:16px;color:rgba(255,255,255,0.6);margin-bottom:32px}
+.cover-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:100px;padding:8px 20px;font-size:13px;color:rgba(255,255,255,0.8)}
+
+/* 목차 */
+.toc{background:white;margin:0;padding:32px 40px;border-bottom:2px solid var(--border)}
+.toc-title{font-size:13px;font-weight:700;letter-spacing:3px;color:var(--gray);text-transform:uppercase;margin-bottom:16px}
+.toc-list{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.toc-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;transition:background .2s}
+.toc-item:hover{background:var(--bg)}
+.toc-num{width:24px;height:24px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.toc-text{font-size:14px;color:var(--navy);font-weight:500}
+
+/* 섹션 */
+.wrap{max-width:860px;margin:0 auto;padding:40px 24px}
+.chapter{background:white;border-radius:16px;margin-bottom:32px;overflow:hidden;box-shadow:0 2px 12px rgba(11,31,58,0.08)}
+.chapter-header{padding:24px 28px;display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--border)}
+.chapter-num{width:40px;height:40px;border-radius:12px;background:var(--navy);color:white;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900;flex-shrink:0}
+.chapter-title{font-size:20px;font-weight:700;color:var(--navy)}
+.chapter-sub{font-size:13px;color:var(--gray);margin-top:2px}
+.chapter-body{padding:28px}
+
+/* 스텝 */
+.step{display:flex;gap:20px;margin-bottom:28px;padding-bottom:28px;border-bottom:1px solid #F0F4F8}
+.step:last-child{border:none;margin-bottom:0;padding-bottom:0}
+.step-num{width:32px;height:32px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;margin-top:2px}
+.step-body{flex:1}
+.step-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px}
+.step-desc{font-size:14px;color:var(--gray);line-height:1.75;margin-bottom:12px}
+
+/* 화면 목업 */
+.screen{background:#1a1a2e;border-radius:12px;overflow:hidden;margin:12px 0;box-shadow:0 4px 20px rgba(0,0,0,0.3)}
+.screen-bar{background:#111;padding:10px 16px;display:flex;align-items:center;gap:8px}
+.screen-dots{display:flex;gap:5px}
+.screen-dot{width:10px;height:10px;border-radius:50%}
+.screen-url{flex:1;background:rgba(255,255,255,0.08);border-radius:4px;padding:4px 12px;font-size:11px;color:rgba(255,255,255,0.5);font-family:'DM Mono',monospace;margin-left:8px}
+.screen-body{padding:20px}
+
+/* Firebase 콘솔 목업 */
+.fb-header{background:#1a73e8;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.fb-logo{font-size:20px}
+.fb-title{color:white;font-size:15px;font-weight:700}
+.fb-nav{color:rgba(255,255,255,0.75);font-size:12px;margin-left:auto}
+.fb-sidebar{background:#f8f9fa;width:200px;padding:8px 0;font-size:13px;flex-shrink:0}
+.fb-menu{padding:10px 20px;cursor:pointer;border-radius:0}
+.fb-menu.active{background:#e8f0fe;color:#1a73e8;font-weight:600;border-left:3px solid #1a73e8}
+.fb-menu:hover{background:#f1f3f4}
+.fb-content{flex:1;padding:20px;background:white}
+.fb-layout{display:flex;border:1px solid #e0e0e0;border-radius:8px;overflow:hidden;margin-top:8px}
+
+/* 깃허브 목업 */
+.gh-header{background:#24292f;padding:12px 20px;display:flex;align-items:center;gap:12px}
+.gh-logo{color:white;font-size:20px}
+.gh-title{color:white;font-size:14px}
+.gh-nav{display:flex;gap:20px;font-size:12px;color:rgba(255,255,255,0.7)}
+.gh-content{background:white;padding:20px}
+.gh-repo-header{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #e0e0e0;margin-bottom:16px}
+.gh-repo-name{font-size:16px;font-weight:700;color:#0969da}
+.gh-btn{background:#2da44e;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.gh-btn-blue{background:#0969da;color:white;border:none;border-radius:6px;padding:6px 14px;font-size:12px;font-weight:600;cursor:pointer}
+.gh-file-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f6f8fa;font-size:13px}
+.gh-file-icon{font-size:16px;flex-shrink:0}
+.gh-file-name{color:#24292f;font-weight:500}
+
+/* 코드 박스 */
+.code-box{background:#0d1117;border-radius:8px;padding:16px 20px;font-family:'DM Mono',monospace;font-size:12px;line-height:1.8;margin:10px 0;overflow-x:auto}
+.code-comment{color:#8b949e}
+.code-key{color:#79c0ff}
+.code-val{color:#a5d6ff}
+.code-str{color:#a5d6ff}
+.code-url{color:#56d364}
+
+/* 강조 박스 */
+.tip-box{background:var(--teal-l);border-left:4px solid var(--teal);border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0;font-size:14px;color:var(--teal)}
+.warn-box{background:var(--red-l);border-left:4px solid var(--red);border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0;font-size:14px;color:var(--red)}
+.info-box{background:#E3F2FD;border-left:4px solid #1565C0;border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0;font-size:14px;color:#1565C0}
+.success-box{background:var(--green-l);border-left:4px solid var(--green);border-radius:0 8px 8px 0;padding:14px 18px;margin:12px 0;font-size:14px;color:var(--green)}
+
+/* 하이라이트 */
+.hl{background:#FFF9C4;border-radius:3px;padding:1px 5px;font-weight:700;color:var(--orange)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.badge-blue{background:#E3F2FD;color:#1565C0}
+.badge-green{background:var(--green-l);color:var(--green)}
+.badge-orange{background:#FFF3E0;color:var(--orange)}
+
+/* 클릭 포인터 화살표 */
+.click-target{display:flex;align-items:center;gap:8px;background:#FFFDE7;border:1.5px solid #F9A825;border-radius:8px;padding:10px 14px;margin:8px 0;font-size:13px;color:#5D4037;font-weight:500}
+.click-arrow{font-size:18px;flex-shrink:0}
+
+/* 번호 리스트 */
+.num-list{list-style:none;counter-reset:num}
+.num-list li{counter-increment:num;display:flex;gap:12px;margin-bottom:10px;font-size:14px;color:var(--gray);line-height:1.6}
+.num-list li::before{content:counter(num);width:22px;height:22px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* 완료 체크 */
+.checklist{list-style:none}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;font-size:14px;color:var(--text);border-bottom:1px solid #f0f4f8}
+.checklist li::before{content:'☐';font-size:18px;flex-shrink:0;line-height:1.2}
+
+footer{background:var(--navy);color:rgba(255,255,255,0.4);text-align:center;padding:28px;font-size:13px;line-height:2;margin-top:40px}
+footer strong{color:rgba(255,255,255,0.7)}
+
+@media print{.cover{page-break-after:always}.chapter{page-break-inside:avoid}}
+@media(max-width:600px){
+  .wrap{padding:20px 12px}
+  .chapter-header{padding:18px 20px}
+  .chapter-body{padding:20px}
+  .fb-layout{flex-direction:column}
+  .fb-sidebar{width:100%}
+}
+</style>
+</head>
+<body>
+
+<!-- 표지 -->
+<div class="cover">
+  <div class="cover-logo">🥋</div>
+  <div class="cover-title">FILLYO 업무일지</div>
+  <div class="cover-sub">설치 및 사용 매뉴얼 — GitHub Pages + Firebase 설정 가이드</div>
+  <div class="cover-badge">
+    <span>📖</span> 처음 사용하시는 분도 따라하실 수 있습니다
+  </div>
+</div>
+
+<!-- 목차 -->
+<div class="toc">
+  <div class="toc-title">목차</div>
+  <ul class="toc-list">
+    <li class="toc-item"><div class="toc-num">1</div><div class="toc-text">전체 과정 한눈에 보기</div></li>
+    <li class="toc-item"><div class="toc-num">2</div><div class="toc-text">GitHub 가입 및 파일 업로드</div></li>
+    <li class="toc-item"><div class="toc-num">3</div><div class="toc-text">GitHub Pages 활성화</div></li>
+    <li class="toc-item"><div class="toc-num">4</div><div class="toc-text">Firebase 프로젝트 생성</div></li>
+    <li class="toc-item"><div class="toc-num">5</div><div class="toc-text">Realtime Database 설정</div></li>
+    <li class="toc-item"><div class="toc-num">6</div><div class="toc-text">앱 초기 설정 입력</div></li>
+    <li class="toc-item"><div class="toc-num">7</div><div class="toc-text">팀원과 공유하기</div></li>
+  </ul>
+</div>
+
+<div class="wrap">
+
+<!-- 1. 전체 흐름 -->
+<div class="chapter" id="c1">
+  <div class="chapter-header">
+    <div class="chapter-num">1</div>
+    <div>
+      <div class="chapter-title">전체 과정 한눈에 보기</div>
+      <div class="chapter-sub">총 소요 시간 약 15~20분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+    <div class="info-box">💡 GitHub는 파일을 올려두는 공간, Firebase는 데이터를 저장·공유하는 공간이에요. 둘 다 무료로 사용할 수 있습니다.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin:20px 0">
+      <div style="text-align:center;padding:16px;background:#EEF2F8;border-radius:12px">
+        <div style="font-size:28px;margin-bottom:6px">📝</div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">STEP 1</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:4px">GitHub 가입</div>
+      </div>
+      <div style="text-align:center;padding:4px;font-size:20px;display:flex;align-items:center;justify-content:center;color:var(--gray)">→</div>
+      <div style="text-align:center;padding:16px;background:#EEF2F8;border-radius:12px">
+        <div style="font-size:28px;margin-bottom:6px">📤</div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">STEP 2</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:4px">파일 업로드</div>
+      </div>
+      <div style="text-align:center;padding:4px;font-size:20px;display:flex;align-items:center;justify-content:center;color:var(--gray)">→</div>
+      <div style="text-align:center;padding:16px;background:#EEF2F8;border-radius:12px">
+        <div style="font-size:28px;margin-bottom:6px">🌐</div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">STEP 3</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:4px">Pages 활성화</div>
+      </div>
+      <div style="text-align:center;padding:4px;font-size:20px;display:flex;align-items:center;justify-content:center;color:var(--gray)">→</div>
+      <div style="text-align:center;padding:16px;background:#EEF2F8;border-radius:12px">
+        <div style="font-size:28px;margin-bottom:6px">🔥</div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy)">STEP 4</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:4px">Firebase 설정</div>
+      </div>
+      <div style="text-align:center;padding:4px;font-size:20px;display:flex;align-items:center;justify-content:center;color:var(--gray)">→</div>
+      <div style="text-align:center;padding:16px;background:#E8F5E9;border-radius:12px;border:2px solid #2da44e">
+        <div style="font-size:28px;margin-bottom:6px">✅</div>
+        <div style="font-size:12px;font-weight:700;color:var(--green)">완료!</div>
+        <div style="font-size:11px;color:var(--green);margin-top:4px">팀원과 공유</div>
+      </div>
+    </div>
+
+    <div class="tip-box">✅ 모든 서비스는 <b>무료 플랜</b>으로 충분합니다. 유료 결제 없이 진행하세요.</div>
+  </div>
+</div>
+
+<!-- 2. GitHub 가입 -->
+<div class="chapter" id="c2">
+  <div class="chapter-header">
+    <div class="chapter-num">2</div>
+    <div>
+      <div class="chapter-title">GitHub 가입 및 파일 업로드</div>
+      <div class="chapter-sub">github.com — 소요 시간 약 5분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">github.com 접속 후 가입</div>
+        <div class="step-desc">인터넷 브라우저에서 <span class="hl">github.com</span> 접속 → 오른쪽 상단 <span class="hl">Sign up</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com</div>
+          </div>
+          <div class="gh-header">
+            <div class="gh-logo">🐙</div>
+            <div class="gh-title" style="color:white;font-weight:700">GitHub</div>
+            <div class="gh-nav" style="margin-left:auto">
+              <span style="color:rgba(255,255,255,0.9)">Product</span>
+              <span>Solutions</span>
+              <span>Open Source</span>
+              <div style="margin-left:16px;display:flex;gap:8px">
+                <span style="color:white;font-weight:600">Sign in</span>
+                <span style="background:white;color:#24292f;padding:5px 14px;border-radius:6px;font-weight:700;font-size:13px">Sign up →</span>
+              </div>
+            </div>
+          </div>
+          <div style="background:white;padding:32px;text-align:center">
+            <div style="font-size:26px;font-weight:900;color:#24292f;margin-bottom:8px">Build and ship software on a single, collaborative platform</div>
+            <div style="font-size:14px;color:#57606a;margin-bottom:20px">Join the world's most widely adopted AI-powered developer platform.</div>
+            <div style="display:inline-flex;align-items:center;gap:8px;background:#2da44e;color:white;padding:10px 24px;border-radius:6px;font-weight:700">
+              Sign up for GitHub <span>→</span>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> 오른쪽 상단 흰색 <b>Sign up</b> 버튼을 클릭하세요</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">이메일·비밀번호·아이디 입력 후 가입 완료</div>
+        <div class="step-desc">이메일 주소, 비밀번호, 사용자명(영문)을 입력하고 가입을 완료하세요. 이메일 인증 메일이 오면 확인 클릭.</div>
+        <div class="info-box">📧 이메일 인증 메일을 꼭 확인해주세요. 인증해야 다음 단계를 진행할 수 있어요.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">새 저장소(Repository) 만들기</div>
+        <div class="step-desc">로그인 후 오른쪽 상단 <span class="hl">+</span> 버튼 → <span class="hl">New repository</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/내아이디</div>
+          </div>
+          <div class="gh-header">
+            <div class="gh-logo">🐙</div>
+            <div style="color:white;font-size:14px;font-weight:700">GitHub</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+              <span style="color:rgba(255,255,255,0.75);font-size:13px">Pull requests</span>
+              <span style="color:rgba(255,255,255,0.75);font-size:13px">Issues</span>
+              <div style="background:rgba(255,255,255,0.15);border-radius:6px;padding:5px 10px;color:white;font-size:13px;display:flex;align-items:center;gap:4px">
+                <span style="font-weight:700;font-size:16px">+</span> <span style="font-size:11px">▼</span>
+              </div>
+              <div style="width:30px;height:30px;border-radius:50%;background:#F9A825"></div>
+            </div>
+          </div>
+          <div style="background:white;padding:16px 20px">
+            <div style="background:white;border:1px solid #d0d7de;border-radius:8px;padding:8px 0;width:200px;box-shadow:0 8px 24px rgba(140,149,159,0.2)">
+              <div style="padding:8px 16px;font-size:13px;font-weight:700;color:#24292f;border-bottom:1px solid #d0d7de;margin-bottom:4px">Create new...</div>
+              <div style="padding:8px 16px;font-size:13px;color:#24292f;background:#ddf4ff;font-weight:600">📁 New repository  ← 클릭!</div>
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">Import repository</div>
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">New organization</div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> <b>+ 버튼</b> 클릭 → <b>New repository</b> 선택</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">저장소 이름 입력 후 생성</div>
+        <div class="step-desc">저장소 이름을 입력하고 <span class="hl">Public</span> 선택 후 <span class="hl">Create repository</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/new</div>
+          </div>
+          <div style="background:white;padding:24px 28px">
+            <div style="font-size:20px;font-weight:700;color:#24292f;margin-bottom:20px">Create a new repository</div>
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:600;color:#24292f;margin-bottom:6px">Repository name <span style="color:#cf222e">*</span></div>
+              <div style="border:2px solid #0969da;border-radius:6px;padding:8px 12px;font-size:14px;color:#24292f;background:#f6f8ff">dojang-journal</div>
+              <div style="font-size:12px;color:#57606a;margin-top:4px">💡 영어로 입력해주세요. 예: dojang-journal</div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+                <div style="width:16px;height:16px;border-radius:50%;border:2px solid #0969da;background:#0969da;display:flex;align-items:center;justify-content:center"><div style="width:6px;height:6px;border-radius:50%;background:white"></div></div>
+                <span style="font-size:14px;font-weight:600;color:#24292f">Public</span>
+                <span style="font-size:12px;color:#57606a">— GitHub Pages 사용을 위해 반드시 Public 선택</span>
+              </div>
+            </div>
+            <div style="background:#2da44e;color:white;padding:9px 20px;border-radius:6px;font-size:14px;font-weight:700;display:inline-block">Create repository</div>
+          </div>
+        </div>
+        <div class="warn-box">⚠️ <b>Public</b>을 반드시 선택하세요. Private이면 GitHub Pages가 무료로 작동하지 않아요.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">index.html 파일 업로드</div>
+        <div class="step-desc">저장소가 생성되면 <span class="hl">uploading an existing file</span> 링크 클릭 → 업무일지 파일 드래그앤드롭 → <span class="hl">Commit changes</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/내아이디/dojang-journal</div>
+          </div>
+          <div class="gh-content">
+            <div style="text-align:center;padding:28px;border:2px dashed #d0d7de;border-radius:8px;color:#57606a;font-size:14px">
+              <div style="font-size:32px;margin-bottom:12px">📂</div>
+              <div>Get started by creating a new file or</div>
+              <div style="margin-top:8px">
+                <span style="color:#0969da;font-weight:600;cursor:pointer;text-decoration:underline">uploading an existing file</span>
+                <span style="background:yellow;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:700;margin-left:6px">← 클릭!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> <b>uploading an existing file</b> 파란 링크 클릭 → index.html 파일 드래그앤드롭</div>
+        <div class="tip-box">✅ 파일명은 반드시 <b>index.html</b> 이어야 해요. 다른 이름이면 페이지가 열리지 않아요.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 3. GitHub Pages -->
+<div class="chapter" id="c3">
+  <div class="chapter-header">
+    <div class="chapter-num">3</div>
+    <div>
+      <div class="chapter-title">GitHub Pages 활성화</div>
+      <div class="chapter-sub">파일을 인터넷 주소로 만들기 — 소요 시간 약 2분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Settings 탭 클릭</div>
+        <div class="step-desc">저장소 상단 탭에서 <span class="hl">Settings</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/내아이디/dojang-journal</div>
+          </div>
+          <div class="gh-content">
+            <div class="gh-repo-header">
+              <div class="gh-repo-name">📁 내아이디 / dojang-journal</div>
+            </div>
+            <div style="display:flex;gap:0;border-bottom:1px solid #d0d7de;margin-bottom:16px">
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">Code</div>
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">Issues</div>
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">Pull requests</div>
+              <div style="padding:8px 16px;font-size:13px;color:#57606a">Actions</div>
+              <div style="padding:8px 16px;font-size:13px;font-weight:700;color:#24292f;border-bottom:2px solid #fd8c73">⚙️ Settings  ← 클릭!</div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> 상단 탭에서 <b>Settings (⚙️)</b> 클릭</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">왼쪽 메뉴에서 Pages 클릭</div>
+        <div class="step-desc">Settings 페이지 왼쪽 메뉴 → <span class="hl">Pages</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/내아이디/dojang-journal/settings</div>
+          </div>
+          <div style="display:flex;background:white">
+            <div style="width:220px;background:#f6f8fa;padding:16px 0;border-right:1px solid #d0d7de;font-size:13px">
+              <div style="padding:6px 16px;color:#57606a">General</div>
+              <div style="padding:6px 16px;color:#57606a">Access</div>
+              <div style="padding:6px 16px;color:#57606a">Code and automation</div>
+              <div style="padding:6px 16px 6px 28px;color:#57606a">Branches</div>
+              <div style="padding:6px 16px 6px 28px;background:#ddf4ff;color:#0969da;font-weight:700;border-left:3px solid #0969da">📄 Pages  ← 클릭!</div>
+            </div>
+            <div style="flex:1;padding:20px">
+              <div style="font-size:18px;font-weight:700;color:#24292f;margin-bottom:4px">GitHub Pages</div>
+              <div style="font-size:13px;color:#57606a">GitHub Pages is currently disabled.</div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> 왼쪽 메뉴 Code and automation 섹션 아래 <b>Pages</b> 클릭</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Branch를 main으로 설정 후 Save</div>
+        <div class="step-desc">Source를 <span class="hl">Deploy from a branch</span> → Branch를 <span class="hl">main</span> → <span class="hl">Save</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">github.com/.../settings/pages</div>
+          </div>
+          <div style="background:white;padding:20px">
+            <div style="font-size:18px;font-weight:700;color:#24292f;margin-bottom:16px">GitHub Pages</div>
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;font-weight:600;color:#24292f;margin-bottom:8px">Build and deployment</div>
+              <div style="font-size:13px;color:#57606a;margin-bottom:8px">Source</div>
+              <div style="border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;font-size:13px;color:#24292f;width:240px;display:flex;justify-content:space-between">Deploy from a branch <span>▼</span></div>
+            </div>
+            <div style="margin-bottom:16px">
+              <div style="font-size:13px;color:#57606a;margin-bottom:8px">Branch</div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <div style="border:2px solid #0969da;border-radius:6px;padding:8px 12px;font-size:13px;color:#24292f;width:140px;display:flex;justify-content:space-between;background:#f6f8ff">main ▼</div>
+                <div style="border:1px solid #d0d7de;border-radius:6px;padding:8px 12px;font-size:13px;color:#24292f;width:120px;display:flex;justify-content:space-between">/ (root) ▼</div>
+                <div style="background:#2da44e;color:white;padding:8px 16px;border-radius:6px;font-size:13px;font-weight:700">Save</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="success-box">✅ Save 후 1~2분 기다리면 <b>https://내아이디.github.io/dojang-journal</b> 주소가 생성됩니다!</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 4. Firebase 프로젝트 생성 -->
+<div class="chapter" id="c4">
+  <div class="chapter-header">
+    <div class="chapter-num">4</div>
+    <div>
+      <div class="chapter-title">Firebase 프로젝트 생성</div>
+      <div class="chapter-sub">console.firebase.google.com — 소요 시간 약 5분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Firebase 콘솔 접속</div>
+        <div class="step-desc"><span class="hl">console.firebase.google.com</span> 접속 → 구글 계정으로 로그인 → <span class="hl">프로젝트 만들기</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">console.firebase.google.com</div>
+          </div>
+          <div class="fb-header">
+            <div style="font-size:20px">🔥</div>
+            <div style="color:white;font-size:16px;font-weight:700;margin-left:4px">Firebase</div>
+            <div style="margin-left:auto;display:flex;align-items:center;gap:16px">
+              <span style="color:rgba(255,255,255,0.85);font-size:13px">콘솔로 이동</span>
+              <div style="width:28px;height:28px;border-radius:50%;background:#F9A825"></div>
+            </div>
+          </div>
+          <div style="background:white;padding:28px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:8px">Firebase 프로젝트에 오신 것을 환영합니다</div>
+            <div style="font-size:14px;color:#5f6368;margin-bottom:24px">앱 개발을 가속화하는 도구와 인프라</div>
+            <div style="display:inline-flex;align-items:center;gap:8px;background:#1a73e8;color:white;padding:12px 28px;border-radius:6px;font-size:15px;font-weight:600">
+              + 프로젝트 만들기  ← 클릭!
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> <b>프로젝트 만들기</b> 버튼 클릭</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">프로젝트 이름 입력</div>
+        <div class="step-desc">프로젝트 이름을 영어로 입력 (예: <span class="hl">my-dojang</span>) → 계속 클릭 → Google Analytics는 <b>사용 안함</b>으로 체크 해제 → 프로젝트 만들기</div>
+        <div class="info-box">💡 프로젝트 이름은 영어 소문자와 하이픈(-)만 사용 가능합니다. 예: taesarang-dojang, my-hakwon</div>
+        <div class="tip-box">✅ Google Analytics 사용 여부는 <b>사용 안함</b>으로 선택해도 됩니다. 업무일지에는 필요 없어요.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 5. Realtime Database -->
+<div class="chapter" id="c5">
+  <div class="chapter-header">
+    <div class="chapter-num">5</div>
+    <div>
+      <div class="chapter-title">Realtime Database 설정</div>
+      <div class="chapter-sub">데이터 저장소 만들기 — 소요 시간 약 3분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Realtime Database 메뉴 찾기</div>
+        <div class="step-desc">프로젝트 생성 완료 후 → 왼쪽 메뉴에서 <span class="hl">빌드</span> → <span class="hl">Realtime Database</span> 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">console.firebase.google.com/project/내프로젝트</div>
+          </div>
+          <div class="fb-layout">
+            <div class="fb-sidebar">
+              <div class="fb-menu">🏠 프로젝트 개요</div>
+              <div style="padding:6px 20px;font-size:11px;color:#80868b;font-weight:600;text-transform:uppercase;letter-spacing:1px">빌드</div>
+              <div class="fb-menu">🔐 Authentication</div>
+              <div class="fb-menu active">📊 Realtime Database  ← 클릭!</div>
+              <div class="fb-menu">📦 Firestore Database</div>
+              <div class="fb-menu">💾 Storage</div>
+              <div class="fb-menu">🌐 Hosting</div>
+            </div>
+            <div class="fb-content">
+              <div style="font-size:18px;font-weight:700;color:#202124;margin-bottom:8px">Realtime Database</div>
+              <div style="font-size:13px;color:#5f6368;margin-bottom:16px">실시간으로 데이터를 저장하고 동기화하세요</div>
+              <div style="background:#1a73e8;color:white;padding:8px 20px;border-radius:4px;font-size:13px;font-weight:600;display:inline-block">데이터베이스 만들기</div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> 왼쪽 메뉴 빌드 섹션 → <b>Realtime Database</b> 클릭</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">데이터베이스 만들기</div>
+        <div class="step-desc"><span class="hl">데이터베이스 만들기</span> 클릭 → 위치는 <span class="hl">Singapore (asia-southeast1)</span> 선택 → 보안 규칙은 <span class="hl">테스트 모드</span> 선택 → 사용 설정</div>
+        <div class="warn-box">⚠️ 위치는 반드시 <b>Singapore (asia-southeast1)</b>를 선택하세요. 한국에서 가장 빠르게 연결됩니다.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">보안 규칙 설정 (중요!)</div>
+        <div class="step-desc">데이터베이스 생성 후 → <span class="hl">규칙</span> 탭 클릭 → 아래 코드로 교체 → <span class="hl">게시</span> 클릭</div>
+        <div class="code-box">
+<span class="code-comment">// Realtime Database 규칙 — 아래 내용으로 교체</span>
+{
+  <span class="code-key">"rules"</span>: {
+    <span class="code-key">".read"</span>: <span class="code-str">true</span>,
+    <span class="code-key">".write"</span>: <span class="code-str">true</span>
+  }
+}
+        </div>
+        <div class="tip-box">✅ 이 설정은 팀원들이 비밀번호 없이 데이터를 읽고 쓸 수 있게 해줍니다. 앱 자체에서 PIN 번호로 보호됩니다.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Firebase 설정값 확인 (복사할 정보)</div>
+        <div class="step-desc">왼쪽 메뉴 상단 ⚙️ <span class="hl">프로젝트 설정</span> → <span class="hl">일반</span> 탭 → 아래로 스크롤 → <span class="hl">내 앱</span> 섹션 → <span class="hl">웹 앱 추가</span> (</> 아이콘) 클릭</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">console.firebase.google.com/.../settings/general</div>
+          </div>
+          <div style="background:white;padding:20px">
+            <div style="font-size:16px;font-weight:700;color:#202124;margin-bottom:16px">프로젝트 설정</div>
+            <div style="border-bottom:1px solid #e0e0e0;margin-bottom:16px;display:flex;gap:24px;font-size:13px">
+              <div style="padding-bottom:8px;border-bottom:2px solid #1a73e8;color:#1a73e8;font-weight:600">일반</div>
+              <div style="padding-bottom:8px;color:#5f6368">서비스 계정</div>
+              <div style="padding-bottom:8px;color:#5f6368">통합</div>
+            </div>
+            <div style="margin-bottom:20px">
+              <div style="font-size:14px;font-weight:600;color:#202124;margin-bottom:12px">내 앱</div>
+              <div style="border:1px solid #e0e0e0;border-radius:8px;padding:16px;display:flex;align-items:center;justify-content:space-between">
+                <div style="font-size:13px;color:#5f6368">앱이 없습니다</div>
+                <div style="display:flex;gap:8px">
+                  <div style="border:1px solid #1a73e8;color:#1a73e8;padding:6px 14px;border-radius:4px;font-size:13px;font-weight:600;cursor:pointer">&lt;/&gt; 웹 앱 추가  ← 클릭!</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="click-target"><span class="click-arrow">👆</span> <b>&lt;/&gt; 웹 앱 추가</b> 버튼 클릭</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">firebaseConfig 값 복사</div>
+        <div class="step-desc">앱 닉네임 입력 (예: dojang-app) → 앱 등록 → 아래와 같은 설정값이 나타납니다. 각 값을 복사해두세요.</div>
+        <div class="code-box">
+<span class="code-comment">// 이런 형태로 나타납니다 — 각 값을 복사하세요</span>
+const firebaseConfig = {
+  <span class="code-key">apiKey</span>: <span class="code-str">"AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXX"</span>,
+  <span class="code-key">authDomain</span>: <span class="code-str">"내프로젝트.firebaseapp.com"</span>,
+  <span class="code-key">databaseURL</span>: <span class="code-url">"https://내프로젝트-default-rtdb.asia-southeast1.firebasedatabase.app"</span>,
+  <span class="code-key">projectId</span>: <span class="code-str">"내프로젝트"</span>,
+};
+        </div>
+        <div class="warn-box">⚠️ 이 값들은 다음 단계에서 업무일지 초기 설정 화면에 입력해야 합니다. 메모장에 복사해두세요!</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 6. 앱 초기 설정 -->
+<div class="chapter" id="c6">
+  <div class="chapter-header">
+    <div class="chapter-num">6</div>
+    <div>
+      <div class="chapter-title">업무일지 초기 설정 입력</div>
+      <div class="chapter-sub">GitHub Pages 주소에서 설정 입력 — 소요 시간 약 2분</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">GitHub Pages 주소로 접속</div>
+        <div class="step-desc">브라우저에서 <span class="hl">https://내아이디.github.io/dojang-journal</span> 접속 → 초기 설정 화면이 나타납니다</div>
+        <div class="screen">
+          <div class="screen-bar">
+            <div class="screen-dots">
+              <div class="screen-dot" style="background:#FF5F57"></div>
+              <div class="screen-dot" style="background:#FFBD2E"></div>
+              <div class="screen-dot" style="background:#28C840"></div>
+            </div>
+            <div class="screen-url">내아이디.github.io/dojang-journal</div>
+          </div>
+          <div style="background:#0B1F3A;padding:28px;color:white;text-align:center">
+            <div style="font-size:36px;margin-bottom:8px">🥋</div>
+            <div style="color:#F9A825;font-size:20px;font-weight:900;margin-bottom:4px">FILLYO 업무일지</div>
+            <div style="color:rgba(255,255,255,0.45);font-size:12px;margin-bottom:24px">처음 사용하시는군요! 아래 정보를 입력해주세요</div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:left">
+              <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-bottom:6px">1. 도장 · 학원 이름</div>
+              <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:rgba(255,255,255,0.9);font-size:14px">예: 태사랑 태권도</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:12px 16px;margin-bottom:12px;text-align:left">
+              <div style="color:rgba(255,255,255,0.6);font-size:11px;margin-bottom:6px">2. Firebase API Key</div>
+              <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:10px 14px;color:rgba(255,255,255,0.5);font-size:12px;font-family:monospace">AIzaSy...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">설정값 입력</div>
+        <div class="step-desc">도장 이름과 앞 단계에서 복사한 Firebase 값 5가지를 입력 → <span class="hl">설정 완료 — 업무일지 시작하기</span> 클릭</div>
+        <ul class="num-list">
+          <li>도장·학원 이름 입력 (예: 태사랑 태권도)</li>
+          <li>Firebase API Key 붙여넣기</li>
+          <li>Auth Domain 붙여넣기</li>
+          <li>Database URL 붙여넣기</li>
+          <li>Project ID 붙여넣기</li>
+        </ul>
+        <div class="success-box">✅ 설정 완료 버튼을 누르면 PIN 번호 설정 화면이 나타납니다. 팀원 모두가 사용할 4자리 번호를 설정하세요.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- 7. 팀원 공유 -->
+<div class="chapter" id="c7">
+  <div class="chapter-header">
+    <div class="chapter-num">7</div>
+    <div>
+      <div class="chapter-title">팀원과 공유하기</div>
+      <div class="chapter-sub">사범님들 스마트폰에 바로 설치</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">GitHub Pages 주소를 카카오톡으로 공유</div>
+        <div class="step-desc">설정이 완료된 후 <span class="hl">https://내아이디.github.io/dojang-journal</span> 주소를 사범님들에게 카카오톡으로 공유</div>
+        <div class="tip-box">✅ 팀원들은 설정 화면 없이 바로 PIN 입력 화면이 나타납니다. 관장님이 설정한 PIN 번호를 알려주세요.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">스마트폰 홈 화면에 추가 (앱처럼 사용)</div>
+        <div class="step-desc">스마트폰 브라우저에서 주소 접속 → 아이폰: 공유 버튼(□↑) → 홈 화면에 추가 / 갤럭시: 메뉴(⋮) → 홈 화면에 추가</div>
+        <div class="info-box">📱 홈 화면에 추가하면 앱처럼 아이콘이 생기고 전체 화면으로 사용할 수 있어요.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 최종 체크리스트 -->
+<div class="chapter">
+  <div class="chapter-header">
+    <div class="chapter-num" style="background:var(--teal)">✓</div>
+    <div>
+      <div class="chapter-title">설치 완료 체크리스트</div>
+      <div class="chapter-sub">모든 항목에 체크하셨으면 완료!</div>
+    </div>
+  </div>
+  <div class="chapter-body">
+    <ul class="checklist">
+      <li>GitHub 계정 가입 완료</li>
+      <li>저장소(dojang-journal) 생성 완료</li>
+      <li>index.html 파일 업로드 완료</li>
+      <li>GitHub Pages 활성화 완료</li>
+      <li>Firebase 프로젝트 생성 완료</li>
+      <li>Realtime Database 생성 및 규칙 설정 완료</li>
+      <li>firebaseConfig 값 복사 완료</li>
+      <li>업무일지 초기 설정 입력 완료</li>
+      <li>PIN 번호 설정 완료</li>
+      <li>팀원에게 주소 공유 완료</li>
+    </ul>
+    <div class="success-box" style="margin-top:20px">🎉 모든 체크가 완료됐으면 업무일지를 사용할 준비가 끝났습니다! 문의사항은 FILLYO 카카오 채널로 연락주세요.</div>
+  </div>
+</div>
+
+</div>
+
+<footer>
+  <strong>FILLYO</strong> — 필요한 모든 것을 한 곳에서<br>
+  문의: 카카오 오픈채팅 open.kakao.com/o/sPoqIkxi<br>
+  © 2025 FILLYO. All rights reserved.
+</footer>
+
+</body>
+</html>
