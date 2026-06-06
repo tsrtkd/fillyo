@@ -144,10 +144,36 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 .toast.ok{background:var(--green);}
 .toast.err{background:var(--red);}
 
+/* ── NEW: DETAILED STATS ────────────────────────────────────────── */
+.stats4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat.c-purple .stat-value{color:var(--purple);}
+
+/* ── NEW: ALERT CARD ────────────────────────────────────────────── */
+.alert-card{background:white;border-radius:14px;box-shadow:0 1px 4px rgba(11,31,58,0.07);overflow:hidden;margin-bottom:20px;}
+.alert-card-hdr{padding:14px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.alert-card-title{font-size:14px;font-weight:900;color:var(--navy);flex:1;}
+.alert-cnt{font-size:11px;font-weight:900;padding:2px 9px;border-radius:10px;}
+.alert-cnt.has{background:var(--red-lt);color:var(--red);}
+.alert-cnt.none{background:var(--green-lt);color:var(--green);}
+
+.alert-row{display:flex;align-items:center;padding:11px 20px;border-bottom:1px solid var(--border);gap:10px;}
+.alert-row:last-child{border-bottom:none;}
+.alert-info{flex:1;min-width:0;}
+.alert-name{font-size:13px;font-weight:700;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.alert-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.dday-badge{font-size:11px;font-weight:900;padding:2px 9px;border-radius:5px;background:var(--red-lt);color:var(--red);white-space:nowrap;flex-shrink:0;}
+.btn-kakao-sm{background:#FEE500;color:#191919;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:900;font-family:inherit;cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background 0.15s;}
+.btn-kakao-sm:hover{background:#f0d800;}
+
+.req-empty{padding:40px 20px;text-align:center;}
+.req-empty-icon{font-size:32px;margin-bottom:8px;}
+.req-empty-text{font-size:13px;color:var(--gray);}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
   .stats .stat:first-child{grid-column:1/-1;}
+  .stats4{grid-template-columns:1fr 1fr;}
   .hdr-user{display:none;}
   .main{padding:16px 12px 80px;}
   .card-header{gap:8px;}
@@ -155,6 +181,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 }
 @media(max-width:380px){
   .stats{grid-template-columns:1fr;}
+  .stats4{grid-template-columns:1fr 1fr;}
 }
 </style>
 </head>
@@ -197,6 +224,66 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
         <div class="stat-label">무료 회원</div>
         <div class="stat-value" id="statFree">—</div>
         <div class="stat-sub">무료 플랜</div>
+      </div>
+    </div>
+
+    <!-- ── 접속 통계 ──────────────────────────────────────────────── -->
+    <div class="stats4">
+      <div class="stat c-blue">
+        <div class="stat-label">전체 가입자</div>
+        <div class="stat-value" id="dstatTotal">—</div>
+        <div class="stat-sub">누적 가입</div>
+      </div>
+      <div class="stat c-purple">
+        <div class="stat-label">이번 달 신규</div>
+        <div class="stat-value" id="dstatMonthly">—</div>
+        <div class="stat-sub">신규 가입</div>
+      </div>
+      <div class="stat c-green">
+        <div class="stat-label">유료 (Pro)</div>
+        <div class="stat-value" id="dstatPro">—</div>
+        <div class="stat-sub">구독 중</div>
+      </div>
+      <div class="stat c-orange">
+        <div class="stat-label">무료</div>
+        <div class="stat-value" id="dstatFree">—</div>
+        <div class="stat-sub">무료 플랜</div>
+      </div>
+    </div>
+
+    <!-- ── 만료 예정자 알림 ───────────────────────────────────────── -->
+    <div class="alert-card">
+      <div class="alert-card-hdr">
+        <span class="alert-card-title">⏰ 만료 예정자 알림 <small style="font-size:11px;color:var(--gray);font-weight:500;">— 7일 이내</small></span>
+        <span class="alert-cnt none" id="expiringSoonCnt">0</span>
+      </div>
+      <div id="expiringSoonList">
+        <div class="req-empty"><div class="req-empty-icon">⏳</div><div class="req-empty-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── 만료 미결제 고객 ───────────────────────────────────────── -->
+    <div class="alert-card">
+      <div class="alert-card-hdr">
+        <span class="alert-card-title">🔴 만료된 미결제 고객</span>
+        <span class="alert-cnt none" id="expiredCnt">0</span>
+      </div>
+      <div id="expiredList">
+        <div class="req-empty"><div class="req-empty-icon">⏳</div><div class="req-empty-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── 맞춤 수정 요청 관리 ────────────────────────────────────── -->
+    <div class="alert-card">
+      <div class="alert-card-hdr">
+        <span class="alert-card-title">✏️ 맞춤 수정 요청 관리</span>
+        <span class="alert-cnt none" id="customReqCnt">0</span>
+      </div>
+      <div id="customReqList">
+        <div class="req-empty">
+          <div class="req-empty-icon">📭</div>
+          <div class="req-empty-text">접수된 요청이 없습니다.</div>
+        </div>
       </div>
     </div>
 
@@ -341,6 +428,8 @@ window.loadData = async () => {
       allData = [];
       renderTable();
       updateStats();
+      renderAlerts();
+      updateDetailedStats();
       hideLoading();
       return;
     }
@@ -374,6 +463,8 @@ window.loadData = async () => {
     allData.sort((a, b) => b.createdAt - a.createdAt);
     renderTable();
     updateStats();
+    renderAlerts();
+    updateDetailedStats();
   } catch (err) {
     console.error(err);
     showToast('로드 실패: ' + err.message, 'err');
@@ -566,6 +657,77 @@ document.getElementById('planModal').addEventListener('click', e => {
 document.getElementById('deleteModal').addEventListener('click', e => {
   if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
 });
+
+// ── 상세 통계 ─────────────────────────────────────────────────────
+function updateDetailedStats() {
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const total   = allData.length;
+  const monthly = allData.filter(a => a.createdAt >= startOfMonth.getTime()).length;
+  const pro     = allData.filter(a => a.planType === 'pro').length;
+
+  document.getElementById('dstatTotal').textContent   = total;
+  document.getElementById('dstatMonthly').textContent = monthly;
+  document.getElementById('dstatPro').textContent     = pro;
+  document.getElementById('dstatFree').textContent    = total - pro;
+}
+
+// ── 알림 섹션 렌더링 ──────────────────────────────────────────────
+function renderAlerts() {
+  const now  = Date.now();
+  const day7 = 7 * 24 * 60 * 60 * 1000;
+
+  const expiringSoon = allData
+    .filter(a => a.planType === 'pro' && a.planExpiry &&
+                 a.planExpiry > now && (a.planExpiry - now) <= day7)
+    .sort((a, b) => a.planExpiry - b.planExpiry);
+
+  const expiredList = allData
+    .filter(a => a.planType === 'pro' && a.planExpiry && now > a.planExpiry)
+    .sort((a, b) => b.planExpiry - a.planExpiry);
+
+  // 만료 예정 배지
+  const soonCntEl = document.getElementById('expiringSoonCnt');
+  soonCntEl.textContent = expiringSoon.length;
+  soonCntEl.className   = `alert-cnt ${expiringSoon.length > 0 ? 'has' : 'none'}`;
+
+  // 만료 미결제 배지
+  const expCntEl = document.getElementById('expiredCnt');
+  expCntEl.textContent = expiredList.length;
+  expCntEl.className   = `alert-cnt ${expiredList.length > 0 ? 'has' : 'none'}`;
+
+  // 만료 예정 목록
+  document.getElementById('expiringSoonList').innerHTML = expiringSoon.length === 0
+    ? `<div class="req-empty"><div class="req-empty-icon">✅</div><div class="req-empty-text">만료 예정 고객이 없습니다.</div></div>`
+    : expiringSoon.map(a => {
+        const diff = Math.ceil((a.planExpiry - now) / (1000 * 60 * 60 * 24));
+        return `<div class="alert-row">
+          <div class="alert-info">
+            <div class="alert-name">${esc(a.academyName)} · ${esc(a.ownerName)}</div>
+            <div class="alert-meta">${esc(a.email)} &nbsp;·&nbsp; 만료일 ${fmt(a.planExpiry)}</div>
+          </div>
+          <span class="dday-badge">D-${diff}</span>
+          <button class="btn-kakao-sm" onclick="window.open('https://pf.kakao.com/_fillyo','_blank')">💬 카카오 알림</button>
+        </div>`;
+      }).join('');
+
+  // 만료 미결제 목록
+  document.getElementById('expiredList').innerHTML = expiredList.length === 0
+    ? `<div class="req-empty"><div class="req-empty-icon">✅</div><div class="req-empty-text">만료된 미결제 고객이 없습니다.</div></div>`
+    : expiredList.map(a => {
+        const days = Math.floor((now - a.planExpiry) / (1000 * 60 * 60 * 24));
+        return `<div class="alert-row">
+          <div class="alert-info">
+            <div class="alert-name">${esc(a.academyName)} · ${esc(a.ownerName)}</div>
+            <div class="alert-meta">${esc(a.email)} &nbsp;·&nbsp; 만료일 ${fmt(a.planExpiry)}</div>
+          </div>
+          <span class="dday-badge">+${days}일 경과</span>
+          <button class="btn-kakao-sm" onclick="window.open('https://pf.kakao.com/_fillyo','_blank')">💬 카카오 알림</button>
+        </div>`;
+      }).join('');
+}
 
 // ── 유틸 ──────────────────────────────────────────────────────────
 function fmt(ts) {
