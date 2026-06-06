@@ -776,7 +776,7 @@ function setSync(on, txt, time) {
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
-  location.href = '/login';
+  location.href = '/dashboard';
 };
 
 // ── 출석 테이블 ───────────────────────────────────────────────────
