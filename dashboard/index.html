@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fillyo Dashboard</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    *{
+      margin:0;
+      padding:0;
+      box-sizing:border-box;
+    }
+
+    body{
+      font-family:'Pretendard','Noto Sans KR',sans-serif;
+      background:#f4f7fb;
+      color:#1d1d1f;
+      display:flex;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .app{
+      width:100%;
+      max-width:430px;
+      background:#ffffff;
+      border-radius:38px;
+      overflow:hidden;
+      box-shadow:0 10px 40px rgba(0,0,0,0.08);
+      position:relative;
+      min-height:100vh;
+    }
+
+    /* LOADING */
+    #loadingScreen{
+      position:fixed;
+      inset:0;
+      background:#0B1F3A;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      z-index:9999;
+    }
+    .ld-logo{
+      font-size:32px;
+      font-weight:800;
+      color:#f6aa1c;
+      letter-spacing:-1px;
+      animation:ldpulse 1.5s ease-in-out infinite;
+    }
+    @keyframes ldpulse{0%,100%{opacity:1}50%{opacity:0.4}}
+
+    /* HEADER */
+    .header{
+      padding:26px 22px 10px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+    }
+
+    .logo{
+      font-size:32px;
+      font-weight:800;
+      color:#f6aa1c;
+      letter-spacing:-1px;
+    }
+
+    .header-icons{
+      display:flex;
+      gap:10px;
+    }
+
+    .icon-btn{
+      width:42px;
+      height:42px;
+      border-radius:14px;
+      background:#fff;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      box-shadow:0 4px 14px rgba(0,0,0,0.06);
+      font-size:18px;
+      cursor:pointer;
+      transition:transform 0.15s;
+    }
+    .icon-btn:active{transform:scale(0.92);}
+
+    /* HERO */
+    .hero{
+      margin:14px 20px 24px;
+      background:linear-gradient(135deg,#ffe16f,#ffb703);
+      border-radius:30px;
+      padding:24px;
+      position:relative;
+      overflow:hidden;
+      min-height:190px;
+      box-shadow:0 10px 30px rgba(255,183,3,0.25);
+    }
+
+    .hero::after{
+      content:'';
+      position:absolute;
+      width:220px;
+      height:220px;
+      border-radius:50%;
+      background:rgba(255,255,255,0.2);
+      right:-60px;
+      top:-60px;
+    }
+
+    .hero small{
+      font-size:14px;
+      color:#704f00;
+      font-weight:600;
+    }
+
+    .hero h1{
+      margin-top:10px;
+      font-size:36px;
+      line-height:1.2;
+      font-weight:800;
+      color:#1f1f1f;
+      letter-spacing:-1.5px;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      margin-top:16px;
+      background:#fff7d1;
+      padding:10px 16px;
+      border-radius:999px;
+      font-size:14px;
+      font-weight:700;
+      color:#5e4600;
+    }
+
+    .countdown{
+      position:absolute;
+      right:20px;
+      bottom:22px;
+      background:#ffffff;
+      width:92px;
+      height:92px;
+      border-radius:26px;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      box-shadow:0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    .countdown strong{
+      font-size:28px;
+      font-weight:800;
+    }
+
+    .countdown span{
+      font-size:11px;
+      color:#888;
+      margin-top:4px;
+      text-align:center;
+      line-height:1.3;
+    }
+
+    /* SECTION */
+    .section{
+      padding:0 20px;
+      margin-bottom:24px;
+    }
+
+    .section-title{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:16px;
+    }
+
+    .section-title h2{
+      font-size:18px;
+      font-weight:800;
+      letter-spacing:-0.5px;
+    }
+
+    .section-title a{
+      text-decoration:none;
+      font-size:14px;
+      color:#777;
+    }
+
+    /* GRID */
+    .grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:14px;
+    }
+
+    .card{
+      border-radius:26px;
+      padding:20px;
+      min-height:145px;
+      position:relative;
+      overflow:hidden;
+      transition:0.2s ease;
+      cursor:pointer;
+    }
+
+    .card:hover{transform:translateY(-4px);}
+    .card:active{transform:scale(0.97);}
+
+    .card.green{background:#dff8e7;}
+    .card.orange{background:#fff0cc;}
+    .card.blue{background:#dcecff;}
+    .card.purple{background:#efe3ff;}
+
+    .emoji{
+      font-size:34px;
+      margin-bottom:16px;
+    }
+
+    .card h3{
+      font-size:20px;
+      font-weight:800;
+      margin-bottom:6px;
+      letter-spacing:-0.5px;
+    }
+
+    .card p{
+      font-size:13px;
+      color:#666;
+      line-height:1.4;
+    }
+
+    .status{
+      position:absolute;
+      top:16px;
+      right:16px;
+      padding:7px 12px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.8);
+      font-size:11px;
+      font-weight:700;
+    }
+
+    /* QUICK MENU */
+    .quick-list{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .quick-item{
+      background:#fff;
+      border-radius:22px;
+      padding:18px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      box-shadow:0 5px 18px rgba(0,0,0,0.05);
+      cursor:pointer;
+      transition:transform 0.15s;
+    }
+    .quick-item:hover{transform:translateY(-2px);}
+    .quick-item:active{transform:scale(0.97);}
+
+    .quick-left{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .quick-icon{
+      width:54px;
+      height:54px;
+      border-radius:18px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:24px;
+      font-weight:700;
+    }
+
+    .bg-green{background:#dff8e7;}
+    .bg-blue{background:#dcecff;}
+    .bg-yellow{background:#fff2c7;}
+
+    .quick-text h4{
+      font-size:17px;
+      font-weight:700;
+      margin-bottom:4px;
+    }
+
+    .quick-text p{
+      font-size:13px;
+      color:#777;
+    }
+
+    .arrow{
+      font-size:22px;
+      color:#aaa;
+    }
+
+    /* BOTTOM NAV */
+    .bottom-nav{
+      position:sticky;
+      bottom:0;
+      width:100%;
+      background:rgba(255,255,255,0.95);
+      backdrop-filter:blur(18px);
+      display:flex;
+      justify-content:space-around;
+      padding:16px 10px 24px;
+      border-top:1px solid #eee;
+      margin-top:30px;
+    }
+
+    .nav-item{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      color:#777;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .nav-item.active{color:#ffb703;}
+
+    .nav-icon{font-size:22px;}
+
+    /* RESPONSIVE */
+    @media(max-width:390px){
+      .hero h1{font-size:30px;}
+      .countdown{width:82px;height:82px;}
+      .card{min-height:130px;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 로딩 -->
+  <div id="loadingScreen">
+    <div class="ld-logo">fillyo</div>
+  </div>
+
+  <div class="app">
+
+    <!-- HEADER -->
+    <div class="header">
+      <div class="logo">fillyo</div>
+      <div class="header-icons">
+        <div class="icon-btn">🔔</div>
+        <div class="icon-btn" id="btnMypage">👤</div>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <section class="hero">
+      <small>좋은 하루예요, 원장님 👋</small>
+      <h1 id="academyName">불러오는 중...</h1>
+      <div class="badge" id="planBadge">🟢 불러오는 중</div>
+      <div class="countdown">
+        <strong id="countdownNum">—</strong>
+        <span id="countdownLabel">구독 만료까지</span>
+      </div>
+    </section>
+
+    <!-- SERVICES -->
+    <section class="section">
+      <div class="section-title">
+        <h2>내 서비스</h2>
+        <a href="#">전체 보기</a>
+      </div>
+      <div class="grid">
+        <div class="card green" id="cardApp">
+          <div class="status">이용중</div>
+          <div class="emoji">📝</div>
+          <h3>업무일지</h3>
+          <p>출석 · 차량 · 메모</p>
+        </div>
+        <div class="card orange">
+          <div class="status">준비중</div>
+          <div class="emoji">🏆</div>
+          <h3>승급심사</h3>
+          <p>심사 · 성적표</p>
+        </div>
+        <div class="card blue">
+          <div class="status">준비중</div>
+          <div class="emoji">🪢</div>
+          <h3>줄넘기</h3>
+          <p>급수 · 기록</p>
+        </div>
+        <div class="card purple">
+          <div class="status">준비중</div>
+          <div class="emoji">🔔</div>
+          <h3>학부모 알림</h3>
+          <p>AI 소통</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- QUICK -->
+    <section class="section">
+      <div class="section-title">
+        <h2>바로가기</h2>
+      </div>
+      <div class="quick-list">
+
+        <div class="quick-item" id="quickMypage">
+          <div class="quick-left">
+            <div class="quick-icon bg-green">⚙️</div>
+            <div class="quick-text">
+              <h4>마이페이지</h4>
+              <p>학원정보 수정 · 구독 관리</p>
+            </div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+
+        <div class="quick-item">
+          <div class="quick-left">
+            <div class="quick-icon bg-blue">✏️</div>
+            <div class="quick-text">
+              <h4>맞춤 수정 요청</h4>
+              <p>우리 도장 맞춤 변경 · 견적 안내</p>
+            </div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+
+        <div class="quick-item" id="quickKakao">
+          <div class="quick-left">
+            <div class="quick-icon bg-yellow">💬</div>
+            <div class="quick-text">
+              <h4>카카오 문의</h4>
+              <p>FILLYO 채널 바로가기</p>
+            </div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- BOTTOM NAV -->
+    <nav class="bottom-nav">
+      <div class="nav-item active">
+        <div class="nav-icon">🏠</div>
+        홈
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">🧩</div>
+        서비스
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">✨</div>
+        AI
+      </div>
+      <div class="nav-item">
+        <div class="nav-icon">🔔</div>
+        알림
+      </div>
+      <div class="nav-item" id="navMypage">
+        <div class="nav-icon">👤</div>
+        마이
+      </div>
+    </nav>
+
+  </div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const fbApp = initializeApp(FB_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getDatabase(fbApp);
+
+// ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.href = '/login';
+    return;
+  }
+
+  try {
+    const userSnap = await get(ref(db, `users/${user.uid}`));
+    if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
+
+    const userData   = userSnap.val();
+    const planType   = userData.planType   || 'free';
+    const planExpiry = userData.planExpiry || null;
+    const academyId  = userData.academyId  || null;
+
+    // 학원명 로드
+    if (academyId) {
+      const acSnap = await get(ref(db, `academies/${academyId}/settings`));
+      if (acSnap.exists()) {
+        const settings = acSnap.val();
+        document.getElementById('academyName').textContent = settings.name || '내 학원';
+      }
+    } else {
+      document.getElementById('academyName').textContent = '내 학원';
+    }
+
+    // 플랜 배지
+    const badgeEl = document.getElementById('planBadge');
+    if (planType === 'pro') {
+      badgeEl.textContent = '🟢 얼리버드 구독 중';
+    } else {
+      badgeEl.textContent = '🟡 무료 체험 중';
+    }
+
+    // D-day 카운트다운
+    const numEl   = document.getElementById('countdownNum');
+    const labelEl = document.getElementById('countdownLabel');
+    if (planType === 'pro' && planExpiry) {
+      const diff = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+      if (diff > 0) {
+        numEl.textContent   = `D-${diff}`;
+        labelEl.textContent = '구독 만료까지';
+      } else {
+        numEl.textContent   = '만료';
+        labelEl.textContent = '구독을 갱신해주세요';
+        numEl.style.color   = '#C62828';
+        numEl.style.fontSize = '18px';
+      }
+    } else {
+      numEl.textContent   = '∞';
+      labelEl.textContent = '무료 플랜';
+      numEl.style.fontSize = '32px';
+    }
+  } catch (e) {
+    console.error(e);
+    document.getElementById('academyName').textContent = '내 학원';
+  }
+
+  document.getElementById('loadingScreen').style.display = 'none';
+});
+
+// ── 클릭 이벤트 ───────────────────────────────────────────────────
+document.getElementById('cardApp').addEventListener('click', () => {
+  location.href = '/app';
+});
+
+document.getElementById('quickMypage').addEventListener('click', () => {
+  location.href = '/mypage';
+});
+
+document.getElementById('quickKakao').addEventListener('click', () => {
+  window.open('https://pf.kakao.com/_fillyo', '_blank');
+});
+
+document.getElementById('btnMypage').addEventListener('click', () => {
+  location.href = '/mypage';
+});
+
+document.getElementById('navMypage').addEventListener('click', () => {
+  location.href = '/mypage';
+});
+</script>
+</body>
+</html>
