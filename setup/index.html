@@ -212,7 +212,7 @@ onAuthStateChanged(auth, async (user) => {
   const snap = await get(ref(db, `users/${user.uid}`));
   if (snap.exists()) {
     const data = snap.val();
-    if (data.academyId) { location.href = '/app'; return; }
+    if (data.academyId) { location.href = '/dashboard'; return; }
     userPlanType = data.planType || 'free';
   }
 
@@ -386,7 +386,7 @@ async function saveAndFinish() {
       ownerName: owner,
     });
 
-    location.href = '/app';
+    location.href = '/dashboard';
   } catch (err) {
     console.error(err);
     showToast('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
