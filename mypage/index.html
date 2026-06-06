@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>마이페이지 — fillyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0B1F3A; --blue:#1352A8; --sky:#E8F1FF;
+  --yellow:#F9A825; --red:#C62828;
+  --gray:#546E7A; --border:#DDE4EE; --bg:#EEF2F8;
+  --text:#1A2332; --text2:#4A5A6A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--navy);height:56px;padding:0 20px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;}
+.hdr-logo{color:var(--yellow);font-size:18px;font-weight:900;letter-spacing:-0.5px;text-decoration:none;}
+.hdr-spacer{flex:1;}
+.hdr-email{color:rgba(255,255,255,0.45);font-size:12px;}
+.btn-logout{background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.55);font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:inherit;}
+.btn-logout:hover{border-color:rgba(255,255,255,0.45);color:white;}
+
+/* LOADING */
+#loadingScreen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.ld-icon{font-size:48px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ld-name{color:var(--yellow);font-size:20px;font-weight:900;margin-top:8px;}
+
+/* CONTENT */
+#pageContent{display:none;}
+.main{max-width:640px;margin:0 auto;padding:24px 16px 80px;}
+
+/* PROFILE CARD */
+.profile-card{background:white;border-radius:16px;padding:24px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(11,31,58,0.08);display:flex;align-items:center;gap:16px;}
+.avatar{width:56px;height:56px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.profile-info{}
+.profile-email{font-size:14px;font-weight:700;color:var(--text);}
+.profile-plan{font-size:12px;color:var(--gray);margin-top:4px;}
+
+/* COMING SOON */
+.coming-card{background:white;border-radius:16px;padding:40px 20px;margin-bottom:16px;box-shadow:0 1px 4px rgba(11,31,58,0.08);text-align:center;}
+.coming-icon{font-size:48px;margin-bottom:14px;}
+.coming-title{font-size:18px;font-weight:900;color:var(--navy);margin-bottom:8px;}
+.coming-desc{font-size:13px;color:var(--text2);line-height:1.8;}
+
+/* NAV LINKS */
+.nav-card{background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 4px rgba(11,31,58,0.08);}
+.nav-item{display:flex;align-items:center;gap:12px;padding:15px 18px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.1s;text-decoration:none;color:var(--text);}
+.nav-item:last-child{border-bottom:none;}
+.nav-item:hover{background:#F7F9FF;}
+.nav-icon{font-size:20px;width:28px;text-align:center;}
+.nav-label{font-size:14px;font-weight:700;}
+.nav-arrow{margin-left:auto;color:var(--gray);font-size:16px;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="ld-icon">🥋</div>
+  <div class="ld-name">fillyo</div>
+</div>
+
+<div id="pageContent">
+  <header class="hdr">
+    <a class="hdr-logo" href="/">fillyo</a>
+    <div class="hdr-spacer"></div>
+    <span class="hdr-email" id="hdrEmail"></span>
+    <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+  </header>
+
+  <main class="main">
+    <div class="profile-card">
+      <div class="avatar">👤</div>
+      <div class="profile-info">
+        <div class="profile-email" id="profileEmail">—</div>
+        <div class="profile-plan" id="profilePlan">—</div>
+      </div>
+    </div>
+
+    <div class="coming-card">
+      <div class="coming-icon">🚧</div>
+      <div class="coming-title">마이페이지 준비 중</div>
+      <div class="coming-desc">구독 관리, 청구 내역, 계정 설정 등<br>다양한 기능을 곧 제공할 예정입니다.</div>
+    </div>
+
+    <div class="nav-card">
+      <a class="nav-item" href="/app">
+        <span class="nav-icon">📝</span>
+        <span class="nav-label">업무일지 앱으로 이동</span>
+        <span class="nav-arrow">›</span>
+      </a>
+      <a class="nav-item" href="/">
+        <span class="nav-icon">🏠</span>
+        <span class="nav-label">fillyo 홈페이지</span>
+        <span class="nav-arrow">›</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const fbApp = initializeApp(FB_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getDatabase(fbApp);
+
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    location.href = '/login';
+    return;
+  }
+
+  document.getElementById('hdrEmail').textContent   = user.email;
+  document.getElementById('profileEmail').textContent = user.email;
+
+  try {
+    const snap = await get(ref(db, `users/${user.uid}`));
+    if (snap.exists()) {
+      const data = snap.val();
+      const plan = data.planType === 'pro' ? '⭐ Pro 플랜' : '무료 플랜';
+      document.getElementById('profilePlan').textContent = plan;
+    }
+  } catch (_) {}
+
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('pageContent').style.display   = '';
+});
+
+window.doLogout = async () => {
+  await signOut(auth);
+  location.href = '/login';
+};
+</script>
+</body>
+</html>

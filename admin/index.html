@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>관리자 콘솔 — fillyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0B1F3A; --blue:#1352A8; --sky:#E8F1FF;
+  --yellow:#F9A825; --red:#C62828; --red-lt:#FFEBEE;
+  --green:#1B7A3E; --green-lt:#E8F5E9;
+  --purple:#4527A0; --purple-lt:#EDE7F6;
+  --orange:#E65100; --orange-lt:#FFF3E0;
+  --gray:#546E7A; --border:#DDE4EE; --bg:#EEF2F8;
+  --text:#1A2332; --text2:#4A5A6A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* ── HEADER ─────────────────────────────────────────────────────── */
+.hdr{background:var(--navy);height:60px;padding:0 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.35);}
+.hdr-logo{color:var(--yellow);font-size:20px;font-weight:900;letter-spacing:-0.5px;text-decoration:none;cursor:pointer;}
+.hdr-badge{background:rgba(249,168,37,0.18);color:var(--yellow);font-size:10px;font-weight:900;padding:3px 8px;border-radius:5px;letter-spacing:1px;}
+.hdr-spacer{flex:1;}
+.hdr-user{color:rgba(255,255,255,0.45);font-size:12px;}
+.btn-logout{background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.55);font-size:12px;padding:6px 14px;border-radius:7px;cursor:pointer;font-family:inherit;transition:all 0.15s;margin-left:10px;}
+.btn-logout:hover{border-color:rgba(255,255,255,0.45);color:white;}
+
+/* ── MAIN ───────────────────────────────────────────────────────── */
+.main{max-width:1120px;margin:0 auto;padding:24px 20px 80px;}
+
+/* ── STATS ──────────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:white;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(11,31,58,0.07);}
+.stat-label{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+.stat-value{font-size:30px;font-weight:900;line-height:1;}
+.stat-sub{font-size:11px;color:var(--text2);margin-top:5px;}
+.stat.c-blue  .stat-value{color:var(--blue);}
+.stat.c-green .stat-value{color:var(--green);}
+.stat.c-orange .stat-value{color:var(--orange);}
+
+/* ── TABLE CARD ─────────────────────────────────────────────────── */
+.card{background:white;border-radius:14px;box-shadow:0 1px 4px rgba(11,31,58,0.07);overflow:hidden;}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.card-title{font-size:15px;font-weight:900;color:var(--navy);}
+.search-inp{flex:1;min-width:160px;max-width:280px;border:1.5px solid var(--border);border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;transition:border-color 0.15s;}
+.search-inp:focus{border-color:var(--blue);}
+.btn-refresh{margin-left:auto;background:var(--bg);border:1.5px solid var(--border);color:var(--gray);font-size:12px;font-weight:700;padding:7px 14px;border-radius:8px;cursor:pointer;font-family:inherit;transition:all 0.15s;white-space:nowrap;}
+.btn-refresh:hover{border-color:var(--blue);color:var(--blue);}
+
+/* ── TABLE ──────────────────────────────────────────────────────── */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;min-width:740px;}
+thead th{background:var(--bg);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:#F7F9FF;}
+td{padding:12px 16px;font-size:13px;vertical-align:middle;}
+.td-academy{font-weight:700;color:var(--text);}
+.td-owner{color:var(--text);}
+.td-email{color:var(--text2);font-size:12px;}
+.td-date{color:var(--text2);font-size:12px;white-space:nowrap;}
+
+/* ── BADGES ─────────────────────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap;}
+.badge-free   {background:var(--bg);color:var(--gray);}
+.badge-pro    {background:var(--purple-lt);color:var(--purple);}
+.badge-expired{background:var(--red-lt);color:var(--red);}
+
+/* ── ACTION BUTTONS ─────────────────────────────────────────────── */
+.act-row{display:flex;gap:5px;}
+.btn-act{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;font-family:inherit;cursor:pointer;border:1.5px solid;white-space:nowrap;transition:all 0.15s;}
+.btn-plan{border-color:var(--blue);color:var(--blue);background:white;}
+.btn-plan:hover{background:var(--sky);}
+.btn-del{border-color:var(--red);color:var(--red);background:white;}
+.btn-del:hover{background:var(--red-lt);}
+
+/* ── EMPTY / ERROR ──────────────────────────────────────────────── */
+.empty{padding:52px 20px;text-align:center;}
+.empty-icon{font-size:36px;margin-bottom:10px;}
+.empty-text{font-size:14px;color:var(--gray);}
+
+/* ── LOADING OVERLAY ────────────────────────────────────────────── */
+.loading-overlay{position:fixed;inset:0;background:rgba(11,31,58,0.5);display:none;align-items:center;justify-content:center;z-index:200;}
+.loading-overlay.show{display:flex;}
+.loading-box{background:white;border-radius:16px;padding:32px 40px;text-align:center;}
+.spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--navy);border-radius:50%;animation:spin 0.7s linear infinite;margin:0 auto 14px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-msg{font-size:14px;font-weight:700;color:var(--navy);}
+
+/* ── ACCESS DENIED ──────────────────────────────────────────────── */
+#accessDenied{display:none;min-height:100vh;background:var(--navy);align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;}
+#accessDenied.show{display:flex;}
+.denied-icon{font-size:52px;margin-bottom:16px;}
+.denied-title{color:white;font-size:22px;font-weight:900;margin-bottom:8px;}
+.denied-desc{color:rgba(255,255,255,0.5);font-size:14px;line-height:1.7;margin-bottom:28px;}
+.btn-back{background:var(--yellow);color:var(--navy);border:none;border-radius:12px;padding:13px 30px;font-size:14px;font-weight:900;font-family:inherit;cursor:pointer;}
+
+/* ── MODAL ──────────────────────────────────────────────────────── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:300;padding:16px;}
+.modal-bg.show{display:flex;}
+.modal{background:white;border-radius:18px;padding:26px 24px;width:100%;max-width:360px;box-shadow:0 24px 64px rgba(0,0,0,0.3);}
+.modal-title{font-size:17px;font-weight:900;color:var(--navy);margin-bottom:3px;}
+.modal-sub{font-size:13px;color:var(--text2);margin-bottom:22px;font-weight:500;}
+
+/* Plan selector in modal */
+.plan-opts{display:flex;gap:8px;margin-bottom:18px;}
+.plan-opt{flex:1;border:2px solid var(--border);border-radius:10px;padding:14px 8px;cursor:pointer;text-align:center;transition:all 0.15s;}
+.plan-opt.on{border-color:var(--blue);background:var(--sky);}
+.plan-opt .po-name{font-size:14px;font-weight:900;color:var(--text);}
+.plan-opt.on .po-name{color:var(--blue);}
+.plan-opt .po-price{font-size:11px;color:var(--gray);margin-top:4px;}
+
+/* Expiry date field */
+.expiry-field{margin-bottom:20px;}
+.expiry-field label{display:block;font-size:12px;font-weight:700;color:var(--gray);margin-bottom:6px;}
+.expiry-field input[type=date]{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;transition:border-color 0.15s;}
+.expiry-field input[type=date]:focus{border-color:var(--blue);}
+.expiry-field.hidden{display:none;}
+
+/* Modal buttons */
+.modal-btns{display:flex;gap:8px;}
+.btn-cancel{flex:1;padding:12px;background:var(--bg);border:1.5px solid var(--border);color:var(--gray);border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:background 0.15s;}
+.btn-cancel:hover{background:#e2e8f0;}
+.btn-ok{flex:1;padding:12px;background:var(--navy);color:white;border:none;border-radius:10px;font-size:14px;font-weight:900;font-family:inherit;cursor:pointer;position:relative;transition:opacity 0.15s;}
+.btn-ok.danger{background:var(--red);}
+.btn-ok:disabled{opacity:0.5;cursor:default;}
+.btn-ok.loading::after{content:'';position:absolute;right:14px;top:50%;margin-top:-7px;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+
+/* Delete modal */
+.del-warn{background:var(--red-lt);border-radius:10px;padding:13px 15px;margin-bottom:16px;}
+.del-warn p{font-size:12px;color:var(--red);line-height:1.7;}
+.del-inp-label{font-size:12px;font-weight:700;color:var(--gray);margin-bottom:6px;display:block;}
+.del-inp{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;margin-bottom:20px;transition:border-color 0.15s;}
+.del-inp:focus{border-color:var(--red);}
+.del-inp.shake{animation:shake 0.3s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+
+/* ── TOAST ──────────────────────────────────────────────────────── */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:none;z-index:500;white-space:nowrap;pointer-events:none;}
+.toast.show{display:block;}
+.toast.ok{background:var(--green);}
+.toast.err{background:var(--red);}
+
+/* ── RESPONSIVE ─────────────────────────────────────────────────── */
+@media(max-width:640px){
+  .stats{grid-template-columns:1fr 1fr;}
+  .stats .stat:first-child{grid-column:1/-1;}
+  .hdr-user{display:none;}
+  .main{padding:16px 12px 80px;}
+  .card-header{gap:8px;}
+  .btn-refresh{margin-left:0;}
+}
+@media(max-width:380px){
+  .stats{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<!-- ── ACCESS DENIED ─────────────────────────────────────────────── -->
+<div id="accessDenied">
+  <div class="denied-icon">🔒</div>
+  <div class="denied-title">접근 권한 없음</div>
+  <div class="denied-desc">관리자 계정으로 로그인해야<br>이 페이지에 접근할 수 있습니다.</div>
+  <button class="btn-back" onclick="location.href='/login'">로그인으로 돌아가기</button>
+</div>
+
+<!-- ── ADMIN UI ───────────────────────────────────────────────────── -->
+<div id="adminUI" style="display:none;">
+
+  <header class="hdr">
+    <span class="hdr-logo" onclick="location.href='/login'">🥋 fillyo</span>
+    <span class="hdr-badge">ADMIN</span>
+    <div class="hdr-spacer"></div>
+    <span class="hdr-user" id="hdrUser"></span>
+    <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+  </header>
+
+  <main class="main">
+
+    <!-- STATS -->
+    <div class="stats">
+      <div class="stat c-blue">
+        <div class="stat-label">전체 학원</div>
+        <div class="stat-value" id="statTotal">—</div>
+        <div class="stat-sub">가입 완료</div>
+      </div>
+      <div class="stat c-green">
+        <div class="stat-label">Pro 회원</div>
+        <div class="stat-value" id="statPro">—</div>
+        <div class="stat-sub">유료 구독</div>
+      </div>
+      <div class="stat c-orange">
+        <div class="stat-label">무료 회원</div>
+        <div class="stat-value" id="statFree">—</div>
+        <div class="stat-sub">무료 플랜</div>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">가입 학원 목록</span>
+        <input class="search-inp" type="text" id="searchInp"
+          placeholder="학원명·원장명·이메일 검색..." oninput="renderTable()">
+        <button class="btn-refresh" onclick="loadData()">↻ 새로고침</button>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>학원명</th>
+              <th>원장명</th>
+              <th>이메일</th>
+              <th>가입일</th>
+              <th>플랜</th>
+              <th>구독 만료일</th>
+              <th>관리</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr>
+              <td colspan="7" class="empty">
+                <div class="empty-icon">⏳</div>
+                <div class="empty-text">불러오는 중...</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ── LOADING OVERLAY ────────────────────────────────────────────── -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="spinner"></div>
+    <div class="loading-msg" id="loadingMsg">처리 중...</div>
+  </div>
+</div>
+
+<!-- ── PLAN MODAL ─────────────────────────────────────────────────── -->
+<div class="modal-bg" id="planModal">
+  <div class="modal">
+    <div class="modal-title">플랜 변경</div>
+    <div class="modal-sub" id="planModalSub"></div>
+    <div class="plan-opts">
+      <div class="plan-opt" id="optFree" onclick="selectModalPlan('free')">
+        <div class="po-name">무료</div>
+        <div class="po-price">₩0 / 월</div>
+      </div>
+      <div class="plan-opt" id="optPro" onclick="selectModalPlan('pro')">
+        <div class="po-name">⭐ Pro</div>
+        <div class="po-price">₩9,900 / 월</div>
+      </div>
+    </div>
+    <div class="expiry-field hidden" id="expiryField">
+      <label>구독 만료일</label>
+      <input type="date" id="expiryInput">
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closePlanModal()">취소</button>
+      <button class="btn-ok" id="btnPlanOk" onclick="savePlan()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── DELETE MODAL ───────────────────────────────────────────────── -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">회원 강제 탈퇴</div>
+    <div class="modal-sub" id="deleteModalSub"></div>
+    <div class="del-warn">
+      <p>⚠️ 이 작업은 <strong>되돌릴 수 없습니다.</strong><br>
+      업무일지, 학원 설정 등 모든 데이터가 영구 삭제됩니다.<br>
+      확인을 위해 학원명을 정확히 입력해주세요.</p>
+    </div>
+    <label class="del-inp-label">학원명 입력</label>
+    <input class="del-inp" type="text" id="delConfirmInp" placeholder="학원명을 입력하세요">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeDeleteModal()">취소</button>
+      <button class="btn-ok danger" id="btnDeleteOk" onclick="doDelete()">탈퇴 처리</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ──────────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get, update, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const ADMIN_EMAIL = 'audtls2g@gmail.com';
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const app  = initializeApp(FB_CONFIG);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+let allData    = [];
+let target     = null;
+let modalPlan  = 'free';
+
+// ── 인증 & 관리자 체크 ────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user || user.email !== ADMIN_EMAIL) {
+    document.getElementById('accessDenied').classList.add('show');
+    return;
+  }
+  document.getElementById('adminUI').style.display = '';
+  document.getElementById('hdrUser').textContent   = user.email;
+  await loadData();
+});
+
+window.doLogout = () => signOut(auth).then(() => location.href = '/login');
+
+// ── 데이터 로드 ───────────────────────────────────────────────────
+window.loadData = async () => {
+  showLoading('데이터 불러오는 중...');
+  try {
+    const usersSnap = await get(ref(db, 'users'));
+    if (!usersSnap.exists()) {
+      allData = [];
+      renderTable();
+      updateStats();
+      hideLoading();
+      return;
+    }
+
+    const usersObj = usersSnap.val();
+    const entries  = Object.entries(usersObj).filter(([, u]) => u.academyId);
+
+    allData = await Promise.all(entries.map(async ([uid, u]) => {
+      let acadName  = '(데이터 없음)';
+      let ownerName = u.ownerName || '';
+      try {
+        const snap = await get(ref(db, `academies/${u.academyId}/settings`));
+        if (snap.exists()) {
+          const s   = snap.val();
+          acadName  = s.name      || '(이름 없음)';
+          ownerName = u.ownerName || s.ownerName || '';
+        }
+      } catch (_) { /* 읽기 권한 없을 수 있음 */ }
+      return {
+        uid,
+        email:       u.email       || '',
+        planType:    u.planType    || 'free',
+        planExpiry:  u.planExpiry  || null,
+        createdAt:   u.createdAt   || 0,
+        academyId:   u.academyId,
+        academyName: acadName,
+        ownerName,
+      };
+    }));
+
+    allData.sort((a, b) => b.createdAt - a.createdAt);
+    renderTable();
+    updateStats();
+  } catch (err) {
+    console.error(err);
+    showToast('로드 실패: ' + err.message, 'err');
+  }
+  hideLoading();
+};
+
+// ── 통계 갱신 ─────────────────────────────────────────────────────
+function updateStats() {
+  const pro = allData.filter(a => a.planType === 'pro').length;
+  document.getElementById('statTotal').textContent = allData.length;
+  document.getElementById('statPro').textContent   = pro;
+  document.getElementById('statFree').textContent  = allData.length - pro;
+}
+
+// ── 테이블 렌더링 ─────────────────────────────────────────────────
+window.renderTable = () => {
+  const q = document.getElementById('searchInp').value.trim().toLowerCase();
+  const rows = q
+    ? allData.filter(a =>
+        a.academyName.toLowerCase().includes(q) ||
+        a.ownerName.toLowerCase().includes(q)   ||
+        a.email.toLowerCase().includes(q))
+    : allData;
+
+  const tbody = document.getElementById('tbody');
+
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">
+      <div class="empty-icon">${q ? '🔍' : '📋'}</div>
+      <div class="empty-text">${q ? '검색 결과가 없습니다.' : '등록된 학원이 없습니다.'}</div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(a => {
+    const now     = Date.now();
+    const expired = a.planType === 'pro' && a.planExpiry && now > a.planExpiry;
+    const badge   = a.planType === 'pro'
+      ? (expired ? `<span class="badge badge-expired">Pro · 만료</span>`
+                 : `<span class="badge badge-pro">⭐ Pro</span>`)
+      : `<span class="badge badge-free">무료</span>`;
+
+    const expiry = a.planType === 'pro' && a.planExpiry
+      ? `<span style="${expired ? 'color:var(--red);font-weight:700;' : ''}">${fmt(a.planExpiry)}</span>`
+      : (a.planType === 'pro' ? '—' : '<span style="color:var(--border);">—</span>');
+
+    return `<tr>
+      <td class="td-academy">${esc(a.academyName)}</td>
+      <td class="td-owner">${esc(a.ownerName)}</td>
+      <td class="td-email">${esc(a.email)}</td>
+      <td class="td-date">${fmt(a.createdAt)}</td>
+      <td>${badge}</td>
+      <td class="td-date">${expiry}</td>
+      <td>
+        <div class="act-row">
+          <button class="btn-act btn-plan" onclick="openPlanModal('${a.uid}')">플랜 변경</button>
+          <button class="btn-act btn-del"  onclick="openDeleteModal('${a.uid}')">탈퇴</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+};
+
+// ── 플랜 변경 모달 ────────────────────────────────────────────────
+window.openPlanModal = (uid) => {
+  target = allData.find(a => a.uid === uid);
+  if (!target) return;
+  document.getElementById('planModalSub').textContent = target.academyName;
+  selectModalPlan(target.planType);
+  const d = target.planExpiry
+    ? new Date(target.planExpiry)
+    : new Date(Date.now() + 30 * 864e5);
+  document.getElementById('expiryInput').value = toDateStr(d);
+  document.getElementById('planModal').classList.add('show');
+};
+
+window.selectModalPlan = (plan) => {
+  modalPlan = plan;
+  document.getElementById('optFree').classList.toggle('on', plan === 'free');
+  document.getElementById('optPro').classList.toggle('on',  plan === 'pro');
+  document.getElementById('expiryField').classList.toggle('hidden', plan === 'free');
+};
+
+window.closePlanModal = () => {
+  document.getElementById('planModal').classList.remove('show');
+  target = null;
+};
+
+window.savePlan = async () => {
+  if (!target) return;
+  const btn = document.getElementById('btnPlanOk');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    let newExpiry = null;
+    if (modalPlan === 'pro') {
+      const v = document.getElementById('expiryInput').value;
+      if (!v) { showToast('만료일을 입력해주세요.', 'err'); return; }
+      newExpiry = new Date(v + 'T23:59:59').getTime();
+    }
+
+    await update(ref(db), {
+      [`users/${target.uid}/planType`]:                      modalPlan,
+      [`users/${target.uid}/planExpiry`]:                    newExpiry,
+      [`academies/${target.academyId}/settings/planType`]:   modalPlan,
+      [`academies/${target.academyId}/settings/planExpiry`]: newExpiry,
+    });
+
+    const idx = allData.findIndex(a => a.uid === target.uid);
+    if (idx !== -1) {
+      allData[idx].planType   = modalPlan;
+      allData[idx].planExpiry = newExpiry;
+    }
+
+    closePlanModal();
+    renderTable();
+    updateStats();
+    showToast('플랜이 변경되었습니다.', 'ok');
+  } catch (err) {
+    console.error(err);
+    showToast('저장 실패: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+};
+
+// ── 강제 탈퇴 모달 ────────────────────────────────────────────────
+window.openDeleteModal = (uid) => {
+  target = allData.find(a => a.uid === uid);
+  if (!target) return;
+  document.getElementById('deleteModalSub').textContent =
+    `${target.academyName}  ·  ${target.ownerName}`;
+  document.getElementById('delConfirmInp').value = '';
+  document.getElementById('deleteModal').classList.add('show');
+};
+
+window.closeDeleteModal = () => {
+  document.getElementById('deleteModal').classList.remove('show');
+  target = null;
+};
+
+window.doDelete = async () => {
+  if (!target) return;
+  const typed = document.getElementById('delConfirmInp').value.trim();
+  if (typed !== target.academyName) {
+    const inp = document.getElementById('delConfirmInp');
+    inp.classList.remove('shake');
+    void inp.offsetWidth;
+    inp.classList.add('shake');
+    showToast('학원명이 일치하지 않습니다.', 'err');
+    return;
+  }
+
+  const btn = document.getElementById('btnDeleteOk');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    await Promise.all([
+      remove(ref(db, `users/${target.uid}`)),
+      remove(ref(db, `academies/${target.academyId}`)),
+    ]);
+
+    allData = allData.filter(a => a.uid !== target.uid);
+    closeDeleteModal();
+    renderTable();
+    updateStats();
+    showToast('탈퇴 처리가 완료되었습니다.', 'ok');
+  } catch (err) {
+    console.error(err);
+    showToast('삭제 실패: ' + err.message, 'err');
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+};
+
+// ── ESC 키로 모달 닫기 ────────────────────────────────────────────
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (document.getElementById('planModal').classList.contains('show'))   closePlanModal();
+  if (document.getElementById('deleteModal').classList.contains('show')) closeDeleteModal();
+});
+
+document.getElementById('planModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('planModal')) closePlanModal();
+});
+document.getElementById('deleteModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('deleteModal')) closeDeleteModal();
+});
+
+// ── 유틸 ──────────────────────────────────────────────────────────
+function fmt(ts) {
+  if (!ts) return '—';
+  const d = new Date(ts);
+  return `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2, '0'); }
+function toDateStr(d) { return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showLoading(msg = '처리 중...') {
+  document.getElementById('loadingMsg').textContent = msg;
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() {
+  document.getElementById('loadingOverlay').classList.remove('show');
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = `toast show${type ? ' ' + type : ''}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
+}
+</script>
+</body>
+</html>

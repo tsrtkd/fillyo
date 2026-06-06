@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>학원 설정 — fillyo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --navy:#0B1F3A; --blue:#1352A8; --sky:#E8F1FF; --sky2:#C8DCFF;
+  --teal:#0A7C6E; --teal-lt:#E4F5F3;
+  --yellow:#F9A825; --red:#C62828; --red-lt:#FFEBEE;
+  --orange:#E65100;
+  --gray:#546E7A; --border:#DDE4EE; --bg:#EEF2F8;
+  --text:#1A2332; --text2:#4A5A6A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* HEADER */
+.hdr{background:var(--navy);padding:14px 16px;display:flex;align-items:center;gap:10px;}
+.hdr-logo{color:var(--yellow);font-size:18px;font-weight:900;letter-spacing:-0.5px;}
+.hdr-step{margin-left:auto;color:rgba(255,255,255,0.4);font-size:12px;font-weight:500;}
+
+/* PROGRESS */
+.progress-wrap{background:var(--navy);padding:0 16px 14px;}
+.progress-bar{height:4px;background:rgba(255,255,255,0.12);border-radius:2px;}
+.progress-fill{height:100%;background:var(--yellow);border-radius:2px;transition:width 0.4s ease;}
+
+/* STEP INDICATOR */
+.steps{display:flex;gap:0;padding:16px 16px 0;}
+.step-item{flex:1;text-align:center;position:relative;}
+.step-item+.step-item::before{content:'';position:absolute;left:-50%;top:14px;width:100%;height:2px;background:var(--border);}
+.step-item.done+.step-item::before{background:var(--blue);}
+.step-dot{width:28px;height:28px;border-radius:50%;background:var(--border);color:var(--gray);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;margin:0 auto 4px;position:relative;z-index:1;transition:all 0.2s;}
+.step-item.done .step-dot{background:var(--blue);color:white;}
+.step-item.active .step-dot{background:var(--navy);color:white;box-shadow:0 0 0 3px var(--sky2);}
+.step-label{font-size:10px;color:var(--gray);font-weight:500;}
+.step-item.active .step-label{color:var(--navy);font-weight:700;}
+
+/* CONTENT */
+.content{padding:20px 16px 100px;}
+
+/* SECTION CARD */
+.sec{background:white;border-radius:14px;padding:18px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(11,31,58,0.07);}
+.sec-title{font-size:13px;font-weight:900;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:6px;}
+.sec-title span{font-size:16px;}
+
+/* FIELD */
+.field{margin-bottom:12px;}
+.field:last-child{margin-bottom:0;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--gray);margin-bottom:6px;}
+.field input,.field select{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-size:15px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;transition:border-color 0.15s;}
+.field input:focus,.field select:focus{border-color:var(--blue);}
+.field input.err{border-color:var(--red);}
+.field-hint{font-size:11px;color:var(--gray);margin-top:4px;}
+
+/* 부 수 선택 */
+.bu-count-row{display:flex;gap:6px;flex-wrap:wrap;}
+.bu-chip{padding:8px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:700;color:var(--gray);cursor:pointer;background:white;font-family:inherit;transition:all 0.15s;}
+.bu-chip.on{border-color:var(--blue);background:var(--sky);color:var(--blue);}
+
+/* 부 레이블 그리드 */
+.bu-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.bu-row{display:flex;align-items:center;gap:8px;}
+.bu-row-num{width:28px;height:28px;background:var(--navy);color:white;border-radius:7px;font-size:11px;font-weight:900;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.bu-inp{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;transition:border-color 0.15s;}
+.bu-inp:focus{border-color:var(--blue);}
+
+/* BOTTOM BAR */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid var(--border);padding:12px 16px;display:flex;gap:8px;}
+.btn-prev{flex:0 0 80px;padding:13px;background:var(--bg);color:var(--gray);border:1.5px solid var(--border);border-radius:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;}
+.btn-next{flex:1;padding:13px;background:var(--navy);color:white;border:none;border-radius:12px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;position:relative;transition:all 0.15s;}
+.btn-next:active{transform:scale(0.98);}
+.btn-next:disabled{opacity:0.5;cursor:default;}
+.btn-next.loading::after{content:'';position:absolute;right:18px;top:50%;margin-top:-8px;width:16px;height:16px;border:2.5px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ERR TOAST */
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--red);color:white;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.2);display:none;z-index:999;white-space:nowrap;}
+.toast.show{display:block;animation:fadeInOut 2.5s forwards;}
+@keyframes fadeInOut{0%{opacity:0;top:80px}10%{opacity:1;top:70px}80%{opacity:1}100%{opacity:0}}
+
+/* PRO 초대 안내 */
+.invite-box{background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:10px;padding:12px 14px;margin-top:10px;}
+.invite-box p{font-size:12px;color:var(--teal);line-height:1.6;}
+.invite-box strong{font-weight:900;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">🥋 fillyo</div>
+  <div class="hdr-step" id="stepLabel">1 / 3단계</div>
+</div>
+<div class="progress-wrap">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
+</div>
+
+<div class="steps">
+  <div class="step-item active" id="si0"><div class="step-dot">1</div><div class="step-label">학원 정보</div></div>
+  <div class="step-item"        id="si1"><div class="step-dot">2</div><div class="step-label">수업 설정</div></div>
+  <div class="step-item"        id="si2"><div class="step-dot">3</div><div class="step-label">완료</div></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="content">
+
+  <!-- STEP 1: 학원 기본 정보 -->
+  <div id="step1">
+    <div class="sec">
+      <div class="sec-title"><span>🏫</span> 학원 기본 정보</div>
+      <div class="field">
+        <label>학원 이름 *</label>
+        <input type="text" id="academyName" placeholder="예: 태사랑 태권도" maxlength="30">
+      </div>
+      <div class="field">
+        <label>원장 이름 *</label>
+        <input type="text" id="ownerName" placeholder="예: 홍길동" maxlength="20">
+      </div>
+      <div class="field">
+        <label>학원 유형</label>
+        <select id="academyType">
+          <option value="taekwondo">태권도</option>
+          <option value="hapkido">합기도</option>
+          <option value="judo">유도</option>
+          <option value="boxing">복싱 / 킥복싱</option>
+          <option value="ballet">발레</option>
+          <option value="dance">댄스</option>
+          <option value="art">미술</option>
+          <option value="math">수학</option>
+          <option value="english">영어</option>
+          <option value="music">음악 / 피아노</option>
+          <option value="other">기타</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: 수업(부) 설정 -->
+  <div id="step2" style="display:none;">
+    <div class="sec">
+      <div class="sec-title"><span>⏰</span> 수업 부(部) 수</div>
+      <div class="field">
+        <label>몇 부제로 운영하시나요?</label>
+        <div class="bu-count-row" id="buCountRow"></div>
+      </div>
+    </div>
+    <div class="sec" id="buLabelSec">
+      <div class="sec-title"><span>✏️</span> 부 이름</div>
+      <div class="bu-grid" id="buGrid"></div>
+    </div>
+    <div class="sec" id="proInviteSec" style="display:none;">
+      <div class="sec-title"><span>👥</span> 강사 초대 (Pro)</div>
+      <div class="invite-box">
+        <p>설정 완료 후 앱 내 <strong>설정 → 강사 초대</strong> 메뉴에서<br>강사의 이메일을 입력해 초대할 수 있습니다.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 완료 -->
+  <div id="step3" style="display:none;text-align:center;padding-top:20px;">
+    <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+    <div style="font-size:20px;font-weight:900;color:var(--navy);margin-bottom:8px;" id="completeTitle">설정 완료!</div>
+    <div style="font-size:14px;color:var(--text2);line-height:1.7;margin-bottom:24px;" id="completeDesc"></div>
+    <div class="sec" style="text-align:left;">
+      <div class="sec-title"><span>📋</span> 설정 요약</div>
+      <div id="summaryBody" style="font-size:13px;color:var(--text2);line-height:2;"></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn-prev" id="btnPrev" onclick="prevStep()" style="display:none;">이전</button>
+  <button class="btn-next" id="btnNext" onclick="nextStep()">다음</button>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const app  = initializeApp(FB_CONFIG);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+let currentStep = 1;
+let buCount = 6;
+let currentUser = null;
+let userPlanType = 'free';
+
+// ── 인증 확인 ─────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { location.href = '/login'; return; }
+  currentUser = user;
+
+  const snap = await get(ref(db, `users/${user.uid}`));
+  if (snap.exists()) {
+    const data = snap.val();
+    if (data.academyId) { location.href = '/app'; return; }
+    userPlanType = data.planType || 'free';
+  }
+
+  initUI();
+});
+
+// ── UI 초기화 ─────────────────────────────────────────────────────
+function initUI() {
+  buildBuCountRow();
+  setBuCount(6);
+  if (userPlanType === 'pro') {
+    document.getElementById('proInviteSec').style.display = '';
+  }
+}
+
+// ── 부 수 선택 칩 생성 ────────────────────────────────────────────
+function buildBuCountRow() {
+  const row = document.getElementById('buCountRow');
+  row.innerHTML = '';
+  [1,2,3,4,5,6,7,8,9,10].forEach(n => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'bu-chip' + (n === 6 ? ' on' : '');
+    btn.textContent = `${n}부제`;
+    btn.onclick = () => setBuCount(n);
+    row.appendChild(btn);
+  });
+}
+
+function setBuCount(n) {
+  buCount = n;
+  document.querySelectorAll('.bu-chip').forEach((el, i) => {
+    el.classList.toggle('on', i + 1 === n);
+  });
+  buildBuGrid(n);
+}
+
+function buildBuGrid(n) {
+  const grid = document.getElementById('buGrid');
+  grid.innerHTML = '';
+  const defaultLabels = ['1부','2부','3부','4부','5부','6부','7부','8부','9부','10부'];
+  for (let i = 0; i < n; i++) {
+    const row = document.createElement('div');
+    row.className = 'bu-row';
+    row.innerHTML = `
+      <div class="bu-row-num">${i+1}</div>
+      <input class="bu-inp" id="buLabel_${i}" placeholder="${defaultLabels[i]}" value="${defaultLabels[i]}" maxlength="6">
+    `;
+    grid.appendChild(row);
+  }
+}
+
+// ── 단계 이동 ─────────────────────────────────────────────────────
+window.nextStep = async () => {
+  if (currentStep === 1) {
+    if (!validateStep1()) return;
+    goToStep(2);
+  } else if (currentStep === 2) {
+    goToStep(3);
+    buildSummary();
+  } else if (currentStep === 3) {
+    await saveAndFinish();
+  }
+};
+
+window.prevStep = () => {
+  if (currentStep === 2) goToStep(1);
+  else if (currentStep === 3) goToStep(2);
+};
+
+function goToStep(n) {
+  document.getElementById(`step${currentStep}`).style.display = 'none';
+  document.getElementById(`si${currentStep-1}`).classList.remove('active');
+  document.getElementById(`si${currentStep-1}`).classList.add('done');
+  currentStep = n;
+  document.getElementById(`step${n}`).style.display = '';
+  document.getElementById(`si${n-1}`).classList.add('active');
+  document.getElementById(`si${n-1}`).classList.remove('done');
+
+  document.getElementById('stepLabel').textContent = `${n} / 3단계`;
+  document.getElementById('progressFill').style.width = `${Math.round(n/3*100)}%`;
+  document.getElementById('btnPrev').style.display = n > 1 ? '' : 'none';
+
+  const btnNext = document.getElementById('btnNext');
+  btnNext.textContent = n === 3 ? '업무일지 시작하기 →' : '다음';
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── 유효성 검사 ───────────────────────────────────────────────────
+function validateStep1() {
+  const name  = document.getElementById('academyName').value.trim();
+  const owner = document.getElementById('ownerName').value.trim();
+  if (!name) {
+    document.getElementById('academyName').classList.add('err');
+    showToast('학원 이름을 입력해주세요.');
+    document.getElementById('academyName').focus();
+    return false;
+  }
+  if (!owner) {
+    document.getElementById('ownerName').classList.add('err');
+    showToast('원장 이름을 입력해주세요.');
+    document.getElementById('ownerName').focus();
+    return false;
+  }
+  document.getElementById('academyName').classList.remove('err');
+  document.getElementById('ownerName').classList.remove('err');
+  return true;
+}
+
+// ── 요약 화면 ─────────────────────────────────────────────────────
+function buildSummary() {
+  const name  = document.getElementById('academyName').value.trim();
+  const owner = document.getElementById('ownerName').value.trim();
+  const type  = document.getElementById('academyType');
+  const typeLabel = type.options[type.selectedIndex].text;
+
+  const labels = [];
+  for (let i = 0; i < buCount; i++) {
+    labels.push(document.getElementById(`buLabel_${i}`).value.trim() || `${i+1}부`);
+  }
+
+  document.getElementById('completeTitle').textContent = `${name} 설정 완료!`;
+  document.getElementById('completeDesc').textContent =
+    `${owner} 원장님, fillyo 업무일지에 오신 것을 환영합니다.\n아래 내용으로 학원이 설정됩니다.`;
+
+  document.getElementById('summaryBody').innerHTML = `
+    <div>🏫 학원명: <strong>${name}</strong></div>
+    <div>👤 원장: <strong>${owner}</strong></div>
+    <div>🏷️ 유형: <strong>${typeLabel}</strong></div>
+    <div>⏰ 부제: <strong>${buCount}부제</strong></div>
+    <div>📋 부 구성: <strong>${labels.join(' · ')}</strong></div>
+    <div>💳 플랜: <strong>${userPlanType === 'pro' ? 'Pro (유료)' : '무료'}</strong></div>
+  `;
+}
+
+// ── Firebase 저장 & 완료 ───────────────────────────────────────────
+async function saveAndFinish() {
+  const btn = document.getElementById('btnNext');
+  btn.disabled = true;
+  btn.classList.add('loading');
+
+  try {
+    const uid = currentUser.uid;
+    const academyId = 'ac_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+
+    const name  = document.getElementById('academyName').value.trim();
+    const owner = document.getElementById('ownerName').value.trim();
+    const type  = document.getElementById('academyType').value;
+
+    const buLabels = [];
+    for (let i = 0; i < buCount; i++) {
+      buLabels.push(document.getElementById(`buLabel_${i}`).value.trim() || `${i+1}부`);
+    }
+
+    await set(ref(db, `academies/${academyId}`), {
+      settings: {
+        name,
+        ownerName:  owner,
+        type,
+        planType:   userPlanType,
+        buCount,
+        buLabels,
+        createdAt:  Date.now(),
+      },
+      members: { [uid]: 'owner' },
+    });
+
+    await update(ref(db, `users/${uid}`), {
+      academyId,
+      ownerName: owner,
+    });
+
+    location.href = '/app';
+  } catch (err) {
+    console.error(err);
+    showToast('저장 중 오류가 발생했습니다. 다시 시도해주세요.');
+    btn.disabled = false;
+    btn.classList.remove('loading');
+  }
+}
+
+// ── 토스트 ────────────────────────────────────────────────────────
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show';
+  setTimeout(() => { el.className = 'toast'; }, 2500);
+}
+</script>
+</body>
+</html>
