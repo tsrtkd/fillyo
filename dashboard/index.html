@@ -460,6 +460,17 @@
           <div class="arrow">›</div>
         </div>
 
+        <div class="quick-item" id="quickAdmin" style="display:none;">
+          <div class="quick-left">
+            <div class="quick-icon" style="background:#e8eaf6;">🛠️</div>
+            <div class="quick-text">
+              <h4>관리자 페이지</h4>
+              <p>회원 및 구독 관리</p>
+            </div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+
         <div class="quick-item" id="quickLogout">
           <div class="quick-left">
             <div class="quick-icon" style="background:#ffebee;">🚪</div>
@@ -580,6 +591,10 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('academyName').textContent = '내 학원';
   }
 
+  if (user.email === 'audtls2g@gmail.com') {
+    document.getElementById('quickAdmin').style.display = '';
+  }
+
   document.getElementById('loadingScreen').style.display = 'none';
 });
 
@@ -590,6 +605,10 @@ document.getElementById('cardApp').addEventListener('click', () => {
 
 document.getElementById('quickMypage').addEventListener('click', () => {
   location.href = '/mypage';
+});
+
+document.getElementById('quickAdmin').addEventListener('click', () => {
+  location.href = '/admin';
 });
 
 document.getElementById('quickKakao').addEventListener('click', () => {
