@@ -218,6 +218,8 @@
     .card.orange{background:#fff0cc;}
     .card.blue{background:#dcecff;}
     .card.purple{background:#efe3ff;}
+    .card.pink{background:#fde4f0;}
+    .card.teal{background:#d8f5f0;}
 
     .emoji{
       font-size:34px;
@@ -373,7 +375,7 @@
     </section>
 
     <!-- SERVICES -->
-    <section class="section">
+    <section class="section" id="servicesSection">
       <div class="section-title">
         <h2>내 서비스</h2>
         <a href="#">전체 보기</a>
@@ -400,8 +402,20 @@
         <div class="card purple">
           <div class="status">준비중</div>
           <div class="emoji">🔔</div>
-          <h3>학부모 알림</h3>
-          <p>AI 소통</p>
+          <h3>학부모 소통</h3>
+          <p>AI 소통 · 민원관리</p>
+        </div>
+        <div class="card pink">
+          <div class="status">준비중</div>
+          <div class="emoji">🎬</div>
+          <h3>슬로우모션</h3>
+          <p>동작분석 · 영상촬영</p>
+        </div>
+        <div class="card teal">
+          <div class="status">준비중</div>
+          <div class="emoji">📋</div>
+          <h3>지원정책</h3>
+          <p>소상공인 · 정부지원금</p>
         </div>
       </div>
     </section>
@@ -462,19 +476,19 @@
 
     <!-- BOTTOM NAV -->
     <nav class="bottom-nav">
-      <div class="nav-item active">
+      <div class="nav-item active" id="navHome">
         <div class="nav-icon">🏠</div>
         홈
       </div>
-      <div class="nav-item">
+      <div class="nav-item" id="navServices">
         <div class="nav-icon">🧩</div>
         서비스
       </div>
-      <div class="nav-item">
-        <div class="nav-icon">✨</div>
-        AI
+      <div class="nav-item" id="navPolicy">
+        <div class="nav-icon">📋</div>
+        지원금
       </div>
-      <div class="nav-item">
+      <div class="nav-item" id="navAlarm">
         <div class="nav-icon">🔔</div>
         알림
       </div>
@@ -587,6 +601,22 @@ document.getElementById('btnMypage').addEventListener('click', () => {
 });
 
 document.getElementById('navMypage').addEventListener('click', () => {
+  location.href = '/mypage';
+});
+
+document.getElementById('navHome').addEventListener('click', () => {
+  window.scrollTo({top: 0, behavior: 'smooth'});
+});
+
+document.getElementById('navServices').addEventListener('click', () => {
+  document.getElementById('servicesSection').scrollIntoView({behavior: 'smooth'});
+});
+
+document.getElementById('navPolicy').addEventListener('click', () => {
+  window.open('https://fillyo.kr/#policy', '_blank');
+});
+
+document.getElementById('navAlarm').addEventListener('click', () => {
   location.href = '/mypage';
 });
 
