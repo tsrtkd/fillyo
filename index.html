@@ -60,16 +60,10 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
   min-height:100vh;display:flex;flex-direction:column;
   align-items:center;justify-content:center;text-align:center;
   padding:120px 6% 80px;position:relative;z-index:1;overflow:hidden;
-  background:linear-gradient(180deg,#FFFFFF 0%,#EBF7F5 100%)
+  background:linear-gradient(160deg,#EBF7F5 0%,#F5F7FA 50%,#ffffff 100%)
 }
 .hero::before{
-  content:'';position:absolute;inset:0;
-  background-image:
-    linear-gradient(rgba(11,123,107,.04) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(11,123,107,.04) 1px,transparent 1px);
-  background-size:60px 60px;
-  mask-image:radial-gradient(ellipse 85% 75% at 50% 50%,black 30%,transparent 100%);
-  pointer-events:none
+  display:none
 }
 
 .hero-badge{
@@ -84,13 +78,13 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.65)}}
 
 .hero-title{
-  font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(80px,14vw,156px);
-  line-height:.9;letter-spacing:6px;margin-bottom:10px;
+  font-family:'Noto Sans KR',sans-serif;
+  font-size:clamp(42px,6vw,72px);
+  font-weight:900;line-height:1.15;letter-spacing:-1px;margin-bottom:10px;
   animation:fadeUp .6s .08s ease both
 }
-.hero-title-fill{color:var(--t7)}
-.hero-title-yo{color:var(--t2);display:block}
+.hero-title-fill{color:#1A2332}
+.hero-title-yo{color:#0B7B6B;display:inline}
 
 .hero-tagline{
   font-size:clamp(13px,1.6vw,16px);font-weight:400;
@@ -380,8 +374,8 @@ footer a:hover{color:rgba(255,255,255,.8)}
     예체능 학원 전용 SaaS 플랫폼
   </div>
   <h1 class="hero-title">
-    <span class="hero-title-fill">FILL</span>
-    <span class="hero-title-yo">YO</span>
+    <span class="hero-title-fill">예체능 학원의</span><br>
+    <span class="hero-title-yo">스마트 파트너</span>
   </h1>
   <p class="hero-tagline">학원 운영의 모든 것</p>
   <p class="hero-desc">
