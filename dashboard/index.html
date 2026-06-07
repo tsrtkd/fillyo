@@ -393,8 +393,8 @@
           <h3>승급심사</h3>
           <p>심사 · 성적표</p>
         </div>
-        <div class="card blue">
-          <div class="status">준비중</div>
+        <div class="card blue" id="cardJumprope">
+          <div class="status">이용중</div>
           <div class="emoji">🪢</div>
           <h3>줄넘기</h3>
           <p>급수 · 기록</p>
@@ -601,6 +601,10 @@ onAuthStateChanged(auth, async (user) => {
 // ── 클릭 이벤트 ───────────────────────────────────────────────────
 document.getElementById('cardApp').addEventListener('click', () => {
   location.href = '/app';
+});
+
+document.getElementById('cardJumprope').addEventListener('click', () => {
+  location.href = '/jumprope';
 });
 
 document.getElementById('quickMypage').addEventListener('click', () => {
