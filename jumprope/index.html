@@ -52,11 +52,12 @@ tr:hover td{background:#f0faf8}
 <div class="wrap">
   <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap"><button onclick="location.href='/dashboard'" style="border:none;background:#EBF7F5;color:#0B7B6B;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap">← 대시보드</button><h1 id="page-title" style="flex:1;text-align:center;margin-bottom:0">🏅 FILLYO 줄넘기 급수 평가</h1></div>
   <div class="tabs">
-    <button class="tab on" onclick="showTab(this,'dash')">📊 대시보드</button>
+    <button class="tab on" onclick="showTab(this,'dash')">📊 현황</button>
     <button class="tab" onclick="showTab(this,'students')">👥 학생 관리</button>
     <button class="tab" onclick="showTab(this,'eval')">✅ 당일 평가</button>
     <button class="tab" onclick="showTab(this,'history')">📋 평가 이력</button>
     <button class="tab" onclick="showTab(this,'cert')">🏆 급수증</button>
+    <button class="tab" onclick="showTab(this,'chart')">📜 급수표</button>
   </div>
   <div id="sec-dash" class="section on"><div class="card" id="dash-content">로딩 중...</div></div>
   <div id="sec-students" class="section">
@@ -111,7 +112,7 @@ tr:hover td{background:#f0faf8}
         <button class="btn btn-gray btn-sm" onclick="resetTodayEval()">오늘 초기화</button>
       </div>
       <div id="eval-info" style="margin-bottom:12px;font-size:14px;color:#0B7B6B;font-weight:700"></div>
-      <table><thead><tr><th>이름</th><th>학년</th><th>현재 급수</th><th style="width:220px">평가</th><th>결과</th></tr></thead><tbody id="eval-tbody"></tbody></table>
+      <table><thead><tr><th>이름</th><th>학년</th><th>현재 급수</th><th>합격 기준</th><th style="width:220px">평가</th><th>결과</th></tr></thead><tbody id="eval-tbody"></tbody></table>
     </div>
   </div>
   <div id="sec-history" class="section">
@@ -121,6 +122,48 @@ tr:hover td{background:#f0faf8}
         <select id="hist-filter" onchange="renderHistory()"><option value="all">전체</option><option value="pass">합격</option><option value="fail">불합격</option></select>
       </div>
       <div id="history-list"></div>
+    </div>
+  </div>
+  <div id="sec-chart" class="section">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h2 style="font-size:16px;font-weight:800">일반 급수 10급 → 1급</h2>
+        <button class="btn btn-gray btn-sm" onclick="printChart()">🖨️ 인쇄</button>
+      </div>
+      <div id="chart-print-area">
+        <table style="margin-bottom:24px">
+          <thead><tr><th>급수</th><th>종목 설명</th><th>1~2학년</th><th>3~4학년</th><th>5학년+</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge bg-green">10급</span></td><td>모둠발 앞으로 뛰기</td><td>1도약20/2도약20</td><td>1도약40/2도약40</td><td>1도약60/2도약60</td></tr>
+            <tr><td><span class="badge bg-green">9급</span></td><td>모둠발 뒤로 뛰기</td><td>1도약20/2도약20</td><td>1도약40/2도약40</td><td>1도약60/2도약60</td></tr>
+            <tr><td><span class="badge bg-green">8급</span></td><td>한발로 번갈아 뛰기</td><td>오/왼20 왕복15</td><td>오/왼30 왕복20</td><td>오/왼40 왕복30</td></tr>
+            <tr><td><span class="badge bg-green">7급</span></td><td>가위바위보 뛰기</td><td>20개</td><td>40개</td><td>50개</td></tr>
+            <tr><td><span class="badge bg-green">6급</span></td><td>무릎올리기+엉덩이차기</td><td>무릎20/엉덩이20</td><td>무릎20/엉덩이20</td><td>무릎20/엉덩이20</td></tr>
+            <tr><td><span class="badge bg-green">5급</span></td><td>엇걸어 뛰기</td><td>20개</td><td>30개</td><td>40개</td></tr>
+            <tr><td><span class="badge bg-green">4급</span></td><td>엇걸었다 풀어 뛰기</td><td>왕복20</td><td>왕복30</td><td>왕복40</td></tr>
+            <tr><td><span class="badge bg-green">3급</span></td><td>되돌리기</td><td>왕복20</td><td>왕복30</td><td>왕복40</td></tr>
+            <tr><td><span class="badge bg-green">2급</span></td><td>되돌리기+다리 들어주기</td><td>왕복20</td><td>왕복30</td><td>왕복40</td></tr>
+            <tr><td><span class="badge bg-green">1급</span></td><td>2단 뛰기</td><td>15개</td><td>30개</td><td>40개</td></tr>
+          </tbody>
+        </table>
+        <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">특급 급수표</h2>
+        <p style="font-size:12px;color:#666;margin-bottom:12px">O=모아뛰기 · C=엇걸어뛰기 · S=옆내어돌리기 — 1~2학년 10개 / 3~4학년 15개 / 5학년+ 20개</p>
+        <table>
+          <thead><tr><th>급수</th><th>종목</th><th>1~2학년</th><th>3~4학년</th><th>5학년+</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge bg-purple">특9급</span></td><td>OOO</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특8급</span></td><td>OO+SOC</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특7급</span></td><td>OO+SOO</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특6급</span></td><td>OO+CO+OC+CC</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특5급</span></td><td>OO+CC</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특4급</span></td><td>OO+CO</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특3급</span></td><td>OO+OC</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특2급</span></td><td>SO+SC</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특1급</span></td><td>SC 왕복</td><td>10개</td><td>15개</td><td>20개</td></tr>
+            <tr><td><span class="badge bg-purple">특급</span></td><td>되돌리기+OO</td><td>10개</td><td>15개</td><td>20개</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
   <div id="sec-cert" class="section">
@@ -303,6 +346,31 @@ function downloadTemplate(){
 }
 window.downloadTemplate=downloadTemplate;
 
+const CRITERIA=[
+  {g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},
+  {g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},
+  {g12:'오/왼20 왕복15',g34:'오/왼30 왕복20',g5:'오/왼40 왕복30'},
+  {g12:'20개',g34:'40개',g5:'50개'},
+  {g12:'무릎20/엉덩이20',g34:'무릎20/엉덩이20',g5:'무릎20/엉덩이20'},
+  {g12:'20개',g34:'30개',g5:'40개'},
+  {g12:'왕복20',g34:'왕복30',g5:'왕복40'},
+  {g12:'왕복20',g34:'왕복30',g5:'왕복40'},
+  {g12:'왕복20',g34:'왕복30',g5:'왕복40'},
+  {g12:'15개',g34:'30개',g5:'40개'},
+];
+function getStdCriteria(grade,idx){
+  if(idx>=10){return grade<=2?'10개':grade<=4?'15개':'20개';}
+  const c=CRITERIA[idx];if(!c)return '';
+  return grade<=2?c.g12:grade<=4?c.g34:c.g5;
+}
+function printChart(){
+  const area=document.getElementById('chart-print-area').innerHTML;
+  const win=window.open('','_blank','width=900,height=700');
+  if(!win){alert('팝업이 차단되었습니다.');return;}
+  win.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet"><style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Noto Sans KR",sans-serif;padding:24px;font-size:13px}table{width:100%;border-collapse:collapse;margin-bottom:20px}th{background:#f5f5f5;padding:8px;text-align:center;font-weight:700;font-size:12px;border-bottom:2px solid #ddd}td{padding:8px;text-align:center;border-bottom:1px solid #eee}h2{font-size:15px;font-weight:900;margin-bottom:8px}p{font-size:11px;color:#666;margin-bottom:10px}.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}.bg-green{background:#b2e4dc;color:#0B7B6B}.bg-purple{background:#E1BEE7;color:#6A1B9A}@media print{@page{margin:1cm}}</style></head><body>'+area+'</body></html>');
+  win.document.close();setTimeout(()=>{try{win.focus();win.print();}catch(e){}},600);
+}
+window.printChart=printChart;
 function renderEval(){
   const sel=document.getElementById('eval-level');
   const idx=parseInt(sel.value);
@@ -320,10 +388,12 @@ function renderEval(){
     const rowSt=saved?(res==='pass'?'background:#F0FFF4':'background:#FFF5F5'):'';
     const resTxt=res==='pass'?'<span class="pass-txt">합격 ✓</span>':res==='fail'?'<span class="fail-txt">불합격 ✗</span>':'<span class="wait-txt">대기</span>';
     const sid=s.id;
+    const criteria=getStdCriteria(s.grade,idx);
     return '<tr style="'+rowSt+'">'+
       '<td style="font-weight:700;text-align:left">'+s.name+(saved?'&nbsp;<small style="color:#aaa">완료</small>':'')+'</td>'+
       '<td>'+s.grade+'학년</td>'+
       '<td><span class="badge '+bCls(s.level)+'">'+s.level+'</span></td>'+
+      '<td style="font-size:12px;color:#0B7B6B;font-weight:700">'+criteria+'</td>'+
       '<td>'+
         '<button style="background:#0B7B6B;color:white;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:7px 16px;border-radius:8px;font-family:inherit" onclick="doPass('+sid+','+idx+')">합 격</button>'+
         '<button style="background:#B71C1C;color:white;border:none;cursor:pointer;font-size:13px;font-weight:700;padding:7px 16px;border-radius:8px;margin-left:6px;font-family:inherit" onclick="doFail('+sid+','+idx+')">불합격</button>'+
