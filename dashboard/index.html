@@ -343,6 +343,9 @@
       .countdown{width:82px;height:82px;}
       .card{min-height:130px;}
     }
+    /* TOAST */
+    .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A2332;color:white;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity 0.25s,transform 0.25s;z-index:9999;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
   </style>
 </head>
 <body>
@@ -395,8 +398,8 @@
         </div>
         <div class="card blue" id="cardJumprope">
           <div class="status">이용중</div>
-          <div class="emoji">🪢</div>
-          <h3>줄넘기</h3>
+          <div class="emoji">🏅</div>
+          <h3>줄넘기관리</h3>
           <p>급수 · 기록</p>
         </div>
         <div class="card purple">
@@ -635,8 +638,22 @@ document.getElementById('navServices').addEventListener('click', () => {
   document.getElementById('servicesSection').scrollIntoView({behavior: 'smooth'});
 });
 
+function showToast(msg) {
+  let t = document.getElementById('appToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'appToast';
+    t.className = 'toast';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
 document.getElementById('navPolicy').addEventListener('click', () => {
-  window.open('https://fillyo.kr/#policy', '_blank');
+  showToast('준비 중입니다 🛠️');
 });
 
 document.getElementById('navAlarm').addEventListener('click', () => {
