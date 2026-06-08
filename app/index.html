@@ -246,6 +246,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .vehicle-car-lbl{font-size:13px;font-weight:700;color:var(--blue);white-space:nowrap;padding-top:14px;}
 .vehicle-car-inp{border:1.5px solid var(--border);border-radius:8px;padding:12px 13px;font-size:15px;font-family:inherit;color:var(--text);width:100%;min-height:500px;resize:vertical;line-height:1.8;}
 .vehicle-car-inp:focus{outline:none;border-color:var(--blue);background:#F8FBFF;}
+.vedit-quick-row{display:flex;gap:6px;margin-bottom:6px;}
+.vedit-quick-btn{padding:4px 10px;font-size:12px;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-family:inherit;color:white;}
+.vedit-quick-btn.blue{background:#1565C0;}
+.vedit-quick-btn.red{background:#C62828;}
+.vedit-quick-btn.gray{background:#78909C;}
+.vedit-img-preview{width:100%;border-radius:8px;margin-top:8px;}
 
 /* TOAST */
 .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--navy);color:white;padding:10px 18px;border-radius:20px;font-size:12px;font-weight:500;opacity:0;transition:all 0.28s;z-index:8000;pointer-events:none;white-space:nowrap;}
@@ -1494,16 +1500,64 @@ function renderVehicleEditPanel() {
   const sch  = vehicleSchedule[vehicleEditDay] || {};
   const car1 = (sch.car1 || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   const car2 = (sch.car2 || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const car1Img = sch.car1Image || '';
+  const car2Img = sch.car2Image || '';
   contentEl.innerHTML = `
     <div class="vehicle-car-row">
       <span class="vehicle-car-lbl">1호차</span>
-      <textarea class="vehicle-car-inp" id="vedit_car1" placeholder="운행 내용 입력...">${car1}</textarea>
+      <div>
+        <div class="vedit-quick-row">
+          <button class="vedit-quick-btn blue" onclick="insertVehicleText('car1','🔵 ')">🔵 탑승</button>
+          <button class="vedit-quick-btn red"  onclick="insertVehicleText('car1','🔴 ')">🔴 하차</button>
+          <button class="vedit-quick-btn gray" onclick="openVehicleImagePicker('car1')">📷 사진</button>
+        </div>
+        <textarea class="vehicle-car-inp" id="vedit_car1" placeholder="운행 내용 입력...">${car1}</textarea>
+        <img id="vedit_car1_img" class="vedit-img-preview" src="${car1Img}" style="${car1Img ? '' : 'display:none'}">
+      </div>
     </div>
     <div class="vehicle-car-row">
       <span class="vehicle-car-lbl">2호차</span>
-      <textarea class="vehicle-car-inp" id="vedit_car2" placeholder="운행 내용 입력...">${car2}</textarea>
+      <div>
+        <div class="vedit-quick-row">
+          <button class="vedit-quick-btn blue" onclick="insertVehicleText('car2','🔵 ')">🔵 탑승</button>
+          <button class="vedit-quick-btn red"  onclick="insertVehicleText('car2','🔴 ')">🔴 하차</button>
+          <button class="vedit-quick-btn gray" onclick="openVehicleImagePicker('car2')">📷 사진</button>
+        </div>
+        <textarea class="vehicle-car-inp" id="vedit_car2" placeholder="운행 내용 입력...">${car2}</textarea>
+        <img id="vedit_car2_img" class="vedit-img-preview" src="${car2Img}" style="${car2Img ? '' : 'display:none'}">
+      </div>
     </div>`;
 }
+
+window.insertVehicleText = (carId, text) => {
+  const ta = document.getElementById('vedit_' + carId);
+  if (!ta) return;
+  const start = ta.selectionStart;
+  const end   = ta.selectionEnd;
+  ta.value = ta.value.slice(0, start) + text + ta.value.slice(end);
+  ta.selectionStart = ta.selectionEnd = start + text.length;
+  ta.focus();
+};
+
+window.openVehicleImagePicker = (carId) => {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*';
+  input.onchange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target.result;
+      if (!vehicleSchedule[vehicleEditDay]) vehicleSchedule[vehicleEditDay] = {};
+      vehicleSchedule[vehicleEditDay][carId + 'Image'] = base64;
+      const img = document.getElementById('vedit_' + carId + '_img');
+      if (img) { img.src = base64; img.style.display = 'block'; }
+    };
+    reader.readAsDataURL(file);
+  };
+  input.click();
+};
 
 function saveCurrentEditInputs() {
   if (!vehicleEditOpen) return;
