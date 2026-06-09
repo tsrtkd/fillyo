@@ -128,7 +128,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .exam-group { margin-bottom: 20px; }
 .exam-group-title { font-size: 13px; font-weight: 700; color: var(--text2); padding: 6px 12px; background: var(--sky); border-radius: 8px; margin-bottom: 8px; }
 .exam-row { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
-.exam-row.done { opacity: 0.55; }
+.exam-row.done { background: #e0e0e0; border-color: #cccccc; }
+.exam-row.done .exam-row-header,
+.exam-row.done .exam-row-body { opacity: 0.5; }
 .exam-row-header { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); gap: 8px; flex-wrap: wrap; }
 .exam-row-name { font-size: 15px; font-weight: 700; flex: 1; }
 .exam-row-body { padding: 14px; }
@@ -146,6 +148,28 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .pf-btn.fail.on { background: #FEE2E2; color: var(--red);   border-color: var(--red); }
 .comment-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-family: inherit; resize: none; height: 58px; outline: none; }
 .save-btn { width: 100%; padding: 12px; background: var(--blue); color: #fff; border-radius: 10px; font-size: 14px; font-weight: 700; margin-top: 10px; }
+
+/* ── EXAM CHUNK TABLE (가로 배치) ── */
+.exam-chunk-wrap { overflow-x: auto; padding: 0 16px 20px; }
+.exam-chunk-table { display: flex; min-width: max-content; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--white); }
+.exam-col { display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+.exam-col:last-child { border-right: none; }
+.exam-col-label { min-width: 110px; background: var(--bg); flex-shrink: 0; }
+.exam-col-student { min-width: 180px; }
+.exam-cell { display: flex; align-items: center; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+.exam-cell:last-child { border-bottom: none; }
+.exam-cell-label { font-size: 12px; color: var(--text2); font-weight: 500; }
+.exam-cell.row-header { height: 64px; background: var(--sky); flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
+.exam-cell.row-header.exam-cell-label { align-items: flex-start; font-size: 12px; font-weight: 700; }
+.exam-cell.row-score { height: 46px; justify-content: center; }
+.exam-cell.row-pf { height: 96px; justify-content: center; }
+.exam-cell.row-comment { height: 82px; padding: 6px; align-items: stretch; }
+.exam-cell.row-save { height: 50px; justify-content: center; }
+.exam-chunk-table .score-btn { width: 30px; height: 30px; font-size: 11px; }
+.exam-chunk-table .score-btns { gap: 3px; }
+.exam-chunk-table .save-btn { margin: 0; }
+.exam-col.done { opacity: 0.5; pointer-events: none; }
+.exam-col.done .exam-cell { background: #e0e0e0 !important; }
 
 /* ── STATUS TAB ── */
 .filter-row { padding: 12px 16px 0; }
@@ -209,7 +233,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
   <!-- 심사 탭 -->
   <div id="tab-exam" class="tab-content">
-    <div class="section">
+
+    <!-- STEP 1: 회차 설정 -->
+    <div id="examSetupSection" class="section">
       <div id="examSetupCard" class="card">
         <div class="form-row">
           <label class="form-label">심사일</label>
@@ -221,6 +247,13 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         </div>
         <div class="form-row">
           <label class="form-label">수련생 선택</label>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:6px">
+            <select class="sort-select" id="setupSortSelect" onchange="renderExamStudentChecks()">
+              <option value="belt">띠순</option>
+              <option value="name">이름순</option>
+              <option value="age">나이순</option>
+            </select>
+          </div>
           <div class="student-check-list">
             <div class="check-all-row">
               <input type="checkbox" id="chkAll" onchange="toggleCheckAll(this)">
@@ -229,20 +262,49 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
             <div id="examStudentChecks"></div>
           </div>
         </div>
-        <button class="modal-btn primary" style="width:100%;margin-top:4px" onclick="startExam()">심사 시작</button>
-      </div>
-
-      <div id="examProgressCard" class="card hidden">
-        <div class="progress-card">
-          <div>
-            <div class="pc-label" id="examProgressLabel">심사 진행 중</div>
-            <div class="pc-title" id="examProgressTitle"></div>
-          </div>
-          <button class="modal-btn secondary" style="flex:none;padding:8px 16px;font-size:13px" onclick="endExam()">종료</button>
-        </div>
+        <button class="modal-btn primary" style="width:100%;margin-top:4px" onclick="registerSession()">회차 등록</button>
       </div>
     </div>
-    <div id="examSection" class="hidden"></div>
+
+    <!-- STEP 2: 부별 심사 -->
+    <div id="examStep2Section" class="hidden">
+      <div class="section" style="padding-bottom:8px">
+        <div id="examProgressCard" class="card">
+          <div class="progress-card">
+            <div>
+              <div class="pc-label" id="examProgressLabel">심사 진행 중</div>
+              <div class="pc-title" id="examProgressTitle"></div>
+            </div>
+            <button class="modal-btn secondary" style="flex:none;padding:8px 16px;font-size:13px" onclick="endSession()">회차 종료</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 대기 목록 -->
+      <div id="examStep2ListSection">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:0 16px 8px">
+          <span style="font-size:13px;font-weight:700;color:var(--text2)">심사 대기</span>
+          <select class="sort-select" id="step2SortSelect" onchange="renderStep2List()">
+            <option value="belt">띠순</option>
+            <option value="name">이름순</option>
+            <option value="age">나이순</option>
+          </select>
+        </div>
+        <div id="step2StudentList" style="padding:0 16px"></div>
+        <div style="padding:8px 16px 16px">
+          <button class="modal-btn primary" style="width:100%" onclick="startSubExam()">심사 시작</button>
+        </div>
+      </div>
+
+      <!-- 채점 화면 이동 후 목록 복귀 버튼 -->
+      <div id="examBackSection" class="hidden" style="padding:8px 16px 0">
+        <button class="modal-btn secondary" style="width:100%;padding:10px;font-size:14px" onclick="backToStep2List()">← 목록으로</button>
+      </div>
+
+      <!-- 채점 행 -->
+      <div id="examSection" class="hidden"></div>
+    </div>
+
   </div>
 
   <!-- 현황 탭 -->
@@ -257,7 +319,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <thead>
           <tr>
             <th>수련생명</th><th>심사일</th><th>회차</th><th>띠</th>
-            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th>
+            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th><th>결과</th>
           </tr>
         </thead>
         <tbody id="statusBody"></tbody>
@@ -305,6 +367,22 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     <div class="form-row hidden" id="fGradeRow">
       <label class="form-label">급수</label>
       <select class="form-select" id="fGrade"></select>
+    </div>
+    <div class="form-row hidden" id="fCertDate1Row">
+      <label class="form-label">1품 취득일</label>
+      <input class="form-input" id="fCertDate1" type="date">
+    </div>
+    <div class="form-row hidden" id="fCertDate2Row">
+      <label class="form-label">2품 취득일</label>
+      <input class="form-input" id="fCertDate2" type="date">
+    </div>
+    <div class="form-row hidden" id="fCertDate3Row">
+      <label class="form-label">3품 취득일</label>
+      <input class="form-input" id="fCertDate3" type="date">
+    </div>
+    <div class="form-row hidden" id="fCertDate4Row">
+      <label class="form-label">4품 취득일</label>
+      <input class="form-input" id="fCertDate4" type="date">
     </div>
     <div class="form-row">
       <label class="form-label">학교/학년</label>
@@ -370,6 +448,7 @@ let evaluations         = {};
 let currentExamSession  = null;
 let editingStudentId    = null;
 let pendingPromotion    = null;
+let currentSession      = null;
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -508,15 +587,27 @@ onAuthStateChanged(auth, async (user) => {
     students = snap.val() || {};
     renderStudentList();
     renderExamStudentChecks();
+    if (currentSession) renderStep2List();
   });
 
   onValue(ref(db, `academies/${academyId}/exam/evaluations`), snap => {
     evaluations = snap.val() || {};
     updateStatusFilter();
     renderStatusTable();
+    if (currentSession) renderStep2List();
   });
 
   document.getElementById('examDate').value = todayStr();
+
+  const sessSnap    = await get(ref(db, `academies/${academyId}/exam/sessions`));
+  const allSessions = sessSnap.val() || {};
+  const today       = todayStr();
+  const activeEntry = Object.entries(allSessions).find(([, s]) => s.date === today);
+  if (activeEntry) {
+    currentSession = { key: activeEntry[0], ...activeEntry[1] };
+    showStep2();
+  }
+
   document.getElementById('loading').classList.add('hidden');
   document.getElementById('fab').classList.remove('hidden');
 });
@@ -564,7 +655,14 @@ window.renderStudentList = () => {
     <div class="student-card" onclick="openStudentModal('${s.id}')">
       <div class="student-info">
         <div class="student-name">${s.name || '이름없음'}</div>
-        <div class="student-meta">${s.age ? s.age + '세' : ''}${s.school ? ' · ' + s.school : ''}</div>
+        <div class="student-meta">${s.age ? s.age + '세' : ''}${s.school ? ' · ' + s.school : ''}${(() => {
+          if (!isDan(s.belt)) return '';
+          const danIdx = DAN_BELTS.indexOf(s.belt);
+          const parts = [1,2,3,4].slice(0, danIdx + 1)
+            .map(n => s[`certDate${n}`] ? `${n}품 ${s[`certDate${n}`]}` : null)
+            .filter(Boolean);
+          return parts.length ? ' · 📜 ' + parts.join(' · ') : '';
+        })()}</div>
       </div>
       ${beltBadge(s.belt || '흰띠', s.grade || '')}
     </div>
@@ -589,6 +687,10 @@ window.onBeltChange = () => {
     row.classList.add('hidden');
     sel.innerHTML = '';
   }
+  const danIdx = DAN_BELTS.indexOf(belt); // 0~3, 아니면 -1
+  [1,2,3,4].forEach(n => {
+    document.getElementById(`fCertDate${n}Row`).classList.toggle('hidden', n > danIdx + 1);
+  });
 };
 
 window.openStudentModal = (id) => {
@@ -603,6 +705,10 @@ window.openStudentModal = (id) => {
   document.getElementById('fJoinDate').value = s.joinDate    || todayStr();
   fillBeltSelect(s.belt || '흰띠');
   if (isEdit && isDan(s.belt) && s.grade) document.getElementById('fGrade').value = s.grade;
+  document.getElementById('fCertDate1').value = s.certDate1 || '';
+  document.getElementById('fCertDate2').value = s.certDate2 || '';
+  document.getElementById('fCertDate3').value = s.certDate3 || '';
+  document.getElementById('fCertDate4').value = s.certDate4 || '';
   document.getElementById('btnDeleteStudent').classList.toggle('hidden', !isEdit);
   openModal('modalStudent');
 };
@@ -616,6 +722,10 @@ window.saveStudent = async () => {
     name,
     age:         Number(document.getElementById('fAge').value) || 0,
     belt, grade,
+    certDate1:   isDan(belt) ? (document.getElementById('fCertDate1').value || '') : '',
+    certDate2:   isDan(belt) ? (document.getElementById('fCertDate2').value || '') : '',
+    certDate3:   isDan(belt) ? (document.getElementById('fCertDate3').value || '') : '',
+    certDate4:   isDan(belt) ? (document.getElementById('fCertDate4').value || '') : '',
     school:      document.getElementById('fSchool').value.trim(),
     parentPhone: document.getElementById('fPhone').value.trim(),
     joinDate:    document.getElementById('fJoinDate').value || todayStr(),
@@ -635,28 +745,125 @@ window.deleteStudent = async () => {
 };
 
 // ── 심사 탭 ──────────────────────────────────────────────────────────
-function renderExamStudentChecks() {
-  const list = Object.entries(students)
-    .map(([id, s]) => ({ id, ...s }))
-    .sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+window.renderExamStudentChecks = () => {
+  const sort = document.getElementById('setupSortSelect')?.value || 'belt';
+  let list = Object.entries(students).map(([id, s]) => ({ id, ...s }));
+  if (sort === 'belt')      list.sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'name') list.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'age')  list.sort((a, b) => (Number(a.age)||0) - (Number(b.age)||0));
   document.getElementById('examStudentChecks').innerHTML = list.map(s => `
     <div class="check-item">
       <input type="checkbox" id="chk-${s.id}" value="${s.id}">
       <label for="chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
     </div>
   `).join('');
-}
+};
 
 window.toggleCheckAll = (chk) => {
   document.querySelectorAll('#examStudentChecks input[type=checkbox]').forEach(c => c.checked = chk.checked);
 };
 
-window.startExam = () => {
+window.toggleCheckAllStep2 = (chk) => {
+  document.querySelectorAll('.step2-chk').forEach(c => c.checked = chk.checked);
+};
+
+function sortList(list, sort) {
+  if (sort === 'belt')      list.sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'name') list.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'age')  list.sort((a, b) => (Number(a.age)||0) - (Number(b.age)||0));
+  return list;
+}
+
+function isStudentDoneInSession(studentId) {
+  if (!currentSession) return false;
+  return Object.values(evaluations).some(
+    e => e.studentId === studentId && e.date === currentSession.date && e.round === currentSession.round
+  );
+}
+
+window.renderStep2List = () => {
+  if (!currentSession) return;
+  const sort   = document.getElementById('step2SortSelect')?.value || 'belt';
+  const allIds = currentSession.studentIds || [];
+  const pending = [], done = [];
+  allIds.forEach(id => {
+    const s = students[id];
+    if (!s) return;
+    (isStudentDoneInSession(id) ? done : pending).push({ id, ...s });
+  });
+  sortList(pending, sort);
+  sortList(done, sort);
+
+  let html = `
+    <div class="student-check-list" style="margin-bottom:12px">
+      <div class="check-all-row">
+        <input type="checkbox" id="chkAllStep2" onchange="toggleCheckAllStep2(this)">
+        <label for="chkAllStep2">전체 선택 (${pending.length}명)</label>
+      </div>
+      ${pending.map(s => `
+        <div class="check-item">
+          <input type="checkbox" class="step2-chk" id="step2chk-${s.id}" value="${s.id}">
+          <label for="step2chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
+        </div>
+      `).join('')}
+      ${!pending.length ? '<div class="empty-msg" style="padding:20px">모든 수련생 심사 완료</div>' : ''}
+    </div>
+  `;
+  if (done.length) {
+    html += `
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;padding-left:2px">완료 (${done.length}명)</div>
+      <div class="student-check-list">
+        ${done.map(s => `
+          <div class="check-item" style="background:#f0f0f0;opacity:0.65;pointer-events:none">
+            <span style="font-size:14px">✅</span>
+            <span style="flex:1;font-size:14px;display:flex;align-items:center;gap:6px">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</span>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  document.getElementById('step2StudentList').innerHTML = html;
+};
+
+function showStep1() {
+  document.getElementById('examSetupSection').classList.remove('hidden');
+  document.getElementById('examStep2Section').classList.add('hidden');
+  document.getElementById('examSection').classList.add('hidden');
+  document.getElementById('examSection').innerHTML = '';
+}
+
+function showStep2() {
+  document.getElementById('examSetupSection').classList.add('hidden');
+  document.getElementById('examStep2Section').classList.remove('hidden');
+  document.getElementById('examProgressTitle').textContent = `${currentSession.date} | ${currentSession.round}`;
+  document.getElementById('examProgressLabel').textContent = `${(currentSession.studentIds || []).length}명 등록됨`;
+  document.getElementById('examStep2ListSection').classList.remove('hidden');
+  document.getElementById('examBackSection').classList.add('hidden');
+  document.getElementById('examSection').classList.add('hidden');
+  document.getElementById('examSection').innerHTML = '';
+  renderStep2List();
+}
+
+window.registerSession = async () => {
   const date  = document.getElementById('examDate').value;
   const round = document.getElementById('examRound').value.trim();
   if (!date)  { showToast('심사일을 선택해주세요'); return; }
   if (!round) { showToast('회차명을 입력해주세요'); return; }
   const checked = [...document.querySelectorAll('#examStudentChecks input:checked')].map(c => c.value);
+  if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
+
+  const sessionData = { date, round, studentIds: checked, createdAt: Date.now() };
+  const sessionKey  = push(ref(db, `academies/${academyId}/exam/sessions`)).key;
+  await set(ref(db, `academies/${academyId}/exam/sessions/${sessionKey}`), sessionData);
+
+  currentSession = { key: sessionKey, ...sessionData };
+  showStep2();
+  showToast('✅ 회차 등록 완료');
+};
+
+window.startSubExam = () => {
+  if (!currentSession) return;
+  const checked = [...document.querySelectorAll('.step2-chk:checked')].map(c => c.value);
   if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
 
   const cur = CURRICULUM['흰띠'];
@@ -680,22 +887,30 @@ window.startExam = () => {
     };
   });
 
-  currentExamSession = { date, round, students: sessionStudents };
-  document.getElementById('examSetupCard').classList.add('hidden');
-  document.getElementById('examProgressCard').classList.remove('hidden');
-  document.getElementById('examProgressTitle').textContent = `${date} | ${round}`;
-  document.getElementById('examProgressLabel').textContent = `${sessionStudents.length}명 심사 중`;
-  renderExamTable();
+  currentExamSession = { date: currentSession.date, round: currentSession.round, students: sessionStudents };
+  document.getElementById('examStep2ListSection').classList.add('hidden');
+  document.getElementById('examBackSection').classList.remove('hidden');
   document.getElementById('examSection').classList.remove('hidden');
+  renderExamTable();
 };
 
-window.endExam = () => {
-  if (!confirm('심사를 종료하시겠습니까?')) return;
+window.backToStep2List = () => {
   currentExamSession = null;
-  document.getElementById('examSetupCard').classList.remove('hidden');
-  document.getElementById('examProgressCard').classList.add('hidden');
   document.getElementById('examSection').classList.add('hidden');
   document.getElementById('examSection').innerHTML = '';
+  document.getElementById('examBackSection').classList.add('hidden');
+  document.getElementById('examStep2ListSection').classList.remove('hidden');
+  renderStep2List();
+};
+
+window.endSession = async () => {
+  if (!confirm('회차를 종료하시겠습니까?')) return;
+  if (currentSession) {
+    await remove(ref(db, `academies/${academyId}/exam/sessions/${currentSession.key}`));
+  }
+  currentSession     = null;
+  currentExamSession = null;
+  showStep1();
 };
 
 function renderExamTable() {
@@ -708,76 +923,90 @@ function renderExamTable() {
     groups[ss.belt].push({ ss, idx });
   });
 
-  sec.innerHTML = Object.entries(groups).map(([belt, items]) => `
-    <div class="exam-group">
-      <div class="exam-group-title">${beltBadge(belt, '')} &nbsp;${belt}</div>
-      ${items.map(({ ss, idx }) => buildExamRow(ss, idx)).join('')}
-    </div>
-  `).join('');
+  let html = '';
+  Object.entries(groups).forEach(([belt, items]) => {
+    for (let i = 0; i < items.length; i += 4) {
+      const chunk = items.slice(i, i + 4);
+      html += buildBeltChunkTable(belt, chunk.map(c => c.ss), chunk.map(c => c.idx));
+    }
+  });
+  sec.innerHTML = html + '<div id="examDoneSection"></div>';
 }
 
-function buildExamRow(ss, idx) {
-  const crr = CURRICULUM[ss.belt] || CURRICULUM['흰띠'];
+function buildBeltChunkTable(belt, chunkStudents, chunkIndices) {
+  const crr = CURRICULUM[belt] || CURRICULUM['흰띠'];
 
-  const scoreBlock = (label, key, names) => `
-    <div class="score-group">
-      <div class="score-group-label">${label}</div>
-      <div class="score-items">
-        ${names.map((name, i) => `
-          <div class="score-item">
-            <div class="score-item-label">${name}</div>
-            <div class="score-btns">
-              ${[1,2,3,4,5].map(v => `
-                <button class="score-btn${ss.scores[key][i] === v ? ' on' : ''}"
-                  onclick="setScore(${idx},'${key}',${i},${v},this)">${v}</button>
-              `).join('')}
-            </div>
-          </div>
-        `).join('')}
-      </div>
+  const scoreRows = [
+    { key: 'poomsae',   label: '품새 정확도',   i: 0 },
+    { key: 'poomsae',   label: '품새 완성도',   i: 1 },
+    { key: 'kick',      label: '발차기 완성도', i: 0 },
+    { key: 'kick',      label: '발차기 공방',   i: 1 },
+    { key: 'kick',      label: '발차기 다양성', i: 2 },
+    ...crr.extreme.map((name, ei) => ({ key: 'extreme', label: name, i: ei })),
+    { key: 'character', label: '인성 태도',     i: 0 },
+    { key: 'character', label: '인성 집중력',   i: 1 },
+    { key: 'character', label: '인성 교재',     i: 2 },
+  ];
+
+  const labelCol = `
+    <div class="exam-col exam-col-label">
+      <div class="exam-cell row-header exam-cell-label">항목</div>
+      ${scoreRows.map(r => `<div class="exam-cell row-score exam-cell-label">${r.label}</div>`).join('')}
+      <div class="exam-cell row-pf exam-cell-label">합격여부</div>
+      <div class="exam-cell row-comment exam-cell-label">한줄평</div>
+      <div class="exam-cell row-save exam-cell-label"></div>
     </div>
   `;
 
-  const extremeBlock = `
-    <div class="score-group">
-      <div class="score-group-label">익스트림 (${crr.extreme.join(' · ')})</div>
-      <div class="score-items">
-        ${crr.extreme.map((name, i) => `
-          <div class="score-item">
-            <div class="score-item-label">${name}</div>
-            <div class="score-btns">
-              ${[1,2,3,4,5].map(v => `
-                <button class="score-btn${ss.scores.extreme[i] === v ? ' on' : ''}"
-                  onclick="setScore(${idx},'extreme',${i},${v},this)">${v}</button>
-              `).join('')}
-            </div>
+  const studentCols = chunkStudents.map((ss, ci) => {
+    const idx = chunkIndices[ci];
+    const scoreCells = scoreRows.map(r => {
+      const val = (ss.scores[r.key] || [])[r.i] || 0;
+      return `<div class="exam-cell row-score"><div class="score-btns">${
+        [1,2,3,4,5].map(v =>
+          `<button class="score-btn${val === v ? ' on' : ''}" onclick="setScore(${idx},'${r.key}',${r.i},${v},this)">${v}</button>`
+        ).join('')
+      }</div></div>`;
+    }).join('');
+
+    return `
+      <div class="exam-col exam-col-student${ss.done ? ' done' : ''}" id="erow-${idx}">
+        <div class="exam-cell row-header exam-cell-header">
+          <div style="font-size:14px;font-weight:700">${ss.name}</div>
+          ${beltBadge(ss.belt, ss.grade)}
+          ${ss.done ? '<span style="font-size:12px;color:var(--green)">✅ 완료</span>' : ''}
+        </div>
+        ${scoreCells}
+        <div class="exam-cell row-pf">
+          <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <button class="pf-btn pass${ss.passed === true  ? ' on' : ''}" onclick="setPassed(${idx},true)">✅ 합격</button>
+            <button class="pf-btn fail${ss.passed === false ? ' on' : ''}" onclick="setPassed(${idx},false)">❌ 불합격</button>
           </div>
-        `).join('')}
+        </div>
+        <div class="exam-cell row-comment">
+          <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평..." style="height:100%;resize:none">${ss.comment || ''}</textarea>
+        </div>
+        <div class="exam-cell row-save">
+          <button class="save-btn" style="margin:0" onclick="saveExamRow(${idx})">💾 저장</button>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }).join('');
 
   return `
-    <div class="exam-row${ss.done ? ' done' : ''}" id="erow-${idx}">
-      <div class="exam-row-header">
-        <div class="exam-row-name">${ss.name}</div>
-        ${beltBadge(ss.belt, ss.grade)}
-        ${ss.done ? '<span style="color:var(--green);font-size:13px;font-weight:700">✅ 완료</span>' : ''}
-      </div>
-      <div class="exam-row-body">
-        ${scoreBlock('품새 (' + crr.poomsae + ')',  'poomsae',   ['정확도','완성도'])}
-        ${scoreBlock('발차기 (' + crr.kick + ')',    'kick',      ['완성도','공방','다양성'])}
-        ${extremeBlock}
-        ${scoreBlock('인성', 'character', ['태도','집중력','교재'])}
-        <div class="pf-row">
-          <button class="pf-btn pass${ss.passed === true  ? ' on' : ''}" onclick="setPassed(${idx},true)">✅ 합격</button>
-          <button class="pf-btn fail${ss.passed === false ? ' on' : ''}" onclick="setPassed(${idx},false)">❌ 불합격</button>
-        </div>
-        <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평...">${ss.comment || ''}</textarea>
-        <button class="save-btn" onclick="saveExamRow(${idx})">💾 저장</button>
+    <div class="exam-chunk-wrap">
+      <div class="exam-group-title" style="margin:0 0 8px 0">${beltBadge(belt, '')} &nbsp;${belt}</div>
+      <div class="exam-chunk-table">
+        ${labelCol}
+        ${studentCols}
       </div>
     </div>
   `;
+}
+
+function moveRowToDone(idx) {
+  const colEl = document.getElementById('erow-' + idx);
+  if (colEl) colEl.classList.add('done');
 }
 
 window.setScore = (idx, key, i, val, btn) => {
@@ -820,22 +1049,16 @@ window.saveExamRow = async (idx) => {
   ss.done = true;
   const rowEl = document.getElementById('erow-' + idx);
   if (rowEl) rowEl.classList.add('done');
+  moveRowToDone(idx);
   showToast('✅ 저장 완료!');
 
-  // 합격이면 승급 팝업, 불합격이면 세션 종료
+  // 합격이면 승급 팝업
   if (ss.passed === true) {
     const next = calcNext(ss);
     if (next) {
       pendingPromotion = { ss, stId: ss.id, nextBelt: next.nextBelt, nextGrade: next.nextGrade };
       showPromotionModal(pendingPromotion);
     }
-  } else {
-    currentExamSession = null;
-    document.getElementById('examSetupCard').classList.remove('hidden');
-    document.getElementById('examProgressCard').classList.add('hidden');
-    document.getElementById('examSection').classList.add('hidden');
-    document.getElementById('examSection').innerHTML = '';
-    switchTab('students');
   }
 };
 
@@ -857,30 +1080,20 @@ function showPromotionModal(promo) {
 window.applyPromotion = async () => {
   if (!pendingPromotion) return;
   const { stId, nextBelt, nextGrade } = pendingPromotion;
-  await update(ref(db, `academies/${academyId}/exam/students/${stId}`), {
-    belt:  nextBelt,
-    grade: nextGrade || '',
-  });
+  const updateData = { belt: nextBelt, grade: nextGrade || '' };
+  if (isDan(nextBelt)) {
+    const certKey = `certDate${DAN_BELTS.indexOf(nextBelt) + 1}`;
+    updateData[certKey] = todayStr();
+  }
+  await update(ref(db, `academies/${academyId}/exam/students/${stId}`), updateData);
   closeModal('modalPromotion');
   showToast('🏆 승급 적용 완료!');
   pendingPromotion = null;
-  currentExamSession = null;
-  document.getElementById('examSetupCard').classList.remove('hidden');
-  document.getElementById('examProgressCard').classList.add('hidden');
-  document.getElementById('examSection').classList.add('hidden');
-  document.getElementById('examSection').innerHTML = '';
-  switchTab('students');
 };
 
 window.cancelPromotion = () => {
   closeModal('modalPromotion');
   pendingPromotion = null;
-  currentExamSession = null;
-  document.getElementById('examSetupCard').classList.remove('hidden');
-  document.getElementById('examProgressCard').classList.add('hidden');
-  document.getElementById('examSection').classList.add('hidden');
-  document.getElementById('examSection').innerHTML = '';
-  switchTab('students');
 };
 
 // ── 현황 탭 ──────────────────────────────────────────────────────────
@@ -900,7 +1113,7 @@ window.renderStatusTable = () => {
 
   const tbody = document.getElementById('statusBody');
   if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="9" class="empty-msg">기록 없음</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">기록 없음</td></tr>';
     return;
   }
 
@@ -912,6 +1125,16 @@ window.renderStatusTable = () => {
       : e.passed === false
         ? '<span class="pass-badge fail">불합격</span>'
         : '<span class="pass-badge none">-</span>';
+    const tempSs = { id: e.studentId, belt: e.belt, grade: e.grade || '', scores: e.scores, passed: e.passed };
+    let resultCell = '-';
+    if (e.passed === true) {
+      const next = calcNext(tempSs);
+      resultCell = next
+        ? `${beltBadge(e.belt || '', e.grade || '')} → ${beltBadge(next.nextBelt, next.nextGrade || '')}`
+        : beltBadge(e.belt || '', e.grade || '');
+    } else if (e.passed === false) {
+      resultCell = `${beltBadge(e.belt || '', e.grade || '')} <span style="font-size:11px;color:var(--text2)">(유지)</span>`;
+    }
     return `
       <tr>
         <td>${name}</td>
@@ -923,6 +1146,7 @@ window.renderStatusTable = () => {
         <td>${avgScore(e.scores?.extreme)}</td>
         <td>${avgScore(e.scores?.character)}</td>
         <td>${passedBadge}</td>
+        <td>${resultCell}</td>
       </tr>
     `;
   }).join('');
