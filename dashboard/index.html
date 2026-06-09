@@ -343,6 +343,11 @@
       .countdown{width:82px;height:82px;}
       .card{min-height:130px;}
     }
+    /* POLICY BANNER */
+    .policy-banner{display:flex;align-items:center;justify-content:space-between;background:#E8F5E9;border:1.5px solid #A5D6A7;border-radius:12px;padding:11px 16px;margin:0 20px 18px;cursor:pointer;transition:background 0.15s;}
+    .policy-banner:active{background:#C8E6C9;}
+    .policy-banner-text{font-size:13px;font-weight:700;color:#2E7D32;}
+    .policy-banner-arrow{font-size:16px;color:#43A047;}
     /* TOAST */
     .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A2332;color:white;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity 0.25s,transform 0.25s;z-index:9999;white-space:nowrap;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -377,6 +382,11 @@
       </div>
     </section>
 
+    <!-- POLICY BANNER -->
+    <div class="policy-banner" id="policyBanner">
+      <span class="policy-banner-text">📋 이번 달 주목할 지원정책 보기 →</span>
+    </div>
+
     <!-- SERVICES -->
     <section class="section" id="servicesSection">
       <div class="section-title">
@@ -390,7 +400,7 @@
           <h3>업무일지</h3>
           <p>출석 · 차량 · 메모</p>
         </div>
-        <div class="card orange">
+        <div class="card orange" id="cardExam">
           <div class="status">준비중</div>
           <div class="emoji">🏆</div>
           <h3>승급심사</h3>
@@ -414,7 +424,7 @@
           <h3>슬로우모션</h3>
           <p>동작분석 · 영상촬영</p>
         </div>
-        <div class="card teal">
+        <div class="card teal" id="cardPolicy">
           <div class="status">준비중</div>
           <div class="emoji">📋</div>
           <h3>지원정책</h3>
@@ -610,6 +620,10 @@ document.getElementById('cardJumprope').addEventListener('click', () => {
   location.href = '/jumprope';
 });
 
+document.getElementById('cardExam').addEventListener('click', () => {
+  location.href = '/exam/index.html';
+});
+
 document.getElementById('quickMypage').addEventListener('click', () => {
   location.href = '/mypage';
 });
@@ -654,6 +668,14 @@ function showToast(msg) {
 
 document.getElementById('navPolicy').addEventListener('click', () => {
   showToast('준비 중입니다 🛠️');
+});
+
+document.getElementById('policyBanner').addEventListener('click', () => {
+  window.open('https://www.sbiz.or.kr', '_blank');
+});
+
+document.getElementById('cardPolicy').addEventListener('click', () => {
+  window.open('https://www.sbiz.or.kr', '_blank');
 });
 
 document.getElementById('navAlarm').addEventListener('click', () => {
