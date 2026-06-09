@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>태권도 심사 - FILLYO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+:root {
+  --navy:   #0B1F3A;
+  --blue:   #1352A8;
+  --sky:    #E8F1FF;
+  --border: #DDE4EE;
+  --bg:     #EEF2F8;
+  --white:  #FFFFFF;
+  --text:   #1A2433;
+  --text2:  #6B7A8D;
+  --red:    #DC2626;
+  --green:  #16A34A;
+  --radius: 12px;
+  --tab-h:  64px;
+  --hdr-h:  56px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); }
+button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+/* ── LOADING ── */
+#loading {
+  position: fixed; inset: 0; background: var(--navy);
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; z-index: 9999;
+}
+#loading .spin {
+  width: 40px; height: 40px;
+  border: 4px solid rgba(255,255,255,0.2);
+  border-top-color: #fff; border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+#loading .load-text { color: rgba(255,255,255,0.7); font-size: 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── HEADER ── */
+#header {
+  position: fixed; top: 0; left: 0; right: 0; height: var(--hdr-h);
+  background: var(--navy); color: #fff;
+  display: flex; align-items: center; padding: 0 16px; gap: 12px;
+  z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+#btnBack { font-size: 22px; line-height: 1; color: #fff; }
+#headerTitle { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+#btnLogout { font-size: 13px; color: rgba(255,255,255,0.75); padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.3); }
+
+/* ── MAIN ── */
+#main { padding-top: var(--hdr-h); padding-bottom: var(--tab-h); min-height: 100dvh; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* ── BOTTOM TAB ── */
+#tabBar {
+  position: fixed; bottom: 0; left: 0; right: 0; height: var(--tab-h);
+  background: var(--white); border-top: 1px solid var(--border);
+  display: flex; z-index: 100; box-shadow: 0 -2px 8px rgba(0,0,0,0.06);
+}
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 2px; font-size: 11px; color: var(--text2);
+  padding: 8px 4px; transition: color 0.15s;
+}
+.tab-btn .tab-icon { font-size: 22px; line-height: 1; }
+.tab-btn.active { color: var(--blue); }
+.tab-btn.active .tab-label { font-weight: 700; }
+
+/* ── STATS ── */
+.stats-row { display: flex; gap: 8px; padding: 12px 16px 0; }
+.stat-box { flex: 1; background: var(--white); border-radius: 10px; border: 1px solid var(--border); padding: 10px; text-align: center; }
+.stat-box .sv { font-size: 22px; font-weight: 900; color: var(--blue); }
+.stat-box .sl { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+/* ── SEARCH / SORT ── */
+.search-row { padding: 10px 16px 0; display: flex; gap: 8px; }
+.search-input { flex: 1; padding: 10px 14px; border-radius: 10px; border: 1px solid var(--border); background: var(--white); font-size: 14px; font-family: inherit; outline: none; }
+.sort-select, .filter-select { padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--white); font-size: 13px; font-family: inherit; outline: none; color: var(--text); }
+
+/* ── STUDENT CARDS ── */
+#studentList { padding: 10px 16px 0; }
+.student-card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 14px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.student-info { flex: 1; }
+.student-name { font-size: 15px; font-weight: 700; }
+.student-meta { font-size: 12px; color: var(--text2); margin-top: 3px; }
+
+/* ── BELT BADGE ── */
+.belt-badge { padding: 3px 9px; border-radius: 20px; font-size: 12px; font-weight: 700; white-space: nowrap; border: 2px solid transparent; }
+
+/* ── FAB ── */
+#fab { position: fixed; right: 20px; bottom: calc(var(--tab-h) + 16px); width: 52px; height: 52px; border-radius: 50%; background: var(--blue); color: #fff; font-size: 28px; line-height: 52px; text-align: center; box-shadow: 0 4px 16px rgba(19,82,168,0.4); z-index: 99; }
+
+/* ── MODAL ── */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 200; align-items: flex-end; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal-box { background: var(--white); border-radius: 20px 20px 0 0; width: 100%; max-width: 600px; max-height: 90dvh; overflow-y: auto; padding: 24px 20px 36px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 20px; }
+.form-row { margin-bottom: 14px; }
+.form-label { font-size: 13px; color: var(--text2); margin-bottom: 6px; display: block; }
+.form-input, .form-select { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border); font-size: 14px; font-family: inherit; outline: none; background: var(--white); color: var(--text); }
+.form-input:focus, .form-select:focus { border-color: var(--blue); }
+.modal-btn-row { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btn { flex: 1; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; }
+.modal-btn.primary { background: var(--blue); color: #fff; }
+.modal-btn.danger  { background: var(--red);  color: #fff; }
+.modal-btn.secondary { background: var(--bg); color: var(--text2); }
+
+/* ── EXAM SETUP ── */
+.section { padding: 16px; }
+.card { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 16px; }
+.student-check-list { border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 6px; max-height: 260px; overflow-y: auto; }
+.check-all-row { display: flex; align-items: center; gap: 8px; padding: 9px 14px; background: var(--sky); border-bottom: 1px solid var(--border); }
+.check-all-row label { font-size: 13px; font-weight: 700; cursor: pointer; }
+.check-item { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+.check-item:last-child { border-bottom: none; }
+.check-item label { flex: 1; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+.progress-card { display: flex; align-items: center; justify-content: space-between; }
+.progress-card .pc-label { font-size: 13px; color: var(--text2); }
+.progress-card .pc-title { font-size: 16px; font-weight: 700; margin-top: 2px; }
+
+/* ── EXAM TABLE ── */
+#examSection { padding: 0 16px 16px; }
+.exam-group { margin-bottom: 20px; }
+.exam-group-title { font-size: 13px; font-weight: 700; color: var(--text2); padding: 6px 12px; background: var(--sky); border-radius: 8px; margin-bottom: 8px; }
+.exam-row { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px; overflow: hidden; }
+.exam-row.done { opacity: 0.55; }
+.exam-row-header { display: flex; align-items: center; padding: 12px 14px; border-bottom: 1px solid var(--border); gap: 8px; flex-wrap: wrap; }
+.exam-row-name { font-size: 15px; font-weight: 700; flex: 1; }
+.exam-row-body { padding: 14px; }
+.score-group { margin-bottom: 14px; }
+.score-group-label { font-size: 12px; font-weight: 700; color: var(--text2); margin-bottom: 6px; }
+.score-items { display: flex; flex-direction: column; gap: 7px; }
+.score-item { display: flex; align-items: center; gap: 8px; }
+.score-item-label { font-size: 12px; color: var(--text2); width: 90px; flex-shrink: 0; }
+.score-btns { display: flex; gap: 4px; }
+.score-btn { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-weight: 700; background: var(--bg); color: var(--text2); transition: all 0.1s; }
+.score-btn.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+.pf-row { display: flex; gap: 8px; margin: 12px 0 10px; }
+.pf-btn { flex: 1; padding: 11px; border-radius: 10px; border: 2px solid var(--border); font-size: 14px; font-weight: 700; background: var(--bg); color: var(--text2); transition: all 0.15s; }
+.pf-btn.pass.on { background: #DCFCE7; color: var(--green); border-color: var(--green); }
+.pf-btn.fail.on { background: #FEE2E2; color: var(--red);   border-color: var(--red); }
+.comment-input { width: 100%; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px; font-family: inherit; resize: none; height: 58px; outline: none; }
+.save-btn { width: 100%; padding: 12px; background: var(--blue); color: #fff; border-radius: 10px; font-size: 14px; font-weight: 700; margin-top: 10px; }
+
+/* ── STATUS TAB ── */
+.filter-row { padding: 12px 16px 0; }
+.status-table-wrap { padding: 12px 16px; overflow-x: auto; }
+.status-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.status-table th { background: var(--navy); color: #fff; padding: 8px 6px; text-align: center; white-space: nowrap; }
+.status-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.status-table tr:hover td { background: var(--sky); }
+.pass-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+.pass-badge.pass { background: #DCFCE7; color: var(--green); }
+.pass-badge.fail { background: #FEE2E2; color: var(--red); }
+.pass-badge.none { background: var(--bg); color: var(--text2); }
+
+/* ── PROMO MODAL ── */
+.promo-item { background: var(--sky); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
+.promo-name { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.promo-belts { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+
+/* ── TOAST ── */
+#toast { position: fixed; bottom: calc(var(--tab-h) + 16px); left: 50%; transform: translateX(-50%) translateY(20px); background: #1A2433; color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 14px; z-index: 999; opacity: 0; transition: all 0.25s; pointer-events: none; white-space: nowrap; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.hidden { display: none !important; }
+.empty-msg { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spin"></div>
+  <div class="load-text">로딩 중...</div>
+</div>
+
+<!-- HEADER -->
+<div id="header">
+  <button id="btnBack" onclick="location.href='../dashboard/index.html'">←</button>
+  <div id="headerTitle">승급심사</div>
+  <button id="btnLogout" onclick="doLogout()">로그아웃</button>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- 수련생 탭 -->
+  <div id="tab-students" class="tab-content">
+    <div class="stats-row">
+      <div class="stat-box"><div class="sv" id="statTotal">0</div><div class="sl">전체</div></div>
+      <div class="stat-box"><div class="sv" id="statGeneral">0</div><div class="sl">유급자</div></div>
+      <div class="stat-box"><div class="sv" id="statDan">0</div><div class="sl">품단</div></div>
+    </div>
+    <div class="search-row">
+      <input class="search-input" id="searchInput" type="text" placeholder="이름 검색..." oninput="renderStudentList()">
+      <select class="sort-select" id="sortSelect" onchange="renderStudentList()">
+        <option value="belt">띠순</option>
+        <option value="name">이름순</option>
+        <option value="age">나이순</option>
+      </select>
+    </div>
+    <div id="studentList"></div>
+  </div>
+
+  <!-- 심사 탭 -->
+  <div id="tab-exam" class="tab-content">
+    <div class="section">
+      <div id="examSetupCard" class="card">
+        <div class="form-row">
+          <label class="form-label">심사일</label>
+          <input class="form-input" id="examDate" type="date">
+        </div>
+        <div class="form-row">
+          <label class="form-label">회차명</label>
+          <input class="form-input" id="examRound" type="text" placeholder="예) 제1회 정기 심사">
+        </div>
+        <div class="form-row">
+          <label class="form-label">수련생 선택</label>
+          <div class="student-check-list">
+            <div class="check-all-row">
+              <input type="checkbox" id="chkAll" onchange="toggleCheckAll(this)">
+              <label for="chkAll">전체 선택</label>
+            </div>
+            <div id="examStudentChecks"></div>
+          </div>
+        </div>
+        <button class="modal-btn primary" style="width:100%;margin-top:4px" onclick="startExam()">심사 시작</button>
+      </div>
+
+      <div id="examProgressCard" class="card hidden">
+        <div class="progress-card">
+          <div>
+            <div class="pc-label" id="examProgressLabel">심사 진행 중</div>
+            <div class="pc-title" id="examProgressTitle"></div>
+          </div>
+          <button class="modal-btn secondary" style="flex:none;padding:8px 16px;font-size:13px" onclick="endExam()">종료</button>
+        </div>
+      </div>
+    </div>
+    <div id="examSection" class="hidden"></div>
+  </div>
+
+  <!-- 현황 탭 -->
+  <div id="tab-status" class="tab-content">
+    <div class="filter-row">
+      <select class="filter-select" id="statusFilter" onchange="renderStatusTable()" style="width:100%">
+        <option value="">전체 회차</option>
+      </select>
+    </div>
+    <div class="status-table-wrap">
+      <table class="status-table">
+        <thead>
+          <tr>
+            <th>수련생명</th><th>심사일</th><th>회차</th><th>띠</th>
+            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th>
+          </tr>
+        </thead>
+        <tbody id="statusBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<!-- BOTTOM TAB BAR -->
+<div id="tabBar">
+  <button class="tab-btn active" data-tab="students" onclick="switchTab('students')">
+    <span class="tab-icon">🥋</span>
+    <span class="tab-label">수련생</span>
+  </button>
+  <button class="tab-btn" data-tab="exam" onclick="switchTab('exam')">
+    <span class="tab-icon">📋</span>
+    <span class="tab-label">심사</span>
+  </button>
+  <button class="tab-btn" data-tab="status" onclick="switchTab('status')">
+    <span class="tab-icon">📊</span>
+    <span class="tab-label">현황</span>
+  </button>
+</div>
+
+<!-- FAB -->
+<button id="fab" class="hidden" onclick="openStudentModal(null)">+</button>
+
+<!-- 수련생 모달 -->
+<div class="modal-overlay" id="modalStudent">
+  <div class="modal-box">
+    <div class="modal-title" id="modalStudentTitle">수련생 추가</div>
+    <div class="form-row">
+      <label class="form-label">이름 <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="fName" type="text" placeholder="홍길동">
+    </div>
+    <div class="form-row">
+      <label class="form-label">나이</label>
+      <input class="form-input" id="fAge" type="number" placeholder="10" min="1" max="99">
+    </div>
+    <div class="form-row">
+      <label class="form-label">현재 띠</label>
+      <select class="form-select" id="fBelt" onchange="onBeltChange()"></select>
+    </div>
+    <div class="form-row hidden" id="fGradeRow">
+      <label class="form-label">급수</label>
+      <select class="form-select" id="fGrade"></select>
+    </div>
+    <div class="form-row">
+      <label class="form-label">학교/학년</label>
+      <input class="form-input" id="fSchool" type="text" placeholder="OO초등학교 3학년">
+    </div>
+    <div class="form-row">
+      <label class="form-label">부모님 연락처</label>
+      <input class="form-input" id="fPhone" type="tel" placeholder="010-0000-0000">
+    </div>
+    <div class="form-row">
+      <label class="form-label">등록일</label>
+      <input class="form-input" id="fJoinDate" type="date">
+    </div>
+    <div class="modal-btn-row">
+      <button class="modal-btn secondary" onclick="closeModal('modalStudent')">취소</button>
+      <button class="modal-btn danger hidden" id="btnDeleteStudent" onclick="deleteStudent()">삭제</button>
+      <button class="modal-btn primary" onclick="saveStudent()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 승급 확인 모달 -->
+<div class="modal-overlay" id="modalPromotion">
+  <div class="modal-box">
+    <div class="modal-title">🏆 승급 확인</div>
+    <div id="promoContent"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn secondary" onclick="cancelPromotion()">취소</button>
+      <button class="modal-btn primary" onclick="applyPromotion()">승급 적용</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get, set, update, onValue, push, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── Firebase 설정 (app/index.html에서 복사, 변경 금지) ──
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const fbApp = initializeApp(FB_CONFIG);
+const auth  = getAuth(fbApp);
+const db    = getDatabase(fbApp);
+
+// ── 전역 상태 ──────────────────────────────────────────────────────
+let academyId           = null;
+let students            = {};
+let evaluations         = {};
+let currentExamSession  = null;
+let editingStudentId    = null;
+let pendingPromotion    = null;
+
+// ── 띠 체계 ────────────────────────────────────────────────────────
+const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
+const BELTS_JUNIOR  = ['흰띠','흰검띠','노란띠','노검띠','주황띠','주황검띠','초록띠','초록검띠',
+                        '파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠'];
+const DAN_BELTS     = ['1품단','2품단','3품단','4품단'];
+const ALL_BELTS     = [...BELTS_JUNIOR, ...DAN_BELTS];
+
+// 급수: 각 품단별 2급 단위 (예: 12급→10급→8급→...→2급→1단)
+const DAN_GRADES = {
+  '1품단': ['12급','10급','8급','6급','4급','2급','1단'],
+  '2품단': ['24급','22급','20급','18급','16급','14급','12급','10급','8급','6급','4급','2급','2단'],
+  '3품단': ['36급','34급','32급','30급','28급','26급','24급','22급','20급','18급','16급','14급','12급','10급','8급','6급','4급','2급','3단'],
+  '4품단': ['48급','46급','44급','42급','40급','38급','36급','34급','32급','30급','28급','26급','24급','22급','20급','18급','16급','14급','12급','10급','8급','6급','4급','2급','4단'],
+};
+
+function isDan(belt) { return DAN_BELTS.includes(belt); }
+
+// 나이 기반 승급표
+function getPromoMap(age) {
+  const junior = age && Number(age) <= 6;
+  const beltList = junior ? BELTS_JUNIOR : BELTS_GENERAL;
+  const map = {};
+  for (let i = 0; i < beltList.length - 1; i++) map[beltList[i]] = beltList[i + 1];
+  map['빨간띠'] = '1품단';
+  return map;
+}
+
+// 합격 시 다음 띠/급수 계산
+function calcNext(ss) {
+  const st = students[ss.id] || {};
+  const belt = ss.belt;
+  if (isDan(belt)) {
+    const grades = DAN_GRADES[belt];
+    const curGrade = ss.grade || st.grade || grades[0];
+    const idx = grades.indexOf(curGrade);
+    const atTop = idx === -1 || idx >= grades.length - 1;
+    if (atTop) {
+      const nextDanIdx = DAN_BELTS.indexOf(belt) + 1;
+      if (nextDanIdx >= DAN_BELTS.length) return null;
+      const nextBelt = DAN_BELTS[nextDanIdx];
+      return { nextBelt, nextGrade: DAN_GRADES[nextBelt][0] };
+    }
+    return { nextBelt: belt, nextGrade: grades[idx + 1] };
+  } else {
+    const promoMap = getPromoMap(st.age);
+    const nextBelt = promoMap[belt];
+    if (!nextBelt) return null;
+    if (isDan(nextBelt)) return { nextBelt, nextGrade: DAN_GRADES[nextBelt][0] };
+    return { nextBelt, nextGrade: '' };
+  }
+}
+
+// ── 커리큘럼 ─────────────────────────────────────────────────────────
+const CURRICULUM = {
+  '흰띠':     { poomsae:'주먹쥐는방법·기본서기·기본동작', kick:'무릎차기·뻗어차기',   extreme:['뛰어앞차기(무릎)','앞구르기'] },
+  '흰검띠':   { poomsae:'주먹쥐는방법·기본서기·기본동작', kick:'무릎차기·뻗어차기',   extreme:['뛰어앞차기(무릎)','앞구르기'] },
+  '노란띠':   { poomsae:'태극1장',   kick:'앞차기',       extreme:['뛰어앞차기','뒤구르기'] },
+  '노검띠':   { poomsae:'태극1장',   kick:'앞차기',       extreme:['뛰어앞차기','뒤구르기'] },
+  '주황띠':   { poomsae:'태극2장',   kick:'돌려차기',     extreme:['뛰어돌려차기','앞뒤구르기'] },
+  '주황검띠': { poomsae:'태극2장',   kick:'돌려차기',     extreme:['뛰어돌려차기','앞뒤구르기'] },
+  '초록띠':   { poomsae:'태극3장',   kick:'내려차기',     extreme:['돌게차기','물구나무서기'] },
+  '초록검띠': { poomsae:'태극3장',   kick:'내려차기',     extreme:['돌게차기','물구나무서기'] },
+  '파란띠':   { poomsae:'태극4장',   kick:'옆차기',       extreme:['돌려돌게차기','옆돌기'] },
+  '파란검띠': { poomsae:'태극4장',   kick:'옆차기',       extreme:['돌려돌게차기','옆돌기'] },
+  '보라띠':   { poomsae:'태극5장',   kick:'옆차기발날',   extreme:['스텝돌게차기','홉스텝옆돌기'] },
+  '보라검띠': { poomsae:'태극5장',   kick:'옆차기발날',   extreme:['스텝돌게차기','홉스텝옆돌기'] },
+  '밤띠':     { poomsae:'태극6장',   kick:'옆후려차기',   extreme:['연결발차기','한손옆돌기'] },
+  '밤검띠':   { poomsae:'태극6장',   kick:'옆후려차기',   extreme:['연결발차기','한손옆돌기'] },
+  '빨간띠':   { poomsae:'국기원승품단심사대상자', kick:'약속겨루기', extreme:['태극1장~8장종합'] },
+  '1품단':    { poomsae:'고려',      kick:'뒤차기',       extreme:['돌려+돌게+뒤후려차기','에어리얼'] },
+  '2품단':    { poomsae:'금강',      kick:'뛰어뒤차기',   extreme:['팜턴','핸드스프링'] },
+  '3품단':    { poomsae:'태백',      kick:'뛰어옆차기',   extreme:['외반턴540도','하우스턴'] },
+  '4품단':    { poomsae:'평원',      kick:'가위차기',     extreme:['720도이상','뒤공중앞공중'] },
+};
+
+// ── 띠 색상 ──────────────────────────────────────────────────────────
+const BELT_COLORS = {
+  '흰띠':     { bg:'#FFFFFF', color:'#333333', border:'#999999' },
+  '흰검띠':   { bg:'#EEEEEE', color:'#333333', border:'#333333' },
+  '노란띠':   { bg:'#FEF08A', color:'#713F12', border:'#CA8A04' },
+  '노검띠':   { bg:'#FEF08A', color:'#333333', border:'#333333' },
+  '주황띠':   { bg:'#FED7AA', color:'#7C2D12', border:'#EA580C' },
+  '주황검띠': { bg:'#FED7AA', color:'#333333', border:'#333333' },
+  '초록띠':   { bg:'#BBF7D0', color:'#14532D', border:'#16A34A' },
+  '초록검띠': { bg:'#BBF7D0', color:'#333333', border:'#333333' },
+  '파란띠':   { bg:'#BFDBFE', color:'#1E3A8A', border:'#2563EB' },
+  '파란검띠': { bg:'#BFDBFE', color:'#333333', border:'#333333' },
+  '보라띠':   { bg:'#E9D5FF', color:'#4C1D95', border:'#7C3AED' },
+  '보라검띠': { bg:'#E9D5FF', color:'#333333', border:'#333333' },
+  '밤띠':     { bg:'#D6B896', color:'#451A03', border:'#92400E' },
+  '밤검띠':   { bg:'#D6B896', color:'#333333', border:'#333333' },
+  '빨간띠':   { bg:'#FCA5A5', color:'#7F1D1D', border:'#DC2626' },
+  '1품단':    { bg:'#1F2937', color:'#FCA5A5', border:'#DC2626' },
+  '2품단':    { bg:'#1F2937', color:'#FCA5A5', border:'#9F1239' },
+  '3품단':    { bg:'#111827', color:'#FECACA', border:'#7F1D1D' },
+  '4품단':    { bg:'#030712', color:'#FECACA', border:'#450A0A' },
+};
+
+function beltBadge(belt, grade) {
+  const c = BELT_COLORS[belt] || { bg:'#eee', color:'#333', border:'#ccc' };
+  const label = belt + (grade ? ' ' + grade : '');
+  return `<span class="belt-badge" style="background:${c.bg};color:${c.color};border-color:${c.border}">${label}</span>`;
+}
+
+// ── 유틸 ─────────────────────────────────────────────────────────────
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+window.closeModal = closeModal;
+
+function avgScore(arr) {
+  const valid = (arr || []).filter(v => v > 0);
+  if (!valid.length) return '-';
+  return (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1);
+}
+
+function todayStr() { return new Date().toISOString().slice(0, 10); }
+
+// ── 인증 / 초기화 ─────────────────────────────────────────────────────
+onAuthStateChanged(auth, async (user) => {
+  if (!user) { location.href = '../login/index.html'; return; }
+
+  const aidSnap = await get(ref(db, `users/${user.uid}/academyId`));
+  if (!aidSnap.exists()) { location.href = '../setup/index.html'; return; }
+  academyId = aidSnap.val();
+
+  const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
+  document.getElementById('headerTitle').textContent = nameSnap.val() || '승급심사';
+
+  onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
+    students = snap.val() || {};
+    renderStudentList();
+    renderExamStudentChecks();
+  });
+
+  onValue(ref(db, `academies/${academyId}/exam/evaluations`), snap => {
+    evaluations = snap.val() || {};
+    updateStatusFilter();
+    renderStatusTable();
+  });
+
+  document.getElementById('examDate').value = todayStr();
+  document.getElementById('loading').classList.add('hidden');
+  document.getElementById('fab').classList.remove('hidden');
+});
+
+window.doLogout = async () => {
+  await signOut(auth);
+  location.href = '../login/index.html';
+};
+
+// ── 탭 전환 ──────────────────────────────────────────────────────────
+window.switchTab = (tab) => {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.querySelector(`.tab-btn[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('fab').classList.toggle('hidden', tab !== 'students');
+};
+document.getElementById('tab-students').classList.add('active');
+
+// ── 수련생 탭 ─────────────────────────────────────────────────────────
+const BELT_ORDER_LIST = [...BELTS_JUNIOR, ...DAN_BELTS];
+function beltOrder(belt) {
+  const i = BELT_ORDER_LIST.indexOf(belt);
+  return i === -1 ? 99 : i;
+}
+
+window.renderStudentList = () => {
+  const search = document.getElementById('searchInput').value.trim().toLowerCase();
+  const sort   = document.getElementById('sortSelect').value;
+  let list = Object.entries(students).map(([id, s]) => ({ id, ...s }));
+  if (search) list = list.filter(s => (s.name || '').toLowerCase().includes(search));
+
+  if (sort === 'belt')      list.sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'name') list.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'age')  list.sort((a, b) => (Number(a.age)||0) - (Number(b.age)||0));
+
+  const danCount = list.filter(s => isDan(s.belt)).length;
+  document.getElementById('statTotal').textContent   = list.length;
+  document.getElementById('statGeneral').textContent = list.length - danCount;
+  document.getElementById('statDan').textContent     = danCount;
+
+  const el = document.getElementById('studentList');
+  if (!list.length) { el.innerHTML = '<div class="empty-msg">수련생이 없습니다</div>'; return; }
+  el.innerHTML = list.map(s => `
+    <div class="student-card" onclick="openStudentModal('${s.id}')">
+      <div class="student-info">
+        <div class="student-name">${s.name || '이름없음'}</div>
+        <div class="student-meta">${s.age ? s.age + '세' : ''}${s.school ? ' · ' + s.school : ''}</div>
+      </div>
+      ${beltBadge(s.belt || '흰띠', s.grade || '')}
+    </div>
+  `).join('');
+};
+
+// ── 수련생 모달 ───────────────────────────────────────────────────────
+function fillBeltSelect(selected) {
+  const sel = document.getElementById('fBelt');
+  sel.innerHTML = ALL_BELTS.map(b => `<option value="${b}"${b === selected ? ' selected' : ''}>${b}</option>`).join('');
+  onBeltChange();
+}
+
+window.onBeltChange = () => {
+  const belt = document.getElementById('fBelt').value;
+  const row  = document.getElementById('fGradeRow');
+  const sel  = document.getElementById('fGrade');
+  if (isDan(belt)) {
+    row.classList.remove('hidden');
+    sel.innerHTML = (DAN_GRADES[belt] || []).map(g => `<option value="${g}">${g}</option>`).join('');
+  } else {
+    row.classList.add('hidden');
+    sel.innerHTML = '';
+  }
+};
+
+window.openStudentModal = (id) => {
+  editingStudentId = id;
+  const isEdit = !!(id && students[id]);
+  const s = isEdit ? students[id] : {};
+  document.getElementById('modalStudentTitle').textContent = isEdit ? '수련생 수정' : '수련생 추가';
+  document.getElementById('fName').value     = s.name        || '';
+  document.getElementById('fAge').value      = s.age         || '';
+  document.getElementById('fSchool').value   = s.school      || '';
+  document.getElementById('fPhone').value    = s.parentPhone || '';
+  document.getElementById('fJoinDate').value = s.joinDate    || todayStr();
+  fillBeltSelect(s.belt || '흰띠');
+  if (isEdit && isDan(s.belt) && s.grade) document.getElementById('fGrade').value = s.grade;
+  document.getElementById('btnDeleteStudent').classList.toggle('hidden', !isEdit);
+  openModal('modalStudent');
+};
+
+window.saveStudent = async () => {
+  const name = document.getElementById('fName').value.trim();
+  if (!name) { showToast('이름을 입력해주세요'); return; }
+  const belt  = document.getElementById('fBelt').value;
+  const grade = isDan(belt) ? document.getElementById('fGrade').value : '';
+  const data  = {
+    name,
+    age:         Number(document.getElementById('fAge').value) || 0,
+    belt, grade,
+    school:      document.getElementById('fSchool').value.trim(),
+    parentPhone: document.getElementById('fPhone').value.trim(),
+    joinDate:    document.getElementById('fJoinDate').value || todayStr(),
+  };
+  const id = editingStudentId || push(ref(db, `academies/${academyId}/exam/students`)).key;
+  await set(ref(db, `academies/${academyId}/exam/students/${id}`), data);
+  closeModal('modalStudent');
+  showToast(editingStudentId ? '✅ 수련생 정보 수정 완료' : '✅ 수련생 추가 완료');
+};
+
+window.deleteStudent = async () => {
+  if (!editingStudentId) return;
+  if (!confirm('정말 삭제하시겠습니까?')) return;
+  await remove(ref(db, `academies/${academyId}/exam/students/${editingStudentId}`));
+  closeModal('modalStudent');
+  showToast('🗑️ 수련생 삭제 완료');
+};
+
+// ── 심사 탭 ──────────────────────────────────────────────────────────
+function renderExamStudentChecks() {
+  const list = Object.entries(students)
+    .map(([id, s]) => ({ id, ...s }))
+    .sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+  document.getElementById('examStudentChecks').innerHTML = list.map(s => `
+    <div class="check-item">
+      <input type="checkbox" id="chk-${s.id}" value="${s.id}">
+      <label for="chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
+    </div>
+  `).join('');
+}
+
+window.toggleCheckAll = (chk) => {
+  document.querySelectorAll('#examStudentChecks input[type=checkbox]').forEach(c => c.checked = chk.checked);
+};
+
+window.startExam = () => {
+  const date  = document.getElementById('examDate').value;
+  const round = document.getElementById('examRound').value.trim();
+  if (!date)  { showToast('심사일을 선택해주세요'); return; }
+  if (!round) { showToast('회차명을 입력해주세요'); return; }
+  const checked = [...document.querySelectorAll('#examStudentChecks input:checked')].map(c => c.value);
+  if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
+
+  const cur = CURRICULUM['흰띠'];
+  const sessionStudents = checked.map(id => {
+    const s   = students[id] || {};
+    const crr = CURRICULUM[s.belt] || cur;
+    return {
+      id,
+      name:    s.name  || '',
+      belt:    s.belt  || '흰띠',
+      grade:   s.grade || '',
+      scores:  {
+        poomsae:   [0, 0],
+        kick:      [0, 0, 0],
+        extreme:   (crr.extreme || []).map(() => 0),
+        character: [0, 0, 0],
+      },
+      passed:  null,
+      comment: '',
+      done:    false,
+    };
+  });
+
+  currentExamSession = { date, round, students: sessionStudents };
+  document.getElementById('examSetupCard').classList.add('hidden');
+  document.getElementById('examProgressCard').classList.remove('hidden');
+  document.getElementById('examProgressTitle').textContent = `${date} | ${round}`;
+  document.getElementById('examProgressLabel').textContent = `${sessionStudents.length}명 심사 중`;
+  renderExamTable();
+  document.getElementById('examSection').classList.remove('hidden');
+};
+
+window.endExam = () => {
+  if (!confirm('심사를 종료하시겠습니까?')) return;
+  currentExamSession = null;
+  document.getElementById('examSetupCard').classList.remove('hidden');
+  document.getElementById('examProgressCard').classList.add('hidden');
+  document.getElementById('examSection').classList.add('hidden');
+  document.getElementById('examSection').innerHTML = '';
+};
+
+function renderExamTable() {
+  const sec = document.getElementById('examSection');
+  if (!currentExamSession) { sec.innerHTML = ''; return; }
+
+  const groups = {};
+  currentExamSession.students.forEach((ss, idx) => {
+    if (!groups[ss.belt]) groups[ss.belt] = [];
+    groups[ss.belt].push({ ss, idx });
+  });
+
+  sec.innerHTML = Object.entries(groups).map(([belt, items]) => `
+    <div class="exam-group">
+      <div class="exam-group-title">${beltBadge(belt, '')} &nbsp;${belt}</div>
+      ${items.map(({ ss, idx }) => buildExamRow(ss, idx)).join('')}
+    </div>
+  `).join('');
+}
+
+function buildExamRow(ss, idx) {
+  const crr = CURRICULUM[ss.belt] || CURRICULUM['흰띠'];
+
+  const scoreBlock = (label, key, names) => `
+    <div class="score-group">
+      <div class="score-group-label">${label}</div>
+      <div class="score-items">
+        ${names.map((name, i) => `
+          <div class="score-item">
+            <div class="score-item-label">${name}</div>
+            <div class="score-btns">
+              ${[1,2,3,4,5].map(v => `
+                <button class="score-btn${ss.scores[key][i] === v ? ' on' : ''}"
+                  onclick="setScore(${idx},'${key}',${i},${v},this)">${v}</button>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  const extremeBlock = `
+    <div class="score-group">
+      <div class="score-group-label">익스트림 (${crr.extreme.join(' · ')})</div>
+      <div class="score-items">
+        ${crr.extreme.map((name, i) => `
+          <div class="score-item">
+            <div class="score-item-label">${name}</div>
+            <div class="score-btns">
+              ${[1,2,3,4,5].map(v => `
+                <button class="score-btn${ss.scores.extreme[i] === v ? ' on' : ''}"
+                  onclick="setScore(${idx},'extreme',${i},${v},this)">${v}</button>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  return `
+    <div class="exam-row${ss.done ? ' done' : ''}" id="erow-${idx}">
+      <div class="exam-row-header">
+        <div class="exam-row-name">${ss.name}</div>
+        ${beltBadge(ss.belt, ss.grade)}
+        ${ss.done ? '<span style="color:var(--green);font-size:13px;font-weight:700">✅ 완료</span>' : ''}
+      </div>
+      <div class="exam-row-body">
+        ${scoreBlock('품새 (' + crr.poomsae + ')',  'poomsae',   ['정확도','완성도'])}
+        ${scoreBlock('발차기 (' + crr.kick + ')',    'kick',      ['완성도','공방','다양성'])}
+        ${extremeBlock}
+        ${scoreBlock('인성', 'character', ['태도','집중력','교재'])}
+        <div class="pf-row">
+          <button class="pf-btn pass${ss.passed === true  ? ' on' : ''}" onclick="setPassed(${idx},true)">✅ 합격</button>
+          <button class="pf-btn fail${ss.passed === false ? ' on' : ''}" onclick="setPassed(${idx},false)">❌ 불합격</button>
+        </div>
+        <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평...">${ss.comment || ''}</textarea>
+        <button class="save-btn" onclick="saveExamRow(${idx})">💾 저장</button>
+      </div>
+    </div>
+  `;
+}
+
+window.setScore = (idx, key, i, val, btn) => {
+  currentExamSession.students[idx].scores[key][i] = val;
+  btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
+};
+
+window.setPassed = (idx, val) => {
+  const ss = currentExamSession.students[idx];
+  ss.passed = val;
+  const row = document.getElementById('erow-' + idx);
+  row.querySelectorAll('.pf-btn.pass').forEach(b => b.classList.toggle('on', val === true));
+  row.querySelectorAll('.pf-btn.fail').forEach(b => b.classList.toggle('on', val === false));
+};
+
+window.saveExamRow = async (idx) => {
+  const ss = currentExamSession.students[idx];
+  ss.comment = document.getElementById('comment-' + idx)?.value || '';
+
+  const hasAny = [...ss.scores.poomsae, ...ss.scores.kick, ...ss.scores.extreme, ...ss.scores.character].some(v => v > 0);
+  if (!hasAny && !ss.comment && ss.passed === null) { showToast('⚠️ 입력된 내용이 없습니다'); return; }
+  if (ss.passed === null) { showToast('합격 여부를 선택해주세요'); return; }
+
+  const evalData = {
+    studentId: ss.id,
+    date:      currentExamSession.date,
+    round:     currentExamSession.round,
+    belt:      ss.belt,
+    grade:     ss.grade || '',
+    passed:    ss.passed,
+    scores:    ss.scores,
+    comment:   ss.comment,
+  };
+  const existingEntry = Object.entries(evaluations).find(
+    ([, e]) => e.studentId === ss.id && e.date === currentExamSession.date && e.round === currentExamSession.round
+  );
+  const evalId = existingEntry ? existingEntry[0] : push(ref(db, `academies/${academyId}/exam/evaluations`)).key;
+  await set(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), evalData);
+
+  ss.done = true;
+  const rowEl = document.getElementById('erow-' + idx);
+  if (rowEl) rowEl.classList.add('done');
+  showToast('✅ 저장 완료!');
+
+  // 합격이면 승급 팝업, 불합격이면 세션 종료
+  if (ss.passed === true) {
+    const next = calcNext(ss);
+    if (next) {
+      pendingPromotion = { ss, stId: ss.id, nextBelt: next.nextBelt, nextGrade: next.nextGrade };
+      showPromotionModal(pendingPromotion);
+    }
+  } else {
+    currentExamSession = null;
+    document.getElementById('examSetupCard').classList.remove('hidden');
+    document.getElementById('examProgressCard').classList.add('hidden');
+    document.getElementById('examSection').classList.add('hidden');
+    document.getElementById('examSection').innerHTML = '';
+    switchTab('students');
+  }
+};
+
+function showPromotionModal(promo) {
+  document.getElementById('promoContent').innerHTML = `
+    <div class="promo-item">
+      <div class="promo-name">${promo.ss.name}</div>
+      <div class="promo-belts">
+        ${beltBadge(promo.ss.belt, promo.ss.grade || '')}
+        <span style="color:var(--text2)">→</span>
+        ${beltBadge(promo.nextBelt, promo.nextGrade || '')}
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--text2)">승급을 적용하시겠습니까?</p>
+  `;
+  openModal('modalPromotion');
+}
+
+window.applyPromotion = async () => {
+  if (!pendingPromotion) return;
+  const { stId, nextBelt, nextGrade } = pendingPromotion;
+  await update(ref(db, `academies/${academyId}/exam/students/${stId}`), {
+    belt:  nextBelt,
+    grade: nextGrade || '',
+  });
+  closeModal('modalPromotion');
+  showToast('🏆 승급 적용 완료!');
+  pendingPromotion = null;
+  currentExamSession = null;
+  document.getElementById('examSetupCard').classList.remove('hidden');
+  document.getElementById('examProgressCard').classList.add('hidden');
+  document.getElementById('examSection').classList.add('hidden');
+  document.getElementById('examSection').innerHTML = '';
+  switchTab('students');
+};
+
+window.cancelPromotion = () => {
+  closeModal('modalPromotion');
+  pendingPromotion = null;
+  currentExamSession = null;
+  document.getElementById('examSetupCard').classList.remove('hidden');
+  document.getElementById('examProgressCard').classList.add('hidden');
+  document.getElementById('examSection').classList.add('hidden');
+  document.getElementById('examSection').innerHTML = '';
+  switchTab('students');
+};
+
+// ── 현황 탭 ──────────────────────────────────────────────────────────
+function updateStatusFilter() {
+  const rounds = [...new Set(Object.values(evaluations).map(e => e.round))].filter(Boolean).sort();
+  const sel = document.getElementById('statusFilter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">전체 회차</option>' +
+    rounds.map(r => `<option value="${r}"${r === cur ? ' selected' : ''}>${r}</option>`).join('');
+}
+
+window.renderStatusTable = () => {
+  const filter = document.getElementById('statusFilter').value;
+  let list = Object.values(evaluations);
+  if (filter) list = list.filter(e => e.round === filter);
+  list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.round || '').localeCompare(b.round || ''));
+
+  const tbody = document.getElementById('statusBody');
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty-msg">기록 없음</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(e => {
+    const st   = students[e.studentId];
+    const name = st?.name || '-';
+    const passedBadge = e.passed === true
+      ? '<span class="pass-badge pass">합격</span>'
+      : e.passed === false
+        ? '<span class="pass-badge fail">불합격</span>'
+        : '<span class="pass-badge none">-</span>';
+    return `
+      <tr>
+        <td>${name}</td>
+        <td>${e.date || '-'}</td>
+        <td>${e.round || '-'}</td>
+        <td>${beltBadge(e.belt || '', e.grade || '')}</td>
+        <td>${avgScore(e.scores?.poomsae)}</td>
+        <td>${avgScore(e.scores?.kick)}</td>
+        <td>${avgScore(e.scores?.extreme)}</td>
+        <td>${avgScore(e.scores?.character)}</td>
+        <td>${passedBadge}</td>
+      </tr>
+    `;
+  }).join('');
+};
+</script>
+</body>
+</html>
