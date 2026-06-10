@@ -200,6 +200,15 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 .hidden { display: none !important; }
 .empty-msg { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 14px; }
+
+/* ── GRADE CHART TAB ── */
+#tab-grade { padding-bottom: 8px; }
+.grade-card { background: white; border-radius: 12px; margin: 8px; padding: 0; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.grade-card-header { padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
+.grade-card-row { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 3px; }
+.grade-card-row:last-child { border-bottom: none; }
+.grade-row-label { font-size: 13px; font-weight: 700; color: #374151; }
+.grade-row-content { font-size: 13px; color: #64748b; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -320,6 +329,11 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
   </div>
 
+  <!-- 급수표 탭 -->
+  <div id="tab-grade" class="tab-content">
+    <div id="gradeChartList"></div>
+  </div>
+
   <!-- 현황 탭 -->
   <div id="tab-status" class="tab-content">
     <div style="display:flex;gap:8px;align-items:center;padding:12px 16px">
@@ -362,6 +376,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="tab-btn" data-tab="status" onclick="switchTab('status')">
     <span class="tab-icon">📊</span>
     <span class="tab-label">현황</span>
+  </button>
+  <button class="tab-btn" data-tab="grade" onclick="switchTab('grade')">
+    <span class="tab-icon">📋</span>
+    <span class="tab-label">급수표</span>
   </button>
 </div>
 
@@ -807,6 +825,66 @@ window.switchTab = (tab) => {
   document.getElementById('fab').classList.toggle('hidden', tab !== 'students');
 };
 document.getElementById('tab-students').classList.add('active');
+
+// ── 급수표 탭 ─────────────────────────────────────────────────────────
+const BELT_HEADER_STYLE = {
+  '흰띠':     { bg:'#e5e7eb', text:'#374151' },
+  '흰검띠':   { bg:'#d1d5db', text:'#374151' },
+  '노란띠':   { bg:'#eab308', text:'#ffffff' },
+  '노검띠':   { bg:'#ca8a04', text:'#ffffff' },
+  '주황띠':   { bg:'#f97316', text:'#ffffff' },
+  '주황검띠': { bg:'#ea580c', text:'#ffffff' },
+  '초록띠':   { bg:'#16a34a', text:'#ffffff' },
+  '초록검띠': { bg:'#15803d', text:'#ffffff' },
+  '파란띠':   { bg:'#2563eb', text:'#ffffff' },
+  '파란검띠': { bg:'#1d4ed8', text:'#ffffff' },
+  '보라띠':   { bg:'#7c3aed', text:'#ffffff' },
+  '보라검띠': { bg:'#6d28d9', text:'#ffffff' },
+  '밤띠':     { bg:'#92400e', text:'#ffffff' },
+  '밤검띠':   { bg:'#78350f', text:'#ffffff' },
+  '빨간띠':   { bg:'#dc2626', text:'#ffffff' },
+  '1품단':    { bg:'#1f2937', text:'#fca5a5' },
+  '2품단':    { bg:'#1f2937', text:'#fca5a5' },
+  '3품단':    { bg:'#111827', text:'#fecaca' },
+  '4품단':    { bg:'#030712', text:'#fecaca' },
+};
+
+(function renderGradeChart() {
+  const belts = ['흰띠','흰검띠','노란띠','노검띠','주황띠','주황검띠','초록띠','초록검띠',
+                 '파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠',
+                 '1품단','2품단','3품단','4품단'];
+  document.getElementById('gradeChartList').innerHTML = belts.map(belt => {
+    const crr = BELT_CURRICULUM[belt] || {};
+    const h   = BELT_HEADER_STYLE[belt] || { bg:'#9ca3af', text:'#ffffff' };
+    const p   = (crr.poomsae || []).join(' · ');
+    const k   = [...(crr.kick || []), ...KICK_SUBS].join(' · ');
+    const ex  = (crr.extreme || []).join(' · ');
+    const ch  = CHARACTER_ITEMS.join(' · ');
+    return `
+      <div class="grade-card">
+        <div class="grade-card-header" style="background:${h.bg};color:${h.text}">
+          ${beltBadge(belt, '')}
+          <span>${belt}</span>
+        </div>
+        <div class="grade-card-row">
+          <div class="grade-row-label">🥋 품새</div>
+          <div class="grade-row-content">${p}</div>
+        </div>
+        <div class="grade-card-row">
+          <div class="grade-row-label">🦵 발차기 &amp; 겨루기</div>
+          <div class="grade-row-content">${k}</div>
+        </div>
+        <div class="grade-card-row">
+          <div class="grade-row-label">🔥 익스트림</div>
+          <div class="grade-row-content">${ex}</div>
+        </div>
+        <div class="grade-card-row">
+          <div class="grade-row-label">🌱 인성</div>
+          <div class="grade-row-content">${ch}</div>
+        </div>
+      </div>`;
+  }).join('');
+})();
 
 // ── 수련생 탭 ─────────────────────────────────────────────────────────
 const BELT_ORDER_LIST = [...BELTS_JUNIOR, ...DAN_BELTS];
