@@ -325,7 +325,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <thead>
           <tr>
             <th>수련생명</th><th>심사일</th><th>회차</th><th>띠</th>
-            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th><th>결과</th>
+            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th><th>결과</th><th>관리</th>
           </tr>
         </thead>
         <tbody id="statusBody"></tbody>
@@ -422,6 +422,29 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   </div>
 </div>
 
+<!-- 심사 기록 보기 모달 -->
+<div class="modal-overlay" id="modalEvalView">
+  <div class="modal-box">
+    <div class="modal-title">📋 심사 기록 상세</div>
+    <div id="evalViewContent"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn secondary" onclick="closeModal('modalEvalView')">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- 심사 기록 수정 모달 -->
+<div class="modal-overlay" id="modalEvalEdit">
+  <div class="modal-box">
+    <div class="modal-title">✏️ 심사 기록 수정</div>
+    <div id="evalEditContent"></div>
+    <div class="modal-btn-row">
+      <button class="modal-btn secondary" onclick="closeModal('modalEvalEdit')">취소</button>
+      <button class="modal-btn primary" onclick="saveEvalEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -455,6 +478,9 @@ let currentExamSession  = null;
 let editingStudentId    = null;
 let pendingPromotion    = null;
 let currentSession      = null;
+let editingEvalId       = null;
+let _editScores         = null;
+let _editPassed         = null;
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -600,14 +626,15 @@ function beltBadge(belt, grade) {
     stripes = `<span style="position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;z-index:2">⭐</span>`;
   }
 
-  const textColor = LIGHT.has(belt) ? '#374151' : '#ffffff';
+  const textColor = belt === '흰검띠' ? '#1f2937' : (LIGHT.has(belt) ? '#374151' : '#ffffff');
   const tShadow   = LIGHT.has(belt) ? 'none'    : '0 1px 2px rgba(0,0,0,0.5)';
   const shortLabel = grade || belt;
   const fullLabel  = belt + (grade ? ' ' + grade : '');
 
+  const borderStyle = belt === '흰검띠' ? ';border:2px solid #9ca3af' : '';
   return (
     `<span class="belt-wrap" title="${fullLabel}">` +
-      `<span class="belt-strip" style="${bgCss}">` +
+      `<span class="belt-strip" style="${bgCss}${borderStyle}">` +
         stripes +
         `<span class="belt-strip-text" style="color:${textColor};text-shadow:${tShadow}">${shortLabel}</span>` +
       `</span>` +
@@ -1262,17 +1289,17 @@ function updateStatusFilter() {
 
 window.renderStatusTable = () => {
   const filter = document.getElementById('statusFilter').value;
-  let list = Object.values(evaluations);
-  if (filter) list = list.filter(e => e.round === filter);
-  list.sort((a, b) => (b.date || '').localeCompare(a.date || '') || (a.round || '').localeCompare(b.round || ''));
+  let entries = Object.entries(evaluations);
+  if (filter) entries = entries.filter(([, e]) => e.round === filter);
+  entries.sort(([, a], [, b]) => (b.date || '').localeCompare(a.date || '') || (a.round || '').localeCompare(b.round || ''));
 
   const tbody = document.getElementById('statusBody');
-  if (!list.length) {
-    tbody.innerHTML = '<tr><td colspan="10" class="empty-msg">기록 없음</td></tr>';
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">기록 없음</td></tr>';
     return;
   }
 
-  tbody.innerHTML = list.map(e => {
+  tbody.innerHTML = entries.map(([evalId, e]) => {
     const st   = students[e.studentId];
     const name = st?.name || '-';
     const passedBadge = e.passed === true
@@ -1302,9 +1329,126 @@ window.renderStatusTable = () => {
         <td>${avgScore(e.scores?.character)}</td>
         <td>${passedBadge}</td>
         <td>${resultCell}</td>
+        <td style="white-space:nowrap">
+          <button style="background:#e0f2fe;color:#0369a1;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="viewEvalRecord('${evalId}')">📋 보기</button>
+          <button style="background:#fef9c3;color:#854d0e;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="editEvalRecord('${evalId}')">✏️ 수정</button>
+          <button style="background:#f0fdf4;color:#166534;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="imageCard()">🖼️ 이미지</button>
+          <button style="background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="deleteEvalRecord('${evalId}')">🗑️ 삭제</button>
+        </td>
       </tr>
     `;
   }).join('');
+};
+
+// ── 현황 탭 관리 기능 ─────────────────────────────────────────────────
+window.viewEvalRecord = (evalId) => {
+  const e = evaluations[evalId];
+  if (!e) return;
+  const st = students[e.studentId];
+  const name = st?.name || '-';
+  const passedText  = e.passed === true ? '합격' : e.passed === false ? '불합격' : '-';
+  const passedColor = e.passed === true ? 'var(--green)' : e.passed === false ? 'var(--red)' : 'var(--text2)';
+  const allScores   = [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])];
+  document.getElementById('evalViewContent').innerHTML = `
+    <div style="background:var(--sky);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">${name}</div>
+      <div style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e.date||'-'} | ${e.round||'-'} | ${beltBadge(e.belt||'',e.grade||'')}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      ${[['품새',e.scores?.poomsae],['발차기',e.scores?.kick],['익스트림',e.scores?.extreme],['인성',e.scores?.character]].map(([lbl,sc])=>`
+        <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-size:11px;color:var(--text2);margin-bottom:2px">${lbl}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--blue)">${avgScore(sc)}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:8px">
+      <span style="font-size:13px;color:var(--text2)">전체 평균</span>
+      <span style="font-size:16px;font-weight:700">${avgScore(allScores)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:8px">
+      <span style="font-size:13px;color:var(--text2)">합격 여부</span>
+      <span style="font-size:14px;font-weight:700;color:${passedColor}">${passedText}</span>
+    </div>
+    ${e.comment ? `<div style="padding:10px 14px;background:var(--bg);border-radius:8px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">한줄평</div><div style="font-size:13px">${e.comment}</div></div>` : ''}
+  `;
+  openModal('modalEvalView');
+};
+
+window.editEvalRecord = (evalId) => {
+  const e = evaluations[evalId];
+  if (!e) return;
+  editingEvalId = evalId;
+  const crr = CURRICULUM[e.belt] || CURRICULUM['흰띠'];
+  const scoreRows = [
+    { key:'poomsae',   label:'품새 정확도',   i:0 },
+    { key:'poomsae',   label:'품새 완성도',   i:1 },
+    { key:'kick',      label:'발차기 완성도', i:0 },
+    { key:'kick',      label:'발차기 공방',   i:1 },
+    { key:'kick',      label:'발차기 다양성', i:2 },
+    ...(crr.extreme||[]).map((nm,ei) => ({ key:'extreme', label:nm, i:ei })),
+    { key:'character', label:'인성 태도',     i:0 },
+    { key:'character', label:'인성 집중력',   i:1 },
+    { key:'character', label:'인성 교재',     i:2 },
+  ];
+  _editScores = JSON.parse(JSON.stringify(e.scores || { poomsae:[0,0], kick:[0,0,0], extreme:[], character:[0,0,0] }));
+  _editPassed = e.passed;
+  document.getElementById('evalEditContent').innerHTML = `
+    <div style="margin-bottom:14px">
+      ${scoreRows.map(r => {
+        const val = (_editScores[r.key]||[])[r.i] || 0;
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <span style="font-size:12px;color:var(--text2);width:100px;flex-shrink:0">${r.label}</span>
+          <div style="display:flex;gap:3px">
+            ${[1,2,3,4,5].map(v=>`<button type="button" class="score-btn${val===v?' on':''}" onclick="editScoreClick(this,'${r.key}',${r.i},${v})">${v}</button>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button type="button" class="pf-btn pass${e.passed===true?' on':''}" onclick="editSetPassed(true)" id="editPfPass">✅ 합격</button>
+      <button type="button" class="pf-btn fail${e.passed===false?' on':''}" onclick="editSetPassed(false)" id="editPfFail">❌ 불합격</button>
+    </div>
+    <div>
+      <label class="form-label">한줄평</label>
+      <textarea class="comment-input" id="editComment" style="height:70px">${e.comment||''}</textarea>
+    </div>
+  `;
+  openModal('modalEvalEdit');
+};
+
+window.editScoreClick = (btn, key, i, val) => {
+  if (!_editScores[key]) _editScores[key] = [];
+  _editScores[key][i] = val;
+  btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
+};
+
+window.editSetPassed = (val) => {
+  _editPassed = val;
+  document.getElementById('editPfPass').classList.toggle('on', val === true);
+  document.getElementById('editPfFail').classList.toggle('on', val === false);
+};
+
+window.saveEvalEdit = async () => {
+  if (!editingEvalId) return;
+  if (_editPassed === null || _editPassed === undefined) { showToast('합격 여부를 선택해주세요'); return; }
+  const comment = document.getElementById('editComment').value.trim();
+  await update(ref(db, `academies/${academyId}/exam/evaluations/${editingEvalId}`), {
+    scores:  _editScores,
+    passed:  _editPassed,
+    comment,
+  });
+  closeModal('modalEvalEdit');
+  showToast('✅ 수정 완료');
+};
+
+window.imageCard = () => {
+  showToast('결과 카드 준비중입니다');
+};
+
+window.deleteEvalRecord = async (evalId) => {
+  if (!confirm('이 심사 기록을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?')) return;
+  await remove(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`));
+  showToast('🗑️ 삭제 완료');
 };
 </script>
 </body>
