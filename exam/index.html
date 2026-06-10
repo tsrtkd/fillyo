@@ -484,6 +484,7 @@ let _editScores         = null;
 let _editPassed         = null;
 let academyName         = '';
 let academyPhone        = '';
+let academyPhoneDisplay = '';
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -725,6 +726,13 @@ onAuthStateChanged(auth, async (user) => {
 
   const phoneSnap = await get(ref(db, `academies/${academyId}/settings/academyPhone`));
   academyPhone = phoneSnap.val() || '';
+  if (!academyPhone) {
+    academyPhone = '042)585-8017';
+    await set(ref(db, `academies/${academyId}/settings/academyPhone`), academyPhone);
+  }
+
+  const phoneDisplaySnap = await get(ref(db, `academies/${academyId}/settings/academyPhoneDisplay`));
+  academyPhoneDisplay = phoneDisplaySnap.val() || '';
 
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = snap.val() || {};
@@ -1710,7 +1718,7 @@ window.imageCard = (evalId) => {
           <div style="font-size:11px;color:#64748b;margin-top:4px">담당 사범</div>
         </div>
       </div>
-      <div style="height:6px;background:linear-gradient(to right,#60a5fa,#a78bfa,#f472b6);width:100%"></div>
+      <div style="height:6px;background:linear-gradient(to right,#60a5fa,#a78bfa,#f472b6);width:100%;display:block;"></div>
     </div>
   </div>`;
 
