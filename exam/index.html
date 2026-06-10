@@ -201,6 +201,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .hidden { display: none !important; }
 .empty-msg { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 14px; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 
@@ -481,6 +482,7 @@ let currentSession      = null;
 let editingEvalId       = null;
 let _editScores         = null;
 let _editPassed         = null;
+let academyName         = '';
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -658,6 +660,12 @@ function avgScore(arr) {
   return (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1);
 }
 
+function avgScoreNum(arr) {
+  const valid = (arr || []).filter(v => v > 0);
+  if (!valid.length) return 0;
+  return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 // ── 인증 / 초기화 ─────────────────────────────────────────────────────
@@ -669,7 +677,8 @@ onAuthStateChanged(auth, async (user) => {
   academyId = aidSnap.val();
 
   const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
-  document.getElementById('headerTitle').textContent = nameSnap.val() || '승급심사';
+  academyName = nameSnap.val() || '';
+  document.getElementById('headerTitle').textContent = academyName || '승급심사';
 
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = snap.val() || {};
@@ -1332,7 +1341,7 @@ window.renderStatusTable = () => {
         <td style="white-space:nowrap">
           <button style="background:#e0f2fe;color:#0369a1;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="viewEvalRecord('${evalId}')">📋 보기</button>
           <button style="background:#fef9c3;color:#854d0e;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="editEvalRecord('${evalId}')">✏️ 수정</button>
-          <button style="background:#f0fdf4;color:#166534;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="imageCard()">🖼️ 이미지</button>
+          <button style="background:#f0fdf4;color:#166534;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="imageCard('${evalId}')">🖼️ 이미지</button>
           <button style="background:#fee2e2;color:#dc2626;border:none;padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin:2px" onclick="deleteEvalRecord('${evalId}')">🗑️ 삭제</button>
         </td>
       </tr>
@@ -1441,9 +1450,249 @@ window.saveEvalEdit = async () => {
   showToast('✅ 수정 완료');
 };
 
-window.imageCard = () => {
-  showToast('결과 카드 준비중입니다');
+window.imageCard = (evalId) => {
+  if (typeof html2canvas === 'undefined') {
+    showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요');
+    return;
+  }
+  const e = evaluations[evalId];
+  if (!e) { showToast('데이터를 찾을 수 없습니다'); return; }
+
+  const st   = students[e.studentId] || {};
+  const name = st.name || '-';
+  const belt = e.belt || '흰띠';
+  const grade = e.grade || '';
+  const sc   = e.scores || { poomsae:[0,0], kick:[0,0,0], extreme:[], character:[0,0,0] };
+  const crr  = CURRICULUM[belt] || CURRICULUM['흰띠'];
+
+  function sl(v) {
+    if (!v || v < 1) return { text:'-', color:'#94a3b8' };
+    const texts  = ['','함께 성장 중','노력하고 있어요','잘 하고 있어요','훌륭해요','최고예요!'];
+    const colors = ['','#ef4444','#f97316','#22c55e','#3b82f6','#8b5cf6'];
+    return { text: texts[v]||'-', color: colors[v]||'#94a3b8' };
+  }
+
+  const pAvg  = avgScoreNum(sc.poomsae);
+  const kAvg  = avgScoreNum(sc.kick);
+  const eAvg  = avgScoreNum(sc.extreme);
+  const cAvg  = avgScoreNum(sc.character);
+  const allSc = [...(sc.poomsae||[]),...(sc.kick||[]),...(sc.extreme||[]),...(sc.character||[])];
+  const oAvg  = avgScoreNum(allSc);
+
+  const passedText  = e.passed===true?'합격':e.passed===false?'불합격':'-';
+  const passedColor = e.passed===true?'#16a34a':e.passed===false?'#dc2626':'#6b7a8d';
+  const passedBg    = e.passed===true?'#dcfce7':e.passed===false?'#fee2e2':'#f1f5f9';
+  const issueDate   = todayStr();
+  const schoolAge   = [st.school, st.age ? st.age+'세' : ''].filter(Boolean).join(' · ');
+
+  function secHtml(sName, emoji, items, scArr, bg) {
+    const avg = avgScoreNum(scArr);
+    const rows = (items||[]).map((item, i) => {
+      const v = Number((scArr||[])[i]) || 0;
+      const { text, color } = sl(v);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid #f1f5f9">
+        <span style="font-size:12px;color:#374151">${item}</span>
+        <span style="font-size:12px;font-weight:700;color:${color}">${v>0?v+'점 ':''}${text}</span>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:1px">
+      <div style="background:${bg};padding:8px 14px;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:13px;font-weight:700;color:#fff">${emoji} ${sName}</span>
+        <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${avg>0?avg.toFixed(1):'-'}/5.0</span>
+      </div>${rows}</div>`;
+  }
+
+  const summaryCards = [
+    ['🥋','품새',pAvg],['🦵','발차기',kAvg],['🔥','익스트림',eAvg],['🌱','인성',cAvg]
+  ].map(([em,lb,av]) => `
+    <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border:1px solid #e2e8f0">
+      <div style="font-size:16px;margin-bottom:4px">${em}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:3px">${lb}</div>
+      <div style="font-size:18px;font-weight:900;color:#1352a8">${av>0?av.toFixed(1):'-'}</div>
+      <div style="font-size:10px;color:#94a3b8">/5.0</div>
+    </div>`).join('');
+
+  const cardId = 'rc-'+Date.now();
+  const cvId   = 'rv-'+Date.now();
+
+  const cardHtml = `<div id="${cardId}" style="width:390px;font-family:'Noto Sans KR',sans-serif;background:#ffffff;overflow:hidden">
+    <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||'태권도장'}</div>
+        <div style="color:#94a3b8;font-size:10px;margin-top:2px;letter-spacing:1px">TAEKWONDO ACADEMY</div>
+      </div>
+      <div style="text-align:right">
+        <div style="color:#93c5fd;font-size:11px;font-weight:700">심사평가결과지</div>
+        <div style="color:#64748b;font-size:10px;margin-top:3px">발행일 ${issueDate}</div>
+      </div>
+    </div>
+    <div style="background:#1e3a5f;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="color:#ffffff;font-size:28px;font-weight:900;letter-spacing:-1px">${name}</div>
+        ${schoolAge?`<div style="color:#94a3b8;font-size:12px;margin-top:4px">${schoolAge}</div>`:''}
+      </div>
+      <div>${beltBadge(belt,grade)}</div>
+    </div>
+    <div style="background:#f8fafc;display:flex;border-bottom:1px solid #e2e8f0">
+      <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid #e2e8f0">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">심사일</div>
+        <div style="font-size:12px;font-weight:700;color:#1a2433">${e.date||'-'}</div>
+      </div>
+      <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid #e2e8f0;overflow:hidden">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">회차</div>
+        <div style="font-size:11px;font-weight:700;color:#1a2433;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round||'-'}</div>
+      </div>
+      <div style="flex:1;padding:10px 8px;text-align:center">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">결과</div>
+        <div style="font-size:13px;font-weight:900;color:${passedColor}">${passedText}</div>
+      </div>
+    </div>
+    <div style="padding:20px 20px 12px;background:#ffffff">
+      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px">
+        <span style="font-size:52px;font-weight:900;color:#1352a8;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
+        <div>
+          <div style="font-size:16px;color:#94a3b8">/5.0</div>
+          <div style="margin-top:6px;background:${passedBg};color:${passedColor};font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;text-align:center">${passedText}</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${summaryCards}</div>
+    </div>
+    <div style="padding:4px 20px 16px;background:#ffffff;text-align:center">
+      <canvas id="${cvId}" width="350" height="260" style="display:block;margin:0 auto"></canvas>
+    </div>
+    <div style="margin:0 20px 16px;background:#fffbeb;border-radius:12px;padding:14px;border:1px solid #fef08a">
+      <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">💬 학부모님께 드리는 말씀</div>
+      <div style="font-size:13px;color:#1a2433;line-height:1.7">${e.comment||'-'}</div>
+      <div style="text-align:right;font-size:11px;color:#b45309;margin-top:8px">— 담당 사범</div>
+    </div>
+    <div>
+      ${secHtml('품새','🥋',['품새 정확도','품새 완성도'],sc.poomsae,'#1e3a5f')}
+      ${secHtml('발차기','🦵',['발차기 완성도','발차기 공방','발차기 다양성'],sc.kick,'#14532d')}
+      ${secHtml('익스트림','🔥',crr.extreme||[],sc.extreme,'#7f1d1d')}
+      ${secHtml('인성','🌱',['인성 태도','인성 집중력','인성 교재'],sc.character,'#4c1d95')}
+    </div>
+    <div style="background:#0f172a;padding:14px 20px;text-align:center">
+      <div style="color:#94a3b8;font-size:11px">${academyName||'태권도장'} | 심사에 참여해 주셔서 감사합니다</div>
+      ${st.parentPhone?`<div style="color:#64748b;font-size:10px;margin-top:4px">${st.parentPhone}</div>`:''}
+    </div>
+  </div>`;
+
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:390px';
+  wrap.innerHTML = cardHtml;
+  document.body.appendChild(wrap);
+
+  const cv = document.getElementById(cvId);
+  if (cv) drawRadarChart(cv, sc);
+
+  showToast('🎨 카드 생성 중...');
+
+  html2canvas(document.getElementById(cardId), {
+    scale: 2,
+    useCORS: true,
+    allowTaint: false,
+    backgroundColor: '#ffffff',
+    logging: false,
+  }).then(cap => {
+    document.body.removeChild(wrap);
+    const a = document.createElement('a');
+    a.download = `${name}_승급심사_결과.jpg`;
+    a.href = cap.toDataURL('image/jpeg', 0.92);
+    a.click();
+    showToast('✅ 결과 카드 저장 완료!');
+  }).catch(err => {
+    document.body.removeChild(wrap);
+    console.error(err);
+    showToast('⚠️ 카드 생성에 실패했습니다');
+  });
 };
+
+function drawRadarChart(canvas, scores) {
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W/2, cy = H/2+5;
+  const R = 88;
+  const n = 4;
+  const labels = ['품새','발차기','익스트림','인성'];
+  const vals = [
+    avgScoreNum(scores.poomsae),
+    avgScoreNum(scores.kick),
+    avgScoreNum(scores.extreme),
+    avgScoreNum(scores.character),
+  ];
+  const angles = Array.from({length:n}, (_,i) => -Math.PI/2 + (2*Math.PI/n)*i);
+
+  ctx.clearRect(0, 0, W, H);
+
+  for (let r = 1; r <= 5; r++) {
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const x = cx + (R*r/5)*Math.cos(angles[i]);
+      const y = cy + (R*r/5)*Math.sin(angles[i]);
+      i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = r===5 ? '#cbd5e1' : '#e2e8f0';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = '#cbd5e1';
+  ctx.lineWidth = 1;
+  angles.forEach(a => {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx+R*Math.cos(a), cy+R*Math.sin(a));
+    ctx.stroke();
+  });
+
+  ctx.beginPath();
+  vals.forEach((v, i) => {
+    const rv = (v/5)*R;
+    const x = cx+rv*Math.cos(angles[i]);
+    const y = cy+rv*Math.sin(angles[i]);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(19,82,168,0.18)';
+  ctx.fill();
+  ctx.strokeStyle = '#1352a8';
+  ctx.lineWidth = 2.5;
+  ctx.stroke();
+
+  vals.forEach((v, i) => {
+    if (v > 0) {
+      const rv = (v/5)*R;
+      const x = cx+rv*Math.cos(angles[i]);
+      const y = cy+rv*Math.sin(angles[i]);
+      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
+      ctx.fillStyle = '#1352a8'; ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
+    }
+  });
+
+  const lR = R+26;
+  ctx.fillStyle = '#374151';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = 'bold 13px sans-serif';
+  labels.forEach((lb, i) => {
+    const x = cx+lR*Math.cos(angles[i]);
+    const y = cy+lR*Math.sin(angles[i]);
+    ctx.fillText(lb, x, y);
+  });
+
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = '#1352a8';
+  vals.forEach((v, i) => {
+    if (v > 0) {
+      const rv = (v/5)*R;
+      const ox = Math.cos(angles[i])*15;
+      const oy = Math.sin(angles[i])*15;
+      ctx.fillText(v.toFixed(1), cx+rv*Math.cos(angles[i])+ox, cy+rv*Math.sin(angles[i])+oy);
+    }
+  });
+}
 
 window.deleteEvalRecord = async (evalId) => {
   if (!confirm('이 심사 기록을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?')) return;
