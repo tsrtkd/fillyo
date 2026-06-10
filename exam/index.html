@@ -202,6 +202,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .empty-msg { text-align: center; padding: 40px 20px; color: var(--text2); font-size: 14px; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -235,6 +236,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <option value="name">이름순</option>
         <option value="age">나이순</option>
       </select>
+    </div>
+    <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">
+      <button style="background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit" onclick="openExcelModal()">📥 엑셀 등록</button>
     </div>
     <div id="studentList"></div>
   </div>
@@ -451,6 +455,23 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     <div class="modal-btn-row">
       <button class="modal-btn secondary" onclick="closeModal('modalEvalEdit')">취소</button>
       <button class="modal-btn primary" onclick="saveEvalEdit()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 엑셀 일괄 등록 모달 -->
+<div class="modal-overlay" id="modalExcel">
+  <div class="modal-box">
+    <div class="modal-title">📋 수련생 일괄 등록</div>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:16px">엑셀 양식을 다운로드 후 작성하여 업로드해주세요.</p>
+    <button class="modal-btn" style="background:#f0fdf4;color:#166534;border:1px solid #86efac;width:100%;margin-bottom:12px" onclick="downloadExcelTemplate()">📥 양식 다운로드</button>
+    <div class="form-row">
+      <label class="form-label">파일 선택</label>
+      <input type="file" id="excelFileInput" accept=".xlsx,.xls" style="font-size:13px;width:100%;box-sizing:border-box">
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="modal-btn primary" style="flex:1" onclick="importExcelStudents()">등록하기</button>
+      <button class="modal-btn secondary" style="flex:1" onclick="closeModal('modalExcel')">취소</button>
     </div>
   </div>
 </div>
@@ -929,6 +950,63 @@ window.quickDeleteStudent = async (id) => {
   if (!confirm(`'${name}'을(를) 삭제합니다. 되돌릴 수 없습니다. 계속할까요?`)) return;
   await remove(ref(db, `academies/${academyId}/exam/students/${id}`));
   showToast('🗑️ 수련생 삭제 완료');
+};
+
+// ── 엑셀 일괄 등록 ────────────────────────────────────────────────────
+window.openExcelModal = () => {
+  document.getElementById('excelFileInput').value = '';
+  openModal('modalExcel');
+};
+
+window.downloadExcelTemplate = () => {
+  if (typeof XLSX === 'undefined') { showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요'); return; }
+  const headers  = ['이름', '띠', '급수', '나이', '학교', '메모'];
+  const example1 = ['홍길동', '초록띠', 8, 10, '○○초등학교', ''];
+  const example2 = ['김태권', '파란띠', 6, 12, '○○중학교', ''];
+  const ws = XLSX.utils.aoa_to_sheet([headers, example1, example2]);
+  ws['!cols'] = [{wch:10},{wch:12},{wch:8},{wch:8},{wch:16},{wch:16}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '수련생');
+  XLSX.writeFile(wb, '수련생_등록_양식.xlsx');
+};
+
+window.importExcelStudents = async () => {
+  if (typeof XLSX === 'undefined') { showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요'); return; }
+  const file = document.getElementById('excelFileInput').files[0];
+  if (!file) { showToast('파일을 선택해주세요'); return; }
+  const validBelts = new Set(ALL_BELTS);
+  const reader = new FileReader();
+  reader.onload = async (ev) => {
+    try {
+      const wb   = XLSX.read(ev.target.result, { type: 'array' });
+      const ws   = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      let added = 0, skipped = 0;
+      for (let i = 1; i < rows.length; i++) {
+        const [rName, rBelt, rGrade, rAge, rSchool, rMemo] = rows[i];
+        const nameStr = String(rName||'').trim();
+        const beltStr = String(rBelt||'').trim();
+        if (!nameStr || !beltStr || !validBelts.has(beltStr)) { skipped++; continue; }
+        const newKey = push(ref(db, `academies/${academyId}/exam/students`)).key;
+        await set(ref(db, `academies/${academyId}/exam/students/${newKey}`), {
+          name:      nameStr,
+          belt:      beltStr,
+          grade:     Number(rGrade)||0,
+          age:       Number(rAge)||0,
+          school:    String(rSchool||'').trim(),
+          memo:      String(rMemo||'').trim(),
+          createdAt: Date.now(),
+        });
+        added++;
+      }
+      closeModal('modalExcel');
+      showToast(`✅ ${added}명 등록 완료, ${skipped}명 건너뜀`);
+    } catch (err) {
+      console.error(err);
+      showToast('⚠️ 파일 처리 중 오류가 발생했습니다');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 };
 
 // ── 심사 탭 ──────────────────────────────────────────────────────────
