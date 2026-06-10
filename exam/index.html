@@ -586,7 +586,8 @@ function beltBadge(belt, grade) {
   // 줄 / 장식
   let stripes = '';
   if (BLACK_STRIPE.has(belt)) {
-    stripes = `<span class="belt-stripe" style="top:50%;transform:translateY(-50%);height:3px;background:#000;opacity:0.6"></span>`;
+    const stripeColor = LIGHT.has(belt) ? '#374151' : '#111111';
+    stripes = `<span class="belt-stripe" style="top:50%;transform:translateY(-50%);height:3px;background:${stripeColor};border-radius:0"></span>`;
   } else if (isDanBelt && isDanGrade) {
     const pos = DAN_POS[Math.min(danGradeN, 4)] || ['50%'];
     stripes = pos.map(p =>
@@ -609,7 +610,6 @@ function beltBadge(belt, grade) {
         stripes +
         `<span class="belt-strip-text" style="color:${textColor};text-shadow:${tShadow}">${shortLabel}</span>` +
       `</span>` +
-      `<span class="belt-label">${fullLabel}</span>` +
     `</span>`
   );
 }
@@ -1004,8 +1004,11 @@ function renderExamTable() {
     }
   });
   sec.innerHTML = html + `
-    <div style="padding:0 16px 16px">
+    <div style="padding:0 16px 4px">
       <button style="display:block;width:100%;padding:12px;background:#22c55e;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit" onclick="bulkPassAll()">✅ 전체 합격 처리</button>
+    </div>
+    <div style="padding:0 16px 16px">
+      <button style="display:block;width:100%;padding:12px;background:#f1f5f9;color:#475569;border:none;border-radius:8px;font-size:14px;cursor:pointer;font-family:inherit" onclick="backToStep2List()">← 목록으로</button>
     </div>
     <div id="examDoneSection"></div>
   `;
@@ -1136,7 +1139,7 @@ window.saveExamRow = async (idx) => {
   moveRowToDone(idx);
   showToast('✅ 저장 완료!');
 
-  // 합격이면 승급 팝업
+  // 합격이면 승급 팝업 먼저 표시
   if (ss.passed === true) {
     const next = calcNext(ss);
     if (next) {
@@ -1144,6 +1147,9 @@ window.saveExamRow = async (idx) => {
       showPromotionModal(pendingPromotion);
     }
   }
+
+  // 저장 후 목록으로 이동 (승급 팝업이 열려 있으면 팝업 위로 목록이 보임)
+  backToStep2List();
 };
 
 function showPromotionModal(promo) {
