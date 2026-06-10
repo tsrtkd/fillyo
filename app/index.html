@@ -232,6 +232,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .vtd-acc-body.open{max-height:500px;}
 .vtd-acc-content{padding:4px 16px 22px;font-size:15px;color:var(--text);line-height:1.85;min-height:200px;white-space:pre-wrap;}
 .vtd-empty{color:var(--gray);font-style:italic;font-size:14px;}
+.vtd-val{font-size:13px;color:var(--text);line-height:1.6;word-break:keep-all;white-space:pre-wrap;}
 .vehicle-edit-btn{width:100%;background:white;border:1.5px solid var(--border);border-radius:12px;padding:14px;font-size:14px;font-weight:700;color:var(--gray);cursor:pointer;font-family:inherit;margin-bottom:10px;box-shadow:var(--shadow);display:block;}
 .vehicle-edit-btn:active{background:var(--bg);}
 .vedit-panel{background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);display:none;}
@@ -252,6 +253,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .vedit-quick-btn.red{background:#C62828;}
 .vedit-quick-btn.gray{background:#78909C;}
 .vedit-img-preview{width:100%;border-radius:8px;margin-top:8px;}
+
+/* TO DO LIST */
+.todo-wrap{padding:10px 13px 6px;}
+.todo-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.todo-item:last-child{border-bottom:none;}
+.todo-cb{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;appearance:none;-webkit-appearance:none;background:white;position:relative;}
+.todo-cb:checked{background:var(--teal);border-color:var(--teal);}
+.todo-cb:checked::after{content:'✓';position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:white;font-size:12px;font-weight:900;}
+.todo-txt{flex:1;font-size:13px;color:var(--text);line-height:1.5;}
+.todo-txt.done{text-decoration:line-through;color:var(--gray);}
+.todo-del{width:24px;height:24px;border-radius:6px;background:var(--red-lt);border:none;color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.todo-add-row{display:flex;gap:6px;padding:8px 13px 12px;}
+.todo-add-inp{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text);}
+.todo-add-inp:focus{outline:none;border-color:var(--teal);}
+.todo-add-btn{background:var(--teal);color:white;border:none;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
 
 /* TOAST */
 .toast{position:fixed;bottom:85px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--navy);color:white;padding:10px 18px;border-radius:20px;font-size:12px;font-weight:500;opacity:0;transition:all 0.28s;z-index:8000;pointer-events:none;white-space:nowrap;}
@@ -379,7 +395,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <textarea id="taMonthEvent" placeholder="이달 주요 행사를 입력하세요... (저장 후 매일 표시)" style="width:100%;border:none;resize:none;font-family:inherit;font-size:12px;line-height:1.7;padding:9px 13px;min-height:52px;max-height:72px;color:var(--text);background:#FAF5FF;"></textarea>
     </div>
 
-    <div class="sec"><div class="sec-hd red">🎉 이벤트 내용</div><textarea class="ta" id="taEvent" placeholder="오늘의 이벤트 내용을 입력하세요..." style="min-height:52px;max-height:64px;"></textarea></div>
+    <div class="sec">
+      <div class="sec-hd teal" style="justify-content:space-between;">
+        <span>✅ TO DO 리스트</span>
+        <span id="todoBadge" style="background:rgba(255,255,255,0.25);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:900;"></span>
+      </div>
+      <div class="todo-wrap" id="todoList"></div>
+      <div class="todo-add-row">
+        <input class="todo-add-inp" id="todoInput" placeholder="할 일 입력..." onkeydown="if(event.key==='Enter')addTodoItem()">
+        <button class="todo-add-btn" onclick="addTodoItem()">추가</button>
+      </div>
+    </div>
+
+    <div class="sec"><div class="sec-hd red">⚡ 특이사항</div><textarea class="ta" id="taEvent" placeholder="오늘의 특이사항을 입력하세요..." style="min-height:52px;max-height:64px;"></textarea></div>
     <div class="sec"><div class="sec-hd navy">💬 회의 내용</div><textarea class="ta" id="taMtg" placeholder="회의 내용을 입력하세요..." style="min-height:140px;"></textarea></div>
     <div class="sec"><div class="sec-hd teal">📚 교육 내용</div><textarea class="ta" id="taEdu" placeholder="오늘의 교육 내용을 입력하세요..."></textarea></div>
     <div class="sec"><div class="sec-hd purple">🤝 상담 내용</div><textarea class="ta" id="taCons" placeholder="상담 내용을 입력하세요..."></textarea></div>
@@ -494,9 +522,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div style="padding:0 13px 10px;"><button class="save-btn" onclick="saveMonthNote()">저장</button></div>
       <div style="border-top:2px solid var(--border);">
         <div style="display:flex;align-items:center;gap:6px;padding:9px 13px;background:var(--orange-lt);">
-          <span style="font-size:12px;font-weight:700;color:var(--orange);">📋 날짜별 이벤트 · 상담</span>
+          <span style="font-size:12px;font-weight:700;color:var(--orange);">📋 날짜별 특이사항 · 상담</span>
         </div>
         <div id="eventTimeline"></div>
+      </div>
+    </div>
+    <div class="sec">
+      <div class="sec-hd teal">✅ 이달 완료한 TO DO</div>
+      <div id="monthlyTodoList" style="padding:10px 13px;min-height:40px;font-size:13px;color:var(--text2);line-height:1.9;">
+        <span style="color:var(--gray);font-size:12px;">이달 완료된 항목이 없습니다</span>
       </div>
     </div>
     <span id="s_pause" style="display:none;">0</span>
@@ -756,6 +790,7 @@ function initFirebase() {
     setSync(true, '실시간 동기화 중', new Date());
     isOnline = true;
   }, () => setSync(false, '연결 오류 — 오프라인 모드'));
+  loadTodos();
 
   const notifsQuery = query(ref(db, `academies/${academyId}/notifs`), limitToLast(30));
   onChildAdded(notifsQuery, snap => {
@@ -1165,11 +1200,11 @@ function renderEventTimeline() {
     hasAny = true;
     html += `<div style="padding:11px 13px;border-bottom:1px solid var(--border);">
       <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:7px;">${month}/${d} (${dayNames[dow]})</div>`;
-    if (hasEvent) html += `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-lt);padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">🎉 이벤트</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.event)}</div></div>`;
+    if (hasEvent) html += `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-lt);padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">⚡ 특이사항</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.event)}</div></div>`;
     if (hasCons)  html += `<div><span style="font-size:10px;font-weight:700;color:#7B1FA2;background:#F3E5F5;padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">🤝 상담</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.cons)}</div></div>`;
     html += `</div>`;
   }
-  if (!hasAny) html = `<div style="text-align:center;color:var(--gray);font-size:12px;padding:20px 16px;line-height:1.8;">이달 이벤트 · 상담 기록이 없습니다</div>`;
+  if (!hasAny) html = `<div style="text-align:center;color:var(--gray);font-size:12px;padding:20px 16px;line-height:1.8;">이달 특이사항 · 상담 기록이 없습니다</div>`;
   el.innerHTML = html;
 }
 
@@ -1419,6 +1454,92 @@ window.confirmOk = () => {
 window.confirmCancel = () => {
   document.getElementById('confirmModal').classList.add('hidden');
   if (_confirmResolve) { _confirmResolve(false); _confirmResolve = null; }
+};
+
+// ── TO DO 리스트 ──────────────────────────────────────────────────
+let todoItems = [];
+
+async function loadTodos() {
+  if (!isOnline) return;
+  try {
+    const snap = await get(ref(db, `academies/${academyId}/todos`));
+    todoItems = snap.val() ? Object.values(snap.val()) : [];
+    const todayStr = dateKey(new Date());
+    todoItems = todoItems.filter(t => !t.done || !t.doneDate || t.doneDate >= todayStr);
+    await saveTodosToFirebase();
+    renderTodos();
+    renderMonthlyTodos();
+  } catch(e) {}
+}
+
+async function saveTodosToFirebase() {
+  if (!isOnline) return;
+  const obj = {};
+  todoItems.forEach(t => { obj[t.id] = t; });
+  try { await set(ref(db, `academies/${academyId}/todos`), obj); } catch(e) {}
+}
+
+function renderTodos() {
+  const wrap = document.getElementById('todoList');
+  const badge = document.getElementById('todoBadge');
+  if (!wrap) return;
+  const active = todoItems.filter(t => !t.done);
+  if (badge) badge.textContent = active.length ? `${active.length}개` : '';
+  if (!todoItems.length) {
+    wrap.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray);font-size:12px;">할 일을 추가해보세요!</div>`;
+    return;
+  }
+  wrap.innerHTML = todoItems.map(t => `
+    <div class="todo-item">
+      <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
+      <span class="todo-txt${t.done ? ' done' : ''}">${t.text}</span>
+      <button class="todo-del" onclick="deleteTodo('${t.id}')">×</button>
+    </div>`).join('');
+}
+
+function renderMonthlyTodos() {
+  const el = document.getElementById('monthlyTodoList');
+  if (!el) return;
+  const mk = monthKey(currentDate);
+  const done = todoItems.filter(t => t.done && t.doneDate && t.doneDate.startsWith(mk));
+  if (!done.length) {
+    el.innerHTML = `<span style="color:var(--gray);font-size:12px;">이달 완료된 항목이 없습니다</span>`;
+    return;
+  }
+  el.innerHTML = done.map(t => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f4f6f8;">
+      <span style="font-size:18px;">✅</span>
+      <span style="font-size:13px;color:var(--text);text-decoration:line-through;">${t.text}</span>
+      <span style="font-size:10px;color:var(--gray);margin-left:auto;">${t.doneDate ? t.doneDate.slice(5).replace('-','/') : ''}</span>
+    </div>`).join('');
+}
+
+window.addTodoItem = async () => {
+  const inp = document.getElementById('todoInput');
+  const text = inp?.value.trim();
+  if (!text) return;
+  const item = { id: Date.now().toString(), text, done: false, doneDate: null };
+  todoItems.push(item);
+  inp.value = '';
+  renderTodos();
+  await saveTodosToFirebase();
+};
+
+window.toggleTodo = async (id) => {
+  const item = todoItems.find(t => t.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  item.doneDate = item.done ? dateKey(new Date()) : null;
+  renderTodos();
+  renderMonthlyTodos();
+  await saveTodosToFirebase();
+};
+
+window.deleteTodo = async (id) => {
+  todoItems = todoItems.filter(t => t.id !== id);
+  renderTodos();
+  renderMonthlyTodos();
+  await saveTodosToFirebase();
 };
 
 // ── 차량운행 ──────────────────────────────────────────────────────
