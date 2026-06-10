@@ -991,7 +991,7 @@ window.importExcelStudents = async () => {
         await set(ref(db, `academies/${academyId}/exam/students/${newKey}`), {
           name:      nameStr,
           belt:      beltStr,
-          grade:     Number(rGrade)||0,
+          grade:     (() => { const s = String(rGrade??'').trim(); if (!s) return 0; const n = Number(s); if (!isNaN(n)) return n; const m = s.match(/\d+/); return m ? Number(m[0]) : s; })(),
           age:       Number(rAge)||0,
           school:    String(rSchool||'').trim(),
           memo:      String(rMemo||'').trim(),
