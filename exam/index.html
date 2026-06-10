@@ -1549,17 +1549,21 @@ window.imageCard = (evalId) => {
   };
   const pillBg    = PILL_BG[belt] || '#9ca3af';
   const pillColor = new Set(['흰띠','흰검띠']).has(belt) ? '#374151' : '#ffffff';
-  const beltPill  = `<span style="background:${pillBg};color:${pillColor};padding:8px 18px;border-radius:24px;font-weight:800;font-size:15px">${belt+(grade?' '+grade:'')}</span>`;
+  const beltPill  = `<span style="background:${pillBg};color:${pillColor};padding:6px 14px;border-radius:20px;font-weight:700;font-size:13px">${belt+(grade?' '+grade:'')}</span>`;
+
+  const passedBadgeStyle = e.passed===true
+    ? 'background:#dcfce7;color:#166534;border:1.5px solid #86efac'
+    : e.passed===false
+    ? 'background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5'
+    : 'background:#f1f5f9;color:#6b7a8d;border:1.5px solid #9ca3af';
 
   // 요약 카드 2x2
   const summaryCards = [
-    ['🥋','품새',pAvg,'#1e40af'],['🦵','발차기 & 겨루기',kAvg,'#92400e'],['🔥','익스트림',eAvg,'#7f1d1d'],['🌱','인성',cAvg,'#14532d']
+    ['🥋','품새',pAvg,'#3b82f6'],['🦵','발차기',kAvg,'#f97316'],['🔥','익스트림',eAvg,'#ef4444'],['🌱','인성',cAvg,'#22c55e']
   ].map(([em,lb,av,bc]) =>
-    `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:10px;padding:12px;text-align:center">
-      <div style="font-size:18px;margin-bottom:4px">${em}</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:4px">${lb}</div>
-      <div style="font-size:22px;font-weight:700;color:#1e40af;line-height:1">${av>0?av.toFixed(1):'-'}</div>
-      <div style="font-size:12px;color:#94a3b8">/5.0</div>
+    `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:8px;padding:10px 12px">
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">${em} ${lb}</div>
+      <div style="font-size:20px;font-weight:700;color:${bc};line-height:1">${av>0?av.toFixed(1):'-'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
     </div>`
   ).join('');
 
@@ -1568,26 +1572,26 @@ window.imageCard = (evalId) => {
   (crr.poomsae||[]).forEach(item => {
     const acc = gsv(sc.poomsae, 0);
     const cmp = gsv(sc.poomsae, 1);
-    poomsaeRows += `<div style="background:#e8f0fe;color:#1e40af;padding:10px 16px;font-weight:600;font-size:14px">${item}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
-      <span style="font-size:14px;color:#374151">정확도</span>
-      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(acc)}">${scoreLabel(acc)}</span>
+    poomsaeRows += `<div style="background:#eff6ff;color:#1e40af;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+      <span style="font-size:13px;color:#374151">정확도</span>
+      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(acc)}">${acc>0?scoreLabel(acc):'-'}</span>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
-      <span style="font-size:14px;color:#374151">완성도</span>
-      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(cmp)}">${scoreLabel(cmp)}</span>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+      <span style="font-size:13px;color:#374151">완성도</span>
+      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(cmp)}">${cmp>0?scoreLabel(cmp):'-'}</span>
     </div>`;
   });
 
   // 발차기 섹션 (kick 항목별 KICK_SUBS 3개)
   let kickRows = '';
   (crr.kick||[]).forEach(item => {
-    kickRows += `<div style="background:#e8f0fe;color:#1e40af;padding:10px 16px;font-weight:600;font-size:14px">${item}</div>`;
+    kickRows += `<div style="background:#fff7ed;color:#9a3412;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>`;
     KICK_SUBS.forEach((sub, j) => {
       const v = gsv(sc.kick, j);
-      kickRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
-        <span style="font-size:14px;color:#374151">${sub}</span>
-        <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+      kickRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+        <span style="font-size:13px;color:#374151">${sub}</span>
+        <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
       </div>`;
     });
   });
@@ -1596,9 +1600,9 @@ window.imageCard = (evalId) => {
   let extremeRows = '';
   (crr.extreme||[]).forEach((item, i) => {
     const v = Number((sc.extreme||[])[i]) || 0;
-    extremeRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
-      <span style="font-size:14px;color:#374151">${item}</span>
-      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+    extremeRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+      <span style="font-size:13px;color:#374151">${item}</span>
+      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
     </div>`;
   });
 
@@ -1606,92 +1610,92 @@ window.imageCard = (evalId) => {
   let charRows = '';
   CHARACTER_ITEMS.forEach((item, i) => {
     const v = Number((sc.character||[])[i]) || 0;
-    charRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
-      <span style="font-size:14px;color:#374151">${item}</span>
-      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+    charRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+      <span style="font-size:13px;color:#374151">${item}</span>
+      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
     </div>`;
   });
 
   const cvId = 'rv-' + Date.now();
 
-  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f8fafc">
-    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:20px;display:flex;justify-content:space-between;align-items:flex-start">
+  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="color:#ffffff;font-size:20px;font-weight:700;letter-spacing:1px">${academyName||'태사랑태권도'}</div>
-        <div style="color:#94a3b8;font-size:11px;margin-top:3px;letter-spacing:1px">TAESARANG TAEKWONDO</div>
+        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||'태사랑태권도'}</div>
+        <div style="color:#93c5fd;font-size:10px;margin-top:2px;letter-spacing:1px">TAESARANG TAEKWONDO</div>
       </div>
       <div style="text-align:right">
-        <div style="color:#93c5fd;font-size:12px;font-weight:700">심사평가결과지</div>
-        <div style="color:#64748b;font-size:11px;margin-top:4px">${issueDate}</div>
+        <div style="color:#bfdbfe;font-size:11px;font-weight:600">심사평가결과지</div>
+        <div style="color:#93c5fd;font-size:10px;margin-top:3px">${issueDate}</div>
       </div>
     </div>
-    <div style="background:#1e3a5f;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+    <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
       <div>
-        <div style="color:#ffffff;font-size:36px;font-weight:700;letter-spacing:-1px;line-height:1">${name}</div>
-        ${st.age ? `<div style="color:#94a3b8;font-size:13px;margin-top:6px">${st.age}세${st.school?' · '+st.school:''}</div>` : ''}
+        <div style="color:#0f172a;font-size:28px;font-weight:700;line-height:1">${name}</div>
+        ${st.age ? `<div style="color:#64748b;font-size:12px;margin-top:4px">${st.age}세${st.school?' · '+st.school:''}</div>` : ''}
       </div>
       <div>${beltPill}</div>
     </div>
-    <div style="background:#ffffff;display:flex;border-bottom:1px solid #e2e8f0">
-      <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid #e2e8f0">
+    <div style="background:#ffffff;display:flex">
+      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">심사일</div>
-        <div style="font-size:12px;font-weight:700;color:#1a2433">${e.date||'-'}</div>
+        <div style="font-size:13px;font-weight:700;color:#1e293b">${e.date||'-'}</div>
       </div>
-      <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid #e2e8f0;overflow:hidden">
+      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9;overflow:hidden">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">회차</div>
-        <div style="font-size:11px;font-weight:700;color:#1a2433;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round||'-'}</div>
+        <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round||'-'}</div>
       </div>
-      <div style="flex:1;padding:10px 8px;text-align:center">
+      <div style="flex:1;padding:10px;text-align:center">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">합격여부</div>
         <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
       </div>
     </div>
-    <div style="background:#ffffff;padding:20px;text-align:center">
-      <div style="margin-bottom:12px">
-        <span style="font-size:64px;font-weight:700;color:#1e40af;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
-        <span style="font-size:20px;color:#64748b"> /5.0</span>
-      </div>
-      <div style="display:inline-block;background:${passedBg};border:1.5px solid ${passedBorder};color:${passedFg};font-size:15px;font-weight:700;padding:6px 20px;border-radius:20px;margin-bottom:16px">${passedText}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${summaryCards}</div>
-    </div>
-    <div style="background:#f8fafc;padding:16px;margin-top:8px;text-align:center">
-      <canvas id="${cvId}" width="240" height="240" style="display:block;margin:0 auto"></canvas>
-    </div>
-    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:16px;margin:8px;padding:16px">
-      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">💬 학부모님께 드리는 말씀</div>
-      ${e.comment
-        ? `<div style="font-size:16px;color:#1c1917;line-height:1.8">${e.comment}</div>`
-        : `<div style="font-size:14px;color:#9ca3af;font-style:italic">담당 사범의 한마디가 없습니다</div>`}
-      <div style="text-align:right;font-size:12px;color:#78716c;margin-top:8px">— 담당 사범</div>
-    </div>
-    <div style="margin-top:8px">
+    <div style="background:#ffffff;padding:16px 20px;text-align:center">
       <div style="margin-bottom:8px">
-        <div style="background:#1e3a6e;color:#ffffff;padding:14px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;font-weight:700">🥋 품새</span>
-          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1):'-'}/5.0</span>
+        <span style="font-size:52px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
+        <span style="font-size:16px;color:#94a3b8"> /5.0</span>
+      </div>
+      <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:12px">${passedText}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">${summaryCards}</div>
+    </div>
+    <div style="background:#f8fafc;padding:12px;text-align:center">
+      <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
+    </div>
+    <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
+      <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
+      ${e.comment
+        ? `<div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>`
+        : `<div style="font-size:13px;color:#9ca3af;margin-top:6px">—</div>`}
+      <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
+    </div>
+    <div style="margin-top:4px">
+      <div>
+        <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🥋 품새</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1):'-'}/5.0</span>
         </div>${poomsaeRows}
       </div>
-      <div style="margin-bottom:8px">
-        <div style="background:#7c2d12;color:#ffffff;padding:14px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;font-weight:700">🦵 발차기 & 겨루기</span>
-          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1):'-'}/5.0</span>
+      <div>
+        <div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1):'-'}/5.0</span>
         </div>${kickRows}
       </div>
-      <div style="margin-bottom:8px">
-        <div style="background:#7f1d1d;color:#ffffff;padding:14px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;font-weight:700">🔥 익스트림 태권도</span>
-          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1):'-'}/5.0</span>
+      <div>
+        <div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1):'-'}/5.0</span>
         </div>${extremeRows}
       </div>
-      <div style="margin-bottom:8px">
-        <div style="background:#14532d;color:#ffffff;padding:14px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:14px;font-weight:700">🌱 인성교육</span>
-          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1):'-'}/5.0</span>
+      <div>
+        <div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🌱 인성교육</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1):'-'}/5.0</span>
         </div>${charRows}
       </div>
     </div>
-    <div style="background:#0f172a;color:#94a3b8;text-align:center;padding:20px;margin-top:8px">
-      <div style="font-size:13px">${academyName||'태사랑태권도'} | 심사에 참여해 주셔서 감사합니다</div>
+    <div style="background:#f1f5f9;padding:14px 20px;text-align:center;border-top:1px solid #e2e8f0">
+      <div style="font-size:12px;color:#64748b">${academyName||'태사랑태권도'} | 심사에 참여해 주셔서 감사합니다</div>
     </div>
   </div>`;
 
@@ -1707,7 +1711,7 @@ window.imageCard = (evalId) => {
 
   html2canvas(wrap.firstElementChild, {
     scale: 2,
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
   }).then(canvas => {
@@ -1728,7 +1732,7 @@ function drawRadarChart(canvas, scores) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const cx = W/2, cy = H/2;
-  const R = 78;
+  const R = 70;
   const n = 4;
   const labels = ['품새','발차기','익스트림','인성'];
   const vals = [
@@ -1771,7 +1775,7 @@ function drawRadarChart(canvas, scores) {
     i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   });
   ctx.closePath();
-  ctx.fillStyle = 'rgba(37,99,235,0.15)';
+  ctx.fillStyle = 'rgba(37,99,235,0.12)';
   ctx.fill();
   ctx.strokeStyle = '#2563eb';
   ctx.lineWidth = 2;
@@ -1792,7 +1796,7 @@ function drawRadarChart(canvas, scores) {
   ctx.fillStyle = '#374151';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = 'bold 14px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   labels.forEach((lb, i) => {
     const x = cx+lR*Math.cos(angles[i]);
     const y = cy+lR*Math.sin(angles[i]);
