@@ -559,6 +559,31 @@ const CURRICULUM = {
   '4품단':    { poomsae:'평원',      kick:'가위차기',     extreme:['720도이상','뒤공중앞공중'] },
 };
 
+// ── 결과 카드용 커리큘럼 / 서브항목 ────────────────────────────────────
+const BELT_CURRICULUM = {
+  '흰띠':     {poomsae:['주먹 쥐는 방법','기본 서기','기본 동작'],kick:['무릎차기 · 뻗어차기'],extreme:['뛰어 앞차기 (무릎)','앞구르기']},
+  '흰검띠':   {poomsae:['주먹 쥐는 방법','기본 서기','기본 동작'],kick:['무릎차기 · 뻗어차기'],extreme:['뛰어 앞차기 (무릎)','앞구르기']},
+  '노란띠':   {poomsae:['태극 1장'],kick:['앞차기'],extreme:['뛰어 앞차기','뒤구르기']},
+  '노검띠':   {poomsae:['태극 1장'],kick:['앞차기'],extreme:['뛰어 앞차기','뒤구르기']},
+  '주황띠':   {poomsae:['태극 2장'],kick:['돌려 차기'],extreme:['뛰어 돌려차기','앞·뒤구르기']},
+  '주황검띠': {poomsae:['태극 2장'],kick:['돌려 차기'],extreme:['뛰어 돌려차기','앞·뒤구르기']},
+  '초록띠':   {poomsae:['태극 3장'],kick:['내려 차기'],extreme:['돌게 차기','물구나무서기']},
+  '초록검띠': {poomsae:['태극 3장'],kick:['내려 차기'],extreme:['돌게 차기','물구나무서기']},
+  '파란띠':   {poomsae:['태극 4장'],kick:['옆차기'],extreme:['돌려 돌게차기','옆돌기']},
+  '파란검띠': {poomsae:['태극 4장'],kick:['옆차기'],extreme:['돌려 돌게차기','옆돌기']},
+  '보라띠':   {poomsae:['태극 5장'],kick:['옆차기 (발날)'],extreme:['스텝 돌게차기','홉스텝 옆돌기']},
+  '보라검띠': {poomsae:['태극 5장'],kick:['옆차기 (발날)'],extreme:['스텝 돌게차기','홉스텝 옆돌기']},
+  '밤띠':     {poomsae:['태극 6장'],kick:['옆후려 차기'],extreme:['연결 발차기','한손 옆돌기']},
+  '밤검띠':   {poomsae:['태극 6장'],kick:['옆후려 차기'],extreme:['연결 발차기','한손 옆돌기']},
+  '빨간띠':   {poomsae:['국기원 승품단심사 대상자'],kick:['약속 겨루기'],extreme:['태극 1장~8장 종합']},
+  '1품단':    {poomsae:['고려'],kick:['뒤차기'],extreme:['돌려+돌게+뒤후려차기','에어리얼']},
+  '2품단':    {poomsae:['금강'],kick:['뛰어 뒤차기'],extreme:['팜턴','핸드스프링']},
+  '3품단':    {poomsae:['태백'],kick:['뛰어 옆차기'],extreme:['외반턴 540도','하우스턴']},
+  '4품단':    {poomsae:['평원'],kick:['가위 차기'],extreme:['720도 이상','뒤공중 앞공중']},
+};
+const KICK_SUBS = ['완성도','겨루기 공방능력','겨루기 기술 다양성'];
+const CHARACTER_ITEMS = ['수련 태도 및 예의','집중력 및 성실성','인성교육교재 수행'];
+
 // ── 띠 색상 ──────────────────────────────────────────────────────────
 const BELT_COLORS = {
   '흰띠':     { bg:'#FFFFFF', color:'#333333', border:'#999999' },
@@ -664,6 +689,23 @@ function avgScoreNum(arr) {
   const valid = (arr || []).filter(v => v > 0);
   if (!valid.length) return 0;
   return valid.reduce((a, b) => a + b, 0) / valid.length;
+}
+
+function scoreLabel(v) {
+  if (!v || v <= 0) return '-';
+  if (v <= 1) return '1점 함께 성장 중';
+  if (v <= 2) return '2점 노력하고 있어요';
+  if (v <= 3) return '3점 잘 하고 있어요';
+  if (v <= 4) return '4점 훌륭해요';
+  return '5점 최고예요!';
+}
+function scoreLabelColor(v) {
+  if (!v || v <= 0) return '#9ca3af';
+  if (v <= 1) return '#ef4444';
+  if (v <= 2) return '#f97316';
+  if (v <= 3) return '#16a34a';
+  if (v <= 4) return '#2563eb';
+  return '#7c3aed';
 }
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
@@ -1458,82 +1500,139 @@ window.imageCard = (evalId) => {
   const e = evaluations[evalId];
   if (!e) { showToast('데이터를 찾을 수 없습니다'); return; }
 
-  const st   = students[e.studentId] || {};
-  const name = st.name || '-';
-  const belt = e.belt || '흰띠';
+  const st    = students[e.studentId] || {};
+  const name  = st.name || '-';
+  const belt  = e.belt || '흰띠';
   const grade = e.grade || '';
-  const sc   = e.scores || { poomsae:[0,0], kick:[0,0,0], extreme:[], character:[0,0,0] };
-  const crr  = CURRICULUM[belt] || CURRICULUM['흰띠'];
+  const sc    = e.scores || { poomsae:[], kick:[], extreme:[], character:[] };
+  const crr   = BELT_CURRICULUM[belt] || BELT_CURRICULUM['흰띠'];
 
-  function sl(v) {
-    if (!v || v < 1) return { text:'-', color:'#94a3b8' };
-    const texts  = ['','함께 성장 중','노력하고 있어요','잘 하고 있어요','훌륭해요','최고예요!'];
-    const colors = ['','#ef4444','#f97316','#22c55e','#3b82f6','#8b5cf6'];
-    return { text: texts[v]||'-', color: colors[v]||'#94a3b8' };
+  // flat 평균 (2D 배열 대응)
+  function flatAvg(arr) {
+    const flat = (arr||[]).flat ? (arr||[]).flat(2) : (arr||[]);
+    const valid = flat.map(Number).filter(v => v > 0);
+    return valid.length ? valid.reduce((a,b)=>a+b,0)/valid.length : 0;
+  }
+  // flat 배열에서 j번째 값 (i는 curriculum item index, j는 sub-index)
+  function gsv(arr, j) {
+    if (!arr || !arr.length) return 0;
+    const item = arr[0];
+    if (Array.isArray(item)) return Number(item[j]) || 0;
+    return Number(arr[j]) || 0;
   }
 
-  const pAvg  = avgScoreNum(sc.poomsae);
-  const kAvg  = avgScoreNum(sc.kick);
-  const eAvg  = avgScoreNum(sc.extreme);
-  const cAvg  = avgScoreNum(sc.character);
-  const allSc = [...(sc.poomsae||[]),...(sc.kick||[]),...(sc.extreme||[]),...(sc.character||[])];
-  const oAvg  = avgScoreNum(allSc);
+  const pAvg = flatAvg(sc.poomsae);
+  const kAvg = flatAvg(sc.kick);
+  const eAvg = flatAvg(sc.extreme);
+  const cAvg = flatAvg(sc.character);
+  const sectAvgs = [pAvg, kAvg, eAvg, cAvg].filter(v => v > 0);
+  const oAvg = sectAvgs.length ? sectAvgs.reduce((a,b)=>a+b,0)/sectAvgs.length : 0;
 
-  const passedText  = e.passed===true?'합격':e.passed===false?'불합격':'-';
-  const passedColor = e.passed===true?'#16a34a':e.passed===false?'#dc2626':'#6b7a8d';
-  const passedBg    = e.passed===true?'#dcfce7':e.passed===false?'#fee2e2':'#f1f5f9';
-  const issueDate   = todayStr();
-  const schoolAge   = [st.school, st.age ? st.age+'세' : ''].filter(Boolean).join(' · ');
+  const passedText   = e.passed===true?'합격':e.passed===false?'불합격':'-';
+  const passedColor  = e.passed===true?'#16a34a':e.passed===false?'#dc2626':'#6b7a8d';
+  const passedBorder = e.passed===true?'#16a34a':e.passed===false?'#dc2626':'#9ca3af';
+  const passedBg     = e.passed===true?'#dcfce7':e.passed===false?'#fee2e2':'#f1f5f9';
+  const passedFg     = e.passed===true?'#166534':e.passed===false?'#dc2626':'#6b7a8d';
+  const issueDate    = todayStr();
 
-  function secHtml(sName, emoji, items, scArr, bg) {
-    const avg = avgScoreNum(scArr);
-    const rows = (items||[]).map((item, i) => {
-      const v = Number((scArr||[])[i]) || 0;
-      const { text, color } = sl(v);
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid #f1f5f9">
-        <span style="font-size:12px;color:#374151">${item}</span>
-        <span style="font-size:12px;font-weight:700;color:${color}">${v>0?v+'점 ':''}${text}</span>
-      </div>`;
-    }).join('');
-    return `<div style="margin-bottom:1px">
-      <div style="background:${bg};padding:8px 14px;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:13px;font-weight:700;color:#fff">${emoji} ${sName}</span>
-        <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${avg>0?avg.toFixed(1):'-'}/5.0</span>
-      </div>${rows}</div>`;
-  }
+  // 띠 Pill 배지
+  const PILL_BG = {
+    '흰띠':'#e5e7eb','흰검띠':'#d1d5db',
+    '노란띠':'#eab308','노검띠':'#ca8a04',
+    '주황띠':'#f97316','주황검띠':'#ea580c',
+    '초록띠':'#16a34a','초록검띠':'#15803d',
+    '파란띠':'#2563eb','파란검띠':'#1d4ed8',
+    '보라띠':'#7c3aed','보라검띠':'#6d28d9',
+    '밤띠':'#92400e','밤검띠':'#78350f',
+    '빨간띠':'#dc2626',
+    '1품단':'#1f2937','2품단':'#1f2937','3품단':'#111827','4품단':'#030712',
+  };
+  const pillBg    = PILL_BG[belt] || '#9ca3af';
+  const pillColor = new Set(['흰띠','흰검띠']).has(belt) ? '#374151' : '#ffffff';
+  const beltPill  = `<span style="background:${pillBg};color:${pillColor};padding:6px 14px;border-radius:20px;font-weight:700;font-size:14px">${belt+(grade?' '+grade:'')}</span>`;
 
+  // 요약 카드 2x2
   const summaryCards = [
-    ['🥋','품새',pAvg],['🦵','발차기',kAvg],['🔥','익스트림',eAvg],['🌱','인성',cAvg]
-  ].map(([em,lb,av]) => `
-    <div style="background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border:1px solid #e2e8f0">
-      <div style="font-size:16px;margin-bottom:4px">${em}</div>
-      <div style="font-size:11px;color:#64748b;margin-bottom:3px">${lb}</div>
-      <div style="font-size:18px;font-weight:900;color:#1352a8">${av>0?av.toFixed(1):'-'}</div>
-      <div style="font-size:10px;color:#94a3b8">/5.0</div>
-    </div>`).join('');
+    ['🥋','품새',pAvg],['🦵','발차기 & 겨루기',kAvg],['🔥','익스트림',eAvg],['🌱','인성',cAvg]
+  ].map(([em,lb,av]) =>
+    `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:18px;margin-bottom:4px">${em}</div>
+      <div style="font-size:11px;color:#64748b;margin-bottom:4px">${lb}</div>
+      <div style="font-size:22px;font-weight:700;color:#1e40af;line-height:1">${av>0?av.toFixed(1):'-'}</div>
+      <div style="font-size:12px;color:#94a3b8">/5.0</div>
+    </div>`
+  ).join('');
 
-  const cardId = 'rc-'+Date.now();
-  const cvId   = 'rv-'+Date.now();
+  // 품새 섹션 (poomsae 항목별 정확도/완성도)
+  let poomsaeRows = '';
+  (crr.poomsae||[]).forEach(item => {
+    const acc = gsv(sc.poomsae, 0);
+    const cmp = gsv(sc.poomsae, 1);
+    poomsaeRows += `<div style="background:#e8f0fe;color:#1e40af;padding:8px 16px;font-weight:600;font-size:13px">${item}</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:13px;color:#374151">정확도</span>
+      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(acc)}">${scoreLabel(acc)}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:13px;color:#374151">완성도</span>
+      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(cmp)}">${scoreLabel(cmp)}</span>
+    </div>`;
+  });
 
-  const cardHtml = `<div id="${cardId}" style="width:390px;font-family:'Noto Sans KR',sans-serif;background:#ffffff;overflow:hidden">
-    <div style="background:#0f172a;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
+  // 발차기 섹션 (kick 항목별 KICK_SUBS 3개)
+  let kickRows = '';
+  (crr.kick||[]).forEach(item => {
+    kickRows += `<div style="background:#e8f0fe;color:#1e40af;padding:8px 16px;font-weight:600;font-size:13px">${item}</div>`;
+    KICK_SUBS.forEach((sub, j) => {
+      const v = gsv(sc.kick, j);
+      kickRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
+        <span style="font-size:13px;color:#374151">${sub}</span>
+        <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+      </div>`;
+    });
+  });
+
+  // 익스트림 섹션
+  let extremeRows = '';
+  (crr.extreme||[]).forEach((item, i) => {
+    const v = Number((sc.extreme||[])[i]) || 0;
+    extremeRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:13px;color:#374151">${item}</span>
+      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+    </div>`;
+  });
+
+  // 인성 섹션
+  let charRows = '';
+  CHARACTER_ITEMS.forEach((item, i) => {
+    const v = Number((sc.character||[])[i]) || 0;
+    charRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f1f5f9">
+      <span style="font-size:13px;color:#374151">${item}</span>
+      <span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${scoreLabel(v)}</span>
+    </div>`;
+  });
+
+  const cvId = 'rv-' + Date.now();
+
+  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f8fafc">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e3a5f);padding:20px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||'태권도장'}</div>
-        <div style="color:#94a3b8;font-size:10px;margin-top:2px;letter-spacing:1px">TAEKWONDO ACADEMY</div>
+        <div style="color:#ffffff;font-size:18px;font-weight:700">${academyName||'태권도장'}</div>
+        <div style="color:#94a3b8;font-size:11px;margin-top:3px;letter-spacing:1px">TAEKWONDO ACADEMY</div>
       </div>
       <div style="text-align:right">
-        <div style="color:#93c5fd;font-size:11px;font-weight:700">심사평가결과지</div>
-        <div style="color:#64748b;font-size:10px;margin-top:3px">발행일 ${issueDate}</div>
+        <div style="color:#93c5fd;font-size:12px;font-weight:700">심사평가결과지</div>
+        <div style="color:#64748b;font-size:11px;margin-top:4px">${issueDate}</div>
       </div>
     </div>
     <div style="background:#1e3a5f;padding:16px 20px;display:flex;justify-content:space-between;align-items:center">
       <div>
-        <div style="color:#ffffff;font-size:28px;font-weight:900;letter-spacing:-1px">${name}</div>
-        ${schoolAge?`<div style="color:#94a3b8;font-size:12px;margin-top:4px">${schoolAge}</div>`:''}
+        <div style="color:#ffffff;font-size:32px;font-weight:700;letter-spacing:-1px;line-height:1">${name}</div>
+        ${st.age ? `<div style="color:#94a3b8;font-size:13px;margin-top:6px">${st.age}세${st.school?' · '+st.school:''}</div>` : ''}
       </div>
-      <div>${beltBadge(belt,grade)}</div>
+      <div>${beltPill}</div>
     </div>
-    <div style="background:#f8fafc;display:flex;border-bottom:1px solid #e2e8f0">
+    <div style="background:#ffffff;display:flex;border-bottom:1px solid #e2e8f0">
       <div style="flex:1;padding:10px 8px;text-align:center;border-right:1px solid #e2e8f0">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">심사일</div>
         <div style="font-size:12px;font-weight:700;color:#1a2433">${e.date||'-'}</div>
@@ -1543,42 +1642,61 @@ window.imageCard = (evalId) => {
         <div style="font-size:11px;font-weight:700;color:#1a2433;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round||'-'}</div>
       </div>
       <div style="flex:1;padding:10px 8px;text-align:center">
-        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">결과</div>
-        <div style="font-size:13px;font-weight:900;color:${passedColor}">${passedText}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">합격여부</div>
+        <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
       </div>
     </div>
-    <div style="padding:20px 20px 12px;background:#ffffff">
-      <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:14px">
-        <span style="font-size:52px;font-weight:900;color:#1352a8;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
-        <div>
-          <div style="font-size:16px;color:#94a3b8">/5.0</div>
-          <div style="margin-top:6px;background:${passedBg};color:${passedColor};font-size:12px;font-weight:700;padding:3px 12px;border-radius:20px;text-align:center">${passedText}</div>
-        </div>
+    <div style="background:#ffffff;padding:20px;text-align:center">
+      <div style="margin-bottom:12px">
+        <span style="font-size:56px;font-weight:700;color:#1e40af;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
+        <span style="font-size:20px;color:#64748b"> /5.0</span>
       </div>
+      <div style="display:inline-block;background:${passedBg};border:1.5px solid ${passedBorder};color:${passedFg};font-size:14px;font-weight:700;padding:5px 20px;border-radius:20px;margin-bottom:16px">${passedText}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">${summaryCards}</div>
     </div>
-    <div style="padding:4px 20px 16px;background:#ffffff;text-align:center">
-      <canvas id="${cvId}" width="350" height="260" style="display:block;margin:0 auto"></canvas>
+    <div style="background:#ffffff;padding:16px;margin-top:8px;text-align:center">
+      <canvas id="${cvId}" width="240" height="240" style="display:block;margin:0 auto"></canvas>
     </div>
-    <div style="margin:0 20px 16px;background:#fffbeb;border-radius:12px;padding:14px;border:1px solid #fef08a">
-      <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px">💬 학부모님께 드리는 말씀</div>
-      <div style="font-size:13px;color:#1a2433;line-height:1.7">${e.comment||'-'}</div>
-      <div style="text-align:right;font-size:11px;color:#b45309;margin-top:8px">— 담당 사범</div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;margin:8px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">💬 학부모님께 드리는 말씀</div>
+      ${e.comment
+        ? `<div style="font-size:15px;color:#1c1917;line-height:1.6">${e.comment}</div>`
+        : `<div style="font-size:14px;color:#9ca3af;font-style:italic">담당 사범의 한마디가 없습니다</div>`}
+      <div style="text-align:right;font-size:12px;color:#78716c;margin-top:8px">— 담당 사범</div>
     </div>
-    <div>
-      ${secHtml('품새','🥋',['품새 정확도','품새 완성도'],sc.poomsae,'#1e3a5f')}
-      ${secHtml('발차기','🦵',['발차기 완성도','발차기 공방','발차기 다양성'],sc.kick,'#14532d')}
-      ${secHtml('익스트림','🔥',crr.extreme||[],sc.extreme,'#7f1d1d')}
-      ${secHtml('인성','🌱',['인성 태도','인성 집중력','인성 교재'],sc.character,'#4c1d95')}
+    <div style="margin-top:8px">
+      <div style="margin-bottom:8px">
+        <div style="background:#1e3a6e;color:#ffffff;padding:10px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;font-weight:700">🥋 품새</span>
+          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1):'-'}/5.0</span>
+        </div>${poomsaeRows}
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="background:#7c2d12;color:#ffffff;padding:10px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;font-weight:700">🦵 발차기 & 겨루기</span>
+          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1):'-'}/5.0</span>
+        </div>${kickRows}
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;font-weight:700">🔥 익스트림 태권도</span>
+          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1):'-'}/5.0</span>
+        </div>${extremeRows}
+      </div>
+      <div style="margin-bottom:8px">
+        <div style="background:#14532d;color:#ffffff;padding:10px 16px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:14px;font-weight:700">🌱 인성교육</span>
+          <span style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1):'-'}/5.0</span>
+        </div>${charRows}
+      </div>
     </div>
-    <div style="background:#0f172a;padding:14px 20px;text-align:center">
-      <div style="color:#94a3b8;font-size:11px">${academyName||'태권도장'} | 심사에 참여해 주셔서 감사합니다</div>
-      ${st.parentPhone?`<div style="color:#64748b;font-size:10px;margin-top:4px">${st.parentPhone}</div>`:''}
+    <div style="background:#0f172a;color:#94a3b8;text-align:center;padding:16px;margin-top:8px">
+      <div style="font-size:12px">${academyName||'태권도장'} | 심사에 참여해 주셔서 감사합니다</div>
     </div>
   </div>`;
 
   const wrap = document.createElement('div');
-  wrap.style.cssText = 'position:absolute;left:-9999px;top:0;width:390px';
+  wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:390px';
   wrap.innerHTML = cardHtml;
   document.body.appendChild(wrap);
 
@@ -1587,18 +1705,17 @@ window.imageCard = (evalId) => {
 
   showToast('🎨 카드 생성 중...');
 
-  html2canvas(document.getElementById(cardId), {
+  html2canvas(wrap.firstElementChild, {
     scale: 2,
+    backgroundColor: '#f8fafc',
     useCORS: true,
-    allowTaint: false,
-    backgroundColor: '#ffffff',
     logging: false,
-  }).then(cap => {
+  }).then(canvas => {
     document.body.removeChild(wrap);
-    const a = document.createElement('a');
-    a.download = `${name}_승급심사_결과.jpg`;
-    a.href = cap.toDataURL('image/jpeg', 0.92);
-    a.click();
+    const link = document.createElement('a');
+    link.download = name + '_승급심사_결과.jpg';
+    link.href = canvas.toDataURL('image/jpeg', 0.95);
+    link.click();
     showToast('✅ 결과 카드 저장 완료!');
   }).catch(err => {
     document.body.removeChild(wrap);
@@ -1610,8 +1727,8 @@ window.imageCard = (evalId) => {
 function drawRadarChart(canvas, scores) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
-  const cx = W/2, cy = H/2+5;
-  const R = 88;
+  const cx = W/2, cy = H/2;
+  const R = 78;
   const n = 4;
   const labels = ['품새','발차기','익스트림','인성'];
   const vals = [
@@ -1637,7 +1754,7 @@ function drawRadarChart(canvas, scores) {
     ctx.stroke();
   }
 
-  ctx.strokeStyle = '#cbd5e1';
+  ctx.strokeStyle = '#e2e8f0';
   ctx.lineWidth = 1;
   angles.forEach(a => {
     ctx.beginPath();
@@ -1654,10 +1771,10 @@ function drawRadarChart(canvas, scores) {
     i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
   });
   ctx.closePath();
-  ctx.fillStyle = 'rgba(19,82,168,0.18)';
+  ctx.fillStyle = 'rgba(37,99,235,0.2)';
   ctx.fill();
-  ctx.strokeStyle = '#1352a8';
-  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#2563eb';
+  ctx.lineWidth = 2;
   ctx.stroke();
 
   vals.forEach((v, i) => {
@@ -1665,30 +1782,30 @@ function drawRadarChart(canvas, scores) {
       const rv = (v/5)*R;
       const x = cx+rv*Math.cos(angles[i]);
       const y = cy+rv*Math.sin(angles[i]);
-      ctx.beginPath(); ctx.arc(x, y, 5, 0, Math.PI*2);
-      ctx.fillStyle = '#1352a8'; ctx.fill();
+      ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#2563eb'; ctx.fill();
       ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.5; ctx.stroke();
     }
   });
 
-  const lR = R+26;
+  const lR = R+22;
   ctx.fillStyle = '#374151';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.font = 'bold 13px sans-serif';
+  ctx.font = 'bold 12px sans-serif';
   labels.forEach((lb, i) => {
     const x = cx+lR*Math.cos(angles[i]);
     const y = cy+lR*Math.sin(angles[i]);
     ctx.fillText(lb, x, y);
   });
 
-  ctx.font = '11px sans-serif';
-  ctx.fillStyle = '#1352a8';
+  ctx.font = '10px sans-serif';
+  ctx.fillStyle = '#2563eb';
   vals.forEach((v, i) => {
     if (v > 0) {
       const rv = (v/5)*R;
-      const ox = Math.cos(angles[i])*15;
-      const oy = Math.sin(angles[i])*15;
+      const ox = Math.cos(angles[i])*13;
+      const oy = Math.sin(angles[i])*13;
       ctx.fillText(v.toFixed(1), cx+rv*Math.cos(angles[i])+ox, cy+rv*Math.sin(angles[i])+oy);
     }
   });
