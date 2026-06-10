@@ -517,15 +517,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div id="monthlyEventDisplay"></div>
     </div>
     <div class="sec">
-      <div class="sec-hd purple">📝 이달 특이사항 &amp; 날짜별 기록</div>
-      <textarea class="ta" id="taMonthNote" placeholder="이달의 특이사항이나 메모..." style="min-height:100px;"></textarea>
-      <div style="padding:0 13px 10px;"><button class="save-btn" onclick="saveMonthNote()">저장</button></div>
-      <div style="border-top:2px solid var(--border);">
-        <div style="display:flex;align-items:center;gap:6px;padding:9px 13px;background:var(--orange-lt);">
-          <span style="font-size:12px;font-weight:700;color:var(--orange);">📋 날짜별 특이사항 · 상담</span>
-        </div>
-        <div id="eventTimeline"></div>
-      </div>
+      <div class="sec-hd purple">📋 날짜별 특이사항 · 상담 · 메모</div>
+      <div id="eventTimeline"></div>
     </div>
     <div class="sec">
       <div class="sec-hd teal">✅ 이달 완료한 TO DO</div>
@@ -1135,7 +1128,6 @@ function updateMonthStrip() {
   if (sNewEl)  sNewEl.textContent  = totalNew + '명';
   if (sRestEl) sRestEl.textContent = totalRest + '명';
   if (sOutEl)  sOutEl.textContent  = totalOut + '명';
-  document.getElementById('taMonthNote').value = md.note || '';
   const meEl = document.getElementById('taMonthEvent');
   if (meEl) meEl.value = md.monthEvent || '';
   renderAttStats();
@@ -1153,12 +1145,18 @@ window.saveMonthSetup = async () => {
   showToast('📊 기준총원 저장 완료!');
 };
 
-window.saveMonthNote = async () => {
-  const mk = monthKey(currentDate);
-  if (!monthData[mk]) monthData[mk] = {};
-  monthData[mk].note = document.getElementById('taMonthNote').value;
-  if (isOnline) await set(ref(db, `academies/${academyId}/months/${mk}/note`), monthData[mk].note);
-  showToast('✅ 특이사항 저장 완료');
+window.saveDayMemo = async (key) => {
+  const mk2 = key.slice(0, 7);
+  const val = document.getElementById('dayMemo_' + key)?.value || '';
+  if (!monthData[mk2]) monthData[mk2] = {};
+  if (!monthData[mk2].dayMemos) monthData[mk2].dayMemos = {};
+  monthData[mk2].dayMemos[key] = val;
+  if (isOnline) {
+    try {
+      await set(ref(db, `academies/${academyId}/months/${mk2}/dayMemos/${key}`), val);
+      showToast('✅ 메모 저장 완료!');
+    } catch(e) { showToast('저장 오류: ' + e.message); }
+  }
 };
 
 window.saveMonthEvent = async () => {
@@ -1189,23 +1187,42 @@ function renderMonthlyEvent() {
 function renderEventTimeline() {
   const el = document.getElementById('eventTimeline'); if (!el) return;
   const year = currentDate.getFullYear(), month = currentDate.getMonth() + 1;
+  const mk = monthKey(currentDate);
   const dayNames = ['일','월','화','수','목','금','토'];
   const esc = s => (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-  let html = '', hasAny = false;
+  const dayMemos = (monthData[mk] || {}).dayMemos || {};
   const daysInMonth = new Date(year, month, 0).getDate();
+  const entries = [];
   for (let d = 1; d <= daysInMonth; d++) {
     const date = new Date(year, month-1, d), dow = date.getDay(), key = dateKey(date), data = allData[key] || {};
-    const hasEvent = data.event && data.event.trim(), hasCons = data.cons && data.cons.trim();
-    if (!hasEvent && !hasCons) continue;
-    hasAny = true;
-    html += `<div style="padding:11px 13px;border-bottom:1px solid var(--border);">
-      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:7px;">${month}/${d} (${dayNames[dow]})</div>`;
-    if (hasEvent) html += `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-lt);padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">⚡ 특이사항</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.event)}</div></div>`;
-    if (hasCons)  html += `<div><span style="font-size:10px;font-weight:700;color:#7B1FA2;background:#F3E5F5;padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">🤝 상담</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.cons)}</div></div>`;
-    html += `</div>`;
+    const hasEvent = data.event && data.event.trim(), hasCons = data.cons && data.cons.trim(), memo = dayMemos[key] || '';
+    if (!hasEvent && !hasCons && !memo) continue;
+    entries.push({ key, d, dow, data, hasEvent, hasCons, memo });
   }
-  if (!hasAny) html = `<div style="text-align:center;color:var(--gray);font-size:12px;padding:20px 16px;line-height:1.8;">이달 특이사항 · 상담 기록이 없습니다</div>`;
-  el.innerHTML = html;
+  Object.keys(dayMemos).forEach(key => {
+    if (!key.startsWith(mk) || !dayMemos[key]) return;
+    const [,m2,d2] = key.split('-').map(Number);
+    const data = allData[key] || {};
+    if ((data.event && data.event.trim()) || (data.cons && data.cons.trim())) return;
+    if (entries.find(e => e.key === key)) return;
+    const dow = new Date(key).getDay();
+    entries.push({ key, d: d2, dow, data, hasEvent: false, hasCons: false, memo: dayMemos[key] });
+  });
+  entries.sort((a, b) => a.key.localeCompare(b.key));
+  if (!entries.length) {
+    el.innerHTML = `<div style="text-align:center;color:var(--gray);font-size:12px;padding:20px 16px;line-height:1.8;">이달 특이사항 · 상담 기록이 없습니다<br><span style="font-size:11px;opacity:0.7;">일일일지에서 특이사항·상담을 저장하면 여기에 표시돼요</span></div>`;
+    return;
+  }
+  el.innerHTML = entries.map(({ key, d, dow, data, hasEvent, hasCons, memo }) => `
+    <div style="padding:11px 13px;border-bottom:1px solid var(--border);">
+      <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:7px;">${month}/${d} (${dayNames[dow]})</div>
+      ${hasEvent ? `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:var(--red);background:var(--red-lt);padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">⚡ 특이사항</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.event)}</div></div>` : ''}
+      ${hasCons ? `<div style="margin-bottom:6px;"><span style="font-size:10px;font-weight:700;color:#7B1FA2;background:#F3E5F5;padding:2px 7px;border-radius:4px;display:inline-block;margin-bottom:4px;">🤝 상담</span><div style="font-size:12px;color:var(--text);line-height:1.75;padding-left:4px;">${esc(data.cons)}</div></div>` : ''}
+      <div style="margin-top:6px;display:flex;gap:6px;align-items:flex-start;">
+        <textarea id="dayMemo_${key}" placeholder="이날 메모 추가..." style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:7px 9px;font-size:12px;font-family:inherit;resize:none;min-height:36px;line-height:1.6;color:var(--text);">${esc(memo)}</textarea>
+        <button onclick="saveDayMemo('${key}')" style="background:var(--purple);color:white;border:none;border-radius:8px;padding:7px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">저장</button>
+      </div>
+    </div>`).join('');
 }
 
 function renderMonthlyLists() {
