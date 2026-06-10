@@ -72,9 +72,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .tab-btn.active .tab-label { font-weight: 700; }
 
 /* ── STATS ── */
-.stats-row { display: flex; gap: 8px; padding: 12px 16px 0; }
-.stat-box { flex: 1; background: var(--white); border-radius: 10px; border: 1px solid var(--border); padding: 10px; text-align: center; }
-.stat-box .sv { font-size: 22px; font-weight: 900; color: var(--blue); }
+.stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px 16px 0; }
+.stat-box { background: var(--white); border-radius: 10px; border: 1px solid var(--border); padding: 10px; text-align: center; }
+.stat-box .sv { font-size: 20px; font-weight: 700; color: var(--blue); }
 .stat-box .sl { font-size: 11px; color: var(--text2); margin-top: 2px; }
 
 /* ── SEARCH / SORT ── */
@@ -203,12 +203,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 /* ── GRADE CHART TAB ── */
 #tab-grade { padding-bottom: 8px; }
-.grade-card { background: white; border-radius: 12px; margin: 8px; padding: 0; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
-.grade-card-header { padding: 12px 16px; display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 15px; }
-.grade-card-row { padding: 10px 16px; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 3px; }
+.grade-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 8px; }
+.grade-col { display: flex; flex-direction: column; gap: 8px; }
+.grade-card { background: white; border-radius: 12px; padding: 0; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.grade-card-header { padding: 10px 12px; display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12px; }
+.grade-card-row { padding: 8px 12px; border-bottom: 1px solid #f1f5f9; display: flex; flex-direction: column; gap: 2px; }
 .grade-card-row:last-child { border-bottom: none; }
-.grade-row-label { font-size: 13px; font-weight: 700; color: #374151; }
-.grade-row-content { font-size: 13px; color: #64748b; }
+.grade-row-label { font-size: 11px; font-weight: 700; color: #374151; }
+.grade-row-content { font-size: 11px; color: #64748b; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -235,7 +237,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     <div class="stats-row">
       <div class="stat-box"><div class="sv" id="statTotal">0</div><div class="sl">전체</div></div>
       <div class="stat-box"><div class="sv" id="statGeneral">0</div><div class="sl">유급자</div></div>
-      <div class="stat-box"><div class="sv" id="statDan">0</div><div class="sl">품단</div></div>
+      <div class="stat-box"><div class="sv" id="stat1Dan">0</div><div class="sl">1품·단</div></div>
+      <div class="stat-box"><div class="sv" id="stat2Dan">0</div><div class="sl">2품·단</div></div>
+      <div class="stat-box"><div class="sv" id="stat3Dan">0</div><div class="sl">3품·단</div></div>
+      <div class="stat-box"><div class="sv" id="stat4Dan">0</div><div class="sl">4품·단</div></div>
     </div>
     <div class="search-row">
       <input class="search-input" id="searchInput" type="text" placeholder="이름 검색..." oninput="renderStudentList()">
@@ -828,34 +833,41 @@ document.getElementById('tab-students').classList.add('active');
 
 // ── 급수표 탭 ─────────────────────────────────────────────────────────
 const BELT_HEADER_STYLE = {
-  '흰띠':     { bg:'#e5e7eb', text:'#374151' },
-  '흰검띠':   { bg:'#d1d5db', text:'#374151' },
-  '노란띠':   { bg:'#eab308', text:'#ffffff' },
-  '노검띠':   { bg:'#ca8a04', text:'#ffffff' },
-  '주황띠':   { bg:'#f97316', text:'#ffffff' },
-  '주황검띠': { bg:'#ea580c', text:'#ffffff' },
-  '초록띠':   { bg:'#16a34a', text:'#ffffff' },
-  '초록검띠': { bg:'#15803d', text:'#ffffff' },
-  '파란띠':   { bg:'#2563eb', text:'#ffffff' },
-  '파란검띠': { bg:'#1d4ed8', text:'#ffffff' },
-  '보라띠':   { bg:'#7c3aed', text:'#ffffff' },
-  '보라검띠': { bg:'#6d28d9', text:'#ffffff' },
-  '밤띠':     { bg:'#92400e', text:'#ffffff' },
-  '밤검띠':   { bg:'#78350f', text:'#ffffff' },
-  '빨간띠':   { bg:'#dc2626', text:'#ffffff' },
-  '1품단':    { bg:'#1f2937', text:'#fca5a5' },
-  '2품단':    { bg:'#1f2937', text:'#fca5a5' },
-  '3품단':    { bg:'#111827', text:'#fecaca' },
-  '4품단':    { bg:'#030712', text:'#fecaca' },
+  '흰띠':   { bg:'#e5e7eb', text:'#374151' },
+  '노란띠': { bg:'#eab308', text:'#ffffff' },
+  '주황띠': { bg:'#f97316', text:'#ffffff' },
+  '초록띠': { bg:'#16a34a', text:'#ffffff' },
+  '파란띠': { bg:'#2563eb', text:'#ffffff' },
+  '보라띠': { bg:'#7c3aed', text:'#ffffff' },
+  '밤띠':   { bg:'#92400e', text:'#ffffff' },
+  '빨간띠': { bg:'#dc2626', text:'#ffffff' },
+  '1품단':  { bg:'#1f2937', text:'#fca5a5' },
+  '2품단':  { bg:'#1f2937', text:'#fca5a5' },
+  '3품단':  { bg:'#111827', text:'#fecaca' },
+  '4품단':  { bg:'#030712', text:'#fecaca' },
 };
 
 (function renderGradeChart() {
-  const belts = ['흰띠','흰검띠','노란띠','노검띠','주황띠','주황검띠','초록띠','초록검띠',
-                 '파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠',
-                 '1품단','2품단','3품단','4품단'];
-  document.getElementById('gradeChartList').innerHTML = belts.map(belt => {
-    const crr = BELT_CURRICULUM[belt] || {};
-    const h   = BELT_HEADER_STYLE[belt] || { bg:'#9ca3af', text:'#ffffff' };
+  const generalGroups = [
+    { label:'흰띠 / 흰검띠',    rep:'흰띠' },
+    { label:'노란띠 / 노검띠',   rep:'노란띠' },
+    { label:'주황띠 / 주황검띠', rep:'주황띠' },
+    { label:'초록띠 / 초록검띠', rep:'초록띠' },
+    { label:'파란띠 / 파란검띠', rep:'파란띠' },
+    { label:'보라띠 / 보라검띠', rep:'보라띠' },
+    { label:'밤띠 / 밤검띠',     rep:'밤띠' },
+    { label:'빨간띠',            rep:'빨간띠' },
+  ];
+  const danGroups = [
+    { label:'1품단', rep:'1품단' },
+    { label:'2품단', rep:'2품단' },
+    { label:'3품단', rep:'3품단' },
+    { label:'4품단', rep:'4품단' },
+  ];
+
+  function buildCard(g) {
+    const crr = BELT_CURRICULUM[g.rep] || {};
+    const h   = BELT_HEADER_STYLE[g.rep] || { bg:'#9ca3af', text:'#ffffff' };
     const p   = (crr.poomsae || []).join(' · ');
     const k   = [...(crr.kick || []), ...KICK_SUBS].join(' · ');
     const ex  = (crr.extreme || []).join(' · ');
@@ -863,8 +875,8 @@ const BELT_HEADER_STYLE = {
     return `
       <div class="grade-card">
         <div class="grade-card-header" style="background:${h.bg};color:${h.text}">
-          ${beltBadge(belt, '')}
-          <span>${belt}</span>
+          ${beltBadge(g.rep, '')}
+          <span>${g.label}</span>
         </div>
         <div class="grade-card-row">
           <div class="grade-row-label">🥋 품새</div>
@@ -883,7 +895,13 @@ const BELT_HEADER_STYLE = {
           <div class="grade-row-content">${ch}</div>
         </div>
       </div>`;
-  }).join('');
+  }
+
+  document.getElementById('gradeChartList').innerHTML = `
+    <div class="grade-grid">
+      <div class="grade-col">${generalGroups.map(buildCard).join('')}</div>
+      <div class="grade-col">${danGroups.map(buildCard).join('')}</div>
+    </div>`;
 })();
 
 // ── 수련생 탭 ─────────────────────────────────────────────────────────
@@ -918,10 +936,12 @@ window.renderStudentList = () => {
 
   applySort(list, sort);
 
-  const danCount = list.filter(s => isDan(s.belt)).length;
   document.getElementById('statTotal').textContent   = list.length;
-  document.getElementById('statGeneral').textContent = list.length - danCount;
-  document.getElementById('statDan').textContent     = danCount;
+  document.getElementById('statGeneral').textContent = list.filter(s => !isDan(s.belt)).length;
+  document.getElementById('stat1Dan').textContent    = list.filter(s => s.belt === '1품단').length;
+  document.getElementById('stat2Dan').textContent    = list.filter(s => s.belt === '2품단').length;
+  document.getElementById('stat3Dan').textContent    = list.filter(s => s.belt === '3품단').length;
+  document.getElementById('stat4Dan').textContent    = list.filter(s => s.belt === '4품단').length;
 
   const el = document.getElementById('studentList');
   if (!list.length) { el.innerHTML = '<div class="empty-msg">수련생이 없습니다</div>'; return; }
