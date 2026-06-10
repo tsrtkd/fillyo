@@ -233,6 +233,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <option value="belt">띠순</option>
         <option value="name">이름순</option>
         <option value="age">나이순</option>
+        <option value="grade">급수순</option>
       </select>
     </div>
     <div id="studentList"></div>
@@ -316,9 +317,18 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
   <!-- 현황 탭 -->
   <div id="tab-status" class="tab-content">
-    <div class="filter-row">
-      <select class="filter-select" id="statusFilter" onchange="renderStatusTable()" style="width:100%">
+    <div class="filter-row" style="display:flex;gap:8px;align-items:center">
+      <select class="filter-select" id="statusFilter" onchange="renderStatusTable();toggleDeleteRoundBtn()" style="flex:1;min-width:0">
         <option value="">전체 회차</option>
+      </select>
+      <button id="deleteRoundBtn" style="display:none;background:#fee2e2;color:#dc2626;border:none;padding:8px 12px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0" onclick="deleteRound()">🗑️ 회차 삭제</button>
+    </div>
+    <div class="filter-row" style="margin-top:6px">
+      <select class="filter-select" id="statusSort" onchange="renderStatusTable()" style="width:100%">
+        <option value="date">최신순</option>
+        <option value="name">이름순</option>
+        <option value="belt">띠순</option>
+        <option value="passed">합격/불합격순</option>
       </select>
     </div>
     <div class="status-table-wrap">
@@ -791,9 +801,16 @@ window.renderStudentList = () => {
   let list = Object.entries(students).map(([id, s]) => ({ id, ...s }));
   if (search) list = list.filter(s => (s.name || '').toLowerCase().includes(search));
 
-  if (sort === 'belt')      list.sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
-  else if (sort === 'name') list.sort((a, b) => (a.name||'').localeCompare(b.name||''));
-  else if (sort === 'age')  list.sort((a, b) => (Number(a.age)||0) - (Number(b.age)||0));
+  if (sort === 'belt')       list.sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt) || (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'name')  list.sort((a, b) => (a.name||'').localeCompare(b.name||''));
+  else if (sort === 'age')   list.sort((a, b) => (Number(a.age)||0) - (Number(b.age)||0));
+  else if (sort === 'grade') list.sort((a, b) => {
+    const bo = beltOrder(a.belt) - beltOrder(b.belt);
+    if (bo !== 0) return bo;
+    const ga = Number((a.grade||'').match(/\d+/)?.[0]) || 0;
+    const gb = Number((b.grade||'').match(/\d+/)?.[0]) || 0;
+    return gb - ga;
+  });
 
   const danCount = list.filter(s => isDan(s.belt)).length;
   document.getElementById('statTotal').textContent   = list.length;
@@ -1348,13 +1365,18 @@ function updateStatusFilter() {
   const cur = sel.value;
   sel.innerHTML = '<option value="">전체 회차</option>' +
     rounds.map(r => `<option value="${r}"${r === cur ? ' selected' : ''}>${r}</option>`).join('');
+  toggleDeleteRoundBtn();
 }
 
 window.renderStatusTable = () => {
   const filter = document.getElementById('statusFilter').value;
+  const sort   = document.getElementById('statusSort').value;
   let entries = Object.entries(evaluations);
   if (filter) entries = entries.filter(([, e]) => e.round === filter);
-  entries.sort(([, a], [, b]) => (b.date || '').localeCompare(a.date || '') || (a.round || '').localeCompare(b.round || ''));
+  if (sort === 'name')        entries.sort(([, a], [, b]) => (students[a.studentId]?.name||'').localeCompare(students[b.studentId]?.name||''));
+  else if (sort === 'belt')   entries.sort(([, a], [, b]) => beltOrder(a.belt) - beltOrder(b.belt));
+  else if (sort === 'passed') entries.sort(([, a], [, b]) => { const pv = x => x.passed===true?0:x.passed===false?1:2; return pv(a)-pv(b); });
+  else                        entries.sort(([, a], [, b]) => (b.date||'').localeCompare(a.date||'') || (a.round||'').localeCompare(b.round||''));
 
   const tbody = document.getElementById('statusBody');
   if (!entries.length) {
@@ -1401,6 +1423,23 @@ window.renderStatusTable = () => {
       </tr>
     `;
   }).join('');
+};
+
+window.toggleDeleteRoundBtn = () => {
+  const round = document.getElementById('statusFilter').value;
+  const btn = document.getElementById('deleteRoundBtn');
+  if (btn) btn.style.display = round ? 'block' : 'none';
+};
+
+window.deleteRound = async () => {
+  const round = document.getElementById('statusFilter').value;
+  if (!round) return;
+  if (!confirm(`"${round}" 회차의 모든 심사 기록을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?`)) return;
+  const toDelete = Object.entries(evaluations).filter(([, e]) => e.round === round);
+  for (const [evalId] of toDelete) {
+    await remove(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`));
+  }
+  showToast('✅ 회차 기록이 삭제되었습니다');
 };
 
 // ── 현황 탭 관리 기능 ─────────────────────────────────────────────────
