@@ -1866,10 +1866,12 @@ window.imageCard = async (evalId) => {
   const cvId = 'rv-' + Date.now();
 
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
-    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px">
-      <div style="color:#ffffff;font-size:18px;font-weight:800">${academyName || '학원명 미설정'}</div>
-      <div style="color:#93c5fd;font-size:11px;margin-top:3px">${issueDate}</div>
-      <div style="color:#bfdbfe;font-size:11px;margin-top:2px">승급심사 평가결과</div>
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;">
+      <div style="color:#ffffff;font-size:18px;font-weight:800;">${academyName || ''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <div style="color:#bfdbfe;font-size:11px;">승급심사 평가결과</div>
+        <div style="color:#93c5fd;font-size:10px;">${issueDate}</div>
+      </div>
     </div>
     <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
       <div>
