@@ -305,7 +305,7 @@ onAuthStateChanged(auth, async (user) => {
       const acSnap = await get(ref(db, `academies/${currentAcadId}/settings`));
       if (acSnap.exists()) {
         const s = acSnap.val();
-        document.getElementById('inputAcadName').value  = s.name      || '';
+        document.getElementById('inputAcadName').value  = s.academyName || s.name || '';
         document.getElementById('inputOwnerName').value = s.ownerName || userData.ownerName || '';
       }
     }
@@ -370,7 +370,7 @@ window.saveAcademy = async () => {
   const btn = document.getElementById('btnSaveAcad');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await update(ref(db, `academies/${currentAcadId}/settings`), { name, ownerName });
+    await update(ref(db, `academies/${currentAcadId}/settings`), { academyName: name, name, ownerName });
     await update(ref(db, `users/${currentUser.uid}`), { ownerName });
     showToast('학원 정보가 저장되었습니다.', 'ok');
   } catch (e) {
