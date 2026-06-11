@@ -1732,8 +1732,10 @@ window.imageCard = async (evalId) => {
   if (!e) { showToast('데이터를 찾을 수 없습니다'); return; }
 
   if (!academyName) {
-    const snap = await get(ref(db, `academies/${academyId}/settings/academyName`));
-    academyName = snap.val() || '';
+    try {
+      const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
+      academyName = nameSnap.val() || '';
+    } catch(e) {}
   }
 
   const st    = students[e.studentId] || {};
@@ -1900,7 +1902,7 @@ window.imageCard = async (evalId) => {
       <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
       ${e.comment
         ? `<div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>`
-        : `<div style="font-size:13px;color:#9ca3af;margin-top:6px">(담당 사범이 작성 예정입니다)</div>`}
+        : `<div style="margin-top:6px"><span style="color:#aaa;font-size:12px;">(담당 사범이 작성 예정입니다)</span></div>`}
       <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
     </div>
     <div style="margin-top:4px">
