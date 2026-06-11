@@ -1888,7 +1888,7 @@ window.imageCard = async (evalId) => {
       </div>
       <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9;overflow:hidden">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">회차</div>
-        <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round||'-'}</div>
+        <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round ? (String(e.round).includes('회차') ? e.round : e.round + '회차') : '-'}</div>
       </div>
       <div style="flex:1;padding:10px;text-align:center">
         <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">합격여부</div>
