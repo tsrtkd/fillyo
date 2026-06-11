@@ -370,7 +370,7 @@ async function saveAndFinish() {
 
     await set(ref(db, `academies/${academyId}`), {
       settings: {
-        name,
+        academyName: name,
         ownerName:  owner,
         type,
         planType:   userPlanType,
