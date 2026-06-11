@@ -777,7 +777,7 @@ onAuthStateChanged(auth, async (user) => {
   academyId = aidSnap.val();
 
   const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
-  academyName = nameSnap.val() || '태사랑태권도';
+  academyName = nameSnap.val() || '';
   document.getElementById('headerTitle').textContent = academyName || '승급심사';
 
   const phoneSnap = await get(ref(db, `academies/${academyId}/settings/academyPhone`));
