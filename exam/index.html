@@ -1518,7 +1518,7 @@ async function bulkPassStudents(indices) {
     if (rowEl) rowEl.classList.add('done');
   }
   showToast('전체 합격 처리 완료!', 'ok');
-  renderStep2List();
+  backToStep2List();
 }
 
 window.bulkPassGroup = async (belt) => {
@@ -1544,7 +1544,7 @@ window.bulkPassAll = async () => {
   if (!indices.length) { showToast('미완료 학생이 없습니다'); return; }
   await bulkPassStudents(indices);
   showToast('🎉 이번 심사 완료!');
-  renderStep2List();
+  backToStep2List();
 };
 
 // ── 현황 탭 ──────────────────────────────────────────────────────────
