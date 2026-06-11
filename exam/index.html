@@ -1144,8 +1144,13 @@ window.renderStep2List = () => {
   if (!currentSession) return;
   const sort   = document.getElementById('step2SortSelect')?.value || 'belt';
   const allIds = currentSession.studentIds || [];
+  const sortedStudents = [...allIds].sort((a, b) => {
+    const aDone = isStudentDoneInSession(a) ? 1 : 0;
+    const bDone = isStudentDoneInSession(b) ? 1 : 0;
+    return aDone - bDone;
+  });
   const pending = [], done = [];
-  allIds.forEach(id => {
+  sortedStudents.forEach(id => {
     const s = students[id];
     if (!s) return;
     (isStudentDoneInSession(id) ? done : pending).push({ id, ...s });
@@ -1282,7 +1287,9 @@ function renderExamTable() {
     groups[ss.belt].push({ ss, idx });
   });
 
-  let html = '';
+  let html = `<div style="padding:8px 16px 4px;display:flex;justify-content:flex-end">
+    <button style="background:#dc2626;color:white;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:inherit" onclick="bulkPassAll()">🏆 전체 일괄합격</button>
+  </div>`;
   Object.entries(groups).forEach(([belt, items]) => {
     for (let i = 0; i < items.length; i += 4) {
       const chunk   = items.slice(i, i + 4);
