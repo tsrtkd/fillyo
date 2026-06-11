@@ -914,7 +914,7 @@ function beltOrder(belt) {
   return i === -1 ? 99 : i;
 }
 function gradeNum(grade) {
-  const m = (grade||'').match(/\d+/);
+  const m = String(grade||'').match(/\d+/);
   return m ? Number(m[0]) : 0;
 }
 function applySort(list, sort) {
