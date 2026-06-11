@@ -566,7 +566,7 @@ onAuthStateChanged(auth, async (user) => {
       const acSnap = await get(ref(db, `academies/${academyId}/settings`));
       if (acSnap.exists()) {
         const settings = acSnap.val();
-        document.getElementById('academyName').textContent = settings.name || '내 학원';
+        document.getElementById('academyName').textContent = settings.academyName || settings.name || '내 학원';
       }
     } else {
       document.getElementById('academyName').textContent = '내 학원';
