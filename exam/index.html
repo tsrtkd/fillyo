@@ -1803,11 +1803,14 @@ window.imageCard = async (evalId) => {
 
   // 요약 카드 2x2
   const summaryCards = [
-    ['🥋','품새',pAvg,'#3b82f6'],['🦵','발차기',kAvg,'#f97316'],['🔥','익스트림',eAvg,'#ef4444'],['🌱','인성',cAvg,'#22c55e']
-  ].map(([em,lb,av,bc]) =>
-    `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:8px;padding:10px 12px">
+    ['🥋','품새',pAvg,'#3b82f6','#eff6ff'],
+    ['🦵','발차기',kAvg,'#f97316','#fff7ed'],
+    ['🔥','익스트림',eAvg,'#ef4444','#fff1f2'],
+    ['🌱','인성',cAvg,'#22c55e','#f0fdf4'],
+  ].map(([em,lb,av,bc,bg]) =>
+    `<div style="background:${bg};border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:12px;padding:10px 12px">
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${em} ${lb}</div>
-      <div style="font-size:20px;font-weight:700;color:${bc};line-height:1">${av>0?av.toFixed(1):'미평가'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
+      <div style="font-size:20px;font-weight:800;color:${bc};line-height:1">${av>0?av.toFixed(1):'미평가'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
     </div>`
   ).join('');
 
@@ -1863,14 +1866,10 @@ window.imageCard = async (evalId) => {
   const cvId = 'rv-' + Date.now();
 
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
-    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start">
-      <div>
-        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName || '학원명 미설정'}</div>
-        <div style="color:#bfdbfe;font-size:11px;margin-top:3px">승급심사 평가결과</div>
-      </div>
-      <div style="text-align:right">
-        <div style="color:#93c5fd;font-size:10px">${issueDate}</div>
-      </div>
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px">
+      <div style="color:#ffffff;font-size:18px;font-weight:800">${academyName || '학원명 미설정'}</div>
+      <div style="color:#93c5fd;font-size:11px;margin-top:3px">${issueDate}</div>
+      <div style="color:#bfdbfe;font-size:11px;margin-top:2px">승급심사 평가결과</div>
     </div>
     <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
       <div>
@@ -1893,24 +1892,22 @@ window.imageCard = async (evalId) => {
         <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
       </div>
     </div>
-    <div style="background:#ffffff;padding:14px 20px;text-align:center">
+    <div style="background:#ffffff;padding:16px 20px;text-align:center">
       <div style="margin-bottom:8px">
-        <span style="font-size:52px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'미평가'}</span>
+        <span style="font-size:56px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'미평가'}</span>
         <span style="font-size:16px;color:#94a3b8"> /5.0</span>
       </div>
-      <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:12px">${passedText}</div>
+      <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-top:8px;margin-bottom:12px">${passedText}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">${summaryCards}</div>
     </div>
-    <div style="background:#f8fafc;padding:12px;text-align:center">
+    <div style="background:#ffffff;padding:12px;text-align:center">
       <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
     </div>
-    <div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
+    ${e.comment ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
       <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
-      ${e.comment
-        ? `<div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>`
-        : `<div style="margin-top:6px"><span style="color:#aaa;font-size:12px;">(담당 사범이 작성 예정입니다)</span></div>`}
+      <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>
       <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
-    </div>
+    </div>` : ''}
     <div style="margin-top:4px">
       <div>
         <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
@@ -1938,7 +1935,7 @@ window.imageCard = async (evalId) => {
       </div>
     </div>
     <div style="background:#ffffff">
-      <div style="padding:12px 12px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
         <div>
           <div style="font-size:15px;font-weight:700;color:#1e293b">${academyName||''}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px">본 결과지는 공식 발행된 심사 평가 결과입니다.</div>
