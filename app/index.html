@@ -724,7 +724,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // 헤더 학원명 표시
-    const name = academySettings.name || '업무일지';
+    const name = academySettings.academyName || academySettings.name || '업무일지';
     document.getElementById('brandName').textContent = name;
     document.title = `${name} 업무일지 — fillyo`;
 
