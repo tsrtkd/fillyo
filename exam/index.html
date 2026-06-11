@@ -1723,13 +1723,18 @@ window.saveEvalEdit = async () => {
   showToast('✅ 수정 완료');
 };
 
-window.imageCard = (evalId) => {
+window.imageCard = async (evalId) => {
   if (typeof html2canvas === 'undefined') {
     showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요');
     return;
   }
   const e = evaluations[evalId];
   if (!e) { showToast('데이터를 찾을 수 없습니다'); return; }
+
+  if (!academyName) {
+    const snap = await get(ref(db, `academies/${academyId}/settings/academyName`));
+    academyName = snap.val() || '';
+  }
 
   const st    = students[e.studentId] || {};
   const name  = st.name || '-';
@@ -1794,7 +1799,7 @@ window.imageCard = (evalId) => {
   ].map(([em,lb,av,bc]) =>
     `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:8px;padding:10px 12px">
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${em} ${lb}</div>
-      <div style="font-size:20px;font-weight:700;color:${bc};line-height:1">${av>0?av.toFixed(1):'-'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
+      <div style="font-size:20px;font-weight:700;color:${bc};line-height:1">${av>0?av.toFixed(1):'미평가'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
     </div>`
   ).join('');
 
@@ -1853,10 +1858,9 @@ window.imageCard = (evalId) => {
     <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
         <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||'태사랑태권도'}</div>
-        <div style="color:#93c5fd;font-size:10px;margin-top:2px;letter-spacing:1px">TAESARANG TAEKWONDO</div>
       </div>
       <div style="text-align:right">
-        <div style="color:#bfdbfe;font-size:11px;font-weight:600">심사평가결과지</div>
+        <div style="color:#bfdbfe;font-size:11px;font-weight:600">승급심사 결과</div>
         <div style="color:#93c5fd;font-size:10px;margin-top:3px">${issueDate}</div>
       </div>
     </div>
@@ -1881,9 +1885,9 @@ window.imageCard = (evalId) => {
         <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
       </div>
     </div>
-    <div style="background:#ffffff;padding:16px 20px;text-align:center">
+    <div style="background:#ffffff;padding:14px 20px;text-align:center">
       <div style="margin-bottom:8px">
-        <span style="font-size:52px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'-'}</span>
+        <span style="font-size:52px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'미평가'}</span>
         <span style="font-size:16px;color:#94a3b8"> /5.0</span>
       </div>
       <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-bottom:12px">${passedText}</div>
@@ -1896,37 +1900,37 @@ window.imageCard = (evalId) => {
       <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
       ${e.comment
         ? `<div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>`
-        : `<div style="font-size:13px;color:#9ca3af;margin-top:6px">—</div>`}
+        : `<div style="font-size:13px;color:#9ca3af;margin-top:6px">(담당 사범이 작성 예정입니다)</div>`}
       <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
     </div>
     <div style="margin-top:4px">
       <div>
         <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700">🥋 품새</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1):'-'}/5.0</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span>
         </div>${poomsaeRows}
       </div>
       <div>
         <div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1):'-'}/5.0</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1)+'/5.0':'미평가'}</span>
         </div>${kickRows}
       </div>
       <div>
         <div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1):'-'}/5.0</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1)+'/5.0':'미평가'}</span>
         </div>${extremeRows}
       </div>
       <div>
         <div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700">🌱 인성교육</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1):'-'}/5.0</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span>
         </div>${charRows}
       </div>
     </div>
     <div style="background:#ffffff">
-      <div style="padding:14px 20px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div style="padding:12px 12px;display:flex;justify-content:space-between;align-items:flex-start">
         <div>
           <div style="font-size:15px;font-weight:700;color:#1e293b">${academyName||'태사랑태권도'}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px">본 결과지는 공식 발행된 심사 평가 결과입니다.</div>
