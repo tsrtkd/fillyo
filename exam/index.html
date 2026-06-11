@@ -1724,6 +1724,10 @@ window.saveEvalEdit = async () => {
 };
 
 window.imageCard = async (evalId) => {
+  if (!academyName) {
+    const snap = await get(ref(db, `academies/${academyId}/settings/academyName`));
+    academyName = snap.val() || '';
+  }
   if (typeof html2canvas === 'undefined') {
     showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요');
     return;
@@ -1859,7 +1863,7 @@ window.imageCard = async (evalId) => {
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
     <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||'태사랑태권도'}</div>
+        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||''}</div>
       </div>
       <div style="text-align:right">
         <div style="color:#bfdbfe;font-size:11px;font-weight:600">승급심사 결과</div>
@@ -1934,7 +1938,7 @@ window.imageCard = async (evalId) => {
     <div style="background:#ffffff">
       <div style="padding:12px 12px;display:flex;justify-content:space-between;align-items:flex-start">
         <div>
-          <div style="font-size:15px;font-weight:700;color:#1e293b">${academyName||'태사랑태권도'}</div>
+          <div style="font-size:15px;font-weight:700;color:#1e293b">${academyName||''}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px">본 결과지는 공식 발행된 심사 평가 결과입니다.</div>
           ${academyPhone ? `<div style="font-size:11px;color:#64748b">문의: ☎ ${academyPhone}</div>` : ''}
         </div>
