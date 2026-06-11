@@ -1724,10 +1724,12 @@ window.saveEvalEdit = async () => {
 };
 
 window.imageCard = async (evalId) => {
-  if (!academyName) {
-    const snap = await get(ref(db, `academies/${academyId}/settings/academyName`));
-    academyName = snap.val() || '';
+  // academyName 강제 재조회 (카드 생성 시점에 항상 확인)
+  if (!academyName && academyId) {
+    const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
+    academyName = nameSnap.val() || '';
   }
+  console.log('카드 생성 시 academyName:', academyName, 'academyId:', academyId);
   if (typeof html2canvas === 'undefined') {
     showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요');
     return;
@@ -1863,11 +1865,11 @@ window.imageCard = async (evalId) => {
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
     <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;display:flex;justify-content:space-between;align-items:flex-start">
       <div>
-        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName||''}</div>
+        <div style="color:#ffffff;font-size:16px;font-weight:700">${academyName || '학원명 미설정'}</div>
+        <div style="color:#bfdbfe;font-size:11px;margin-top:3px">승급심사 평가결과</div>
       </div>
       <div style="text-align:right">
-        <div style="color:#bfdbfe;font-size:11px;font-weight:600">승급심사 결과</div>
-        <div style="color:#93c5fd;font-size:10px;margin-top:3px">${issueDate}</div>
+        <div style="color:#93c5fd;font-size:10px">${issueDate}</div>
       </div>
     </div>
     <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
