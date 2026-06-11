@@ -1863,6 +1863,7 @@ window.imageCard = async (evalId) => {
     </div>`;
   });
 
+  const parentMsg = e.comment || '';
   const cvId = 'rv-' + Date.now();
 
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
@@ -1905,9 +1906,9 @@ window.imageCard = async (evalId) => {
     <div style="background:#ffffff;padding:12px;text-align:center">
       <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
     </div>
-    ${e.comment ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
+    ${parentMsg ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
       <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
-      <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${e.comment}</div>
+      <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${parentMsg}</div>
       <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
     </div>` : ''}
     <div style="margin-top:4px">
