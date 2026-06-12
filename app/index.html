@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
 <html lang="ko">
+<!-- cache-bust: 2026-06-12-v3 -->
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -1558,7 +1559,7 @@ window.toggleTodo = async (id) => {
   const item = todoItems.find(t => t.id === id);
   if (!item) return;
   item.done = !item.done;
-  item.doneDate = item.done ? dateKey(currentDate) : null;
+  item.doneDate = item.done ? dateKey(new Date(currentDate)) : null;
   renderTodos();
   renderMonthlyTodos();
   await saveTodosToFirebase();
