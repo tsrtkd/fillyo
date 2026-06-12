@@ -1539,8 +1539,11 @@ function renderMonthlyTodos() {
   el.innerHTML = done.map(t => `
     <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f4f6f8;">
       <span style="font-size:18px;">✅</span>
-      <span style="font-size:13px;color:var(--text);text-decoration:line-through;">${t.text}</span>
-      <span style="font-size:10px;color:var(--gray);margin-left:auto;">${t.doneDate ? t.doneDate.slice(5).replace('-','/') : ''}</span>
+      <span style="font-size:13px;color:var(--text);text-decoration:line-through;flex:1;">${t.text}</span>
+      <span style="font-size:10px;color:var(--gray);text-align:right;white-space:nowrap;">
+        ${t.createdDate ? '추가 '+t.createdDate.slice(5).replace('-','/') : ''}<br>
+        ${t.doneDate ? '완료 '+t.doneDate.slice(5).replace('-','/') : ''}
+      </span>
     </div>`).join('');
 }
 
