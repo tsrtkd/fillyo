@@ -1491,10 +1491,15 @@ async function loadTodos() {
 }
 
 async function saveTodosToFirebase() {
-  if (!isOnline) return;
+  if (!academyId) return;
   const obj = {};
   todoItems.forEach(t => { obj[t.id] = t; });
-  try { await set(ref(db, `academies/${academyId}/todos`), obj); } catch(e) {}
+  try {
+    await set(ref(db, `academies/${academyId}/todos`), obj);
+  } catch(e) {
+    console.error('TODO 저장 실패:', e);
+    showToast('저장 중 오류가 발생했습니다.');
+  }
 }
 
 function renderTodos() {
