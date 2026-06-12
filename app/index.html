@@ -1481,13 +1481,12 @@ async function loadTodos() {
   if (!academyId) return;
   try {
     const snap = await get(ref(db, `academies/${academyId}/todos`));
-    todoItems = snap.val() ? Object.values(snap.val()) : [];
+    const all = snap.val() ? Object.values(snap.val()) : [];
     const todayStr = dateKey(new Date());
-    todoItems = todoItems.filter(t => {
+    todoItems = all.filter(t => {
       if (t.done && t.doneDate && t.doneDate < todayStr) return false;
       return true;
     });
-    await saveTodosToFirebase();
     renderTodos();
     renderMonthlyTodos();
   } catch(e) { console.error('TODO 불러오기 실패:', e); }
