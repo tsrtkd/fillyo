@@ -1034,7 +1034,7 @@ window.changeDate = async (d) => {
   if (dow === 0) nd.setDate(nd.getDate() + (d > 0 ? 1 : -2));
   if (dow === 6) nd.setDate(nd.getDate() + (d > 0 ? 2 : -1));
   currentDate = nd; icalDate = new Date(nd);
-  updateDateHeader(); loadCurrentDay(); updateMonthStrip(); renderTodos();
+  updateDateHeader(); loadCurrentDay(); updateMonthStrip();
   if (calOpen) renderInlineCal();
 };
 window.goToday = async () => {
@@ -1506,15 +1506,13 @@ function renderTodos() {
   const wrap = document.getElementById('todoList');
   const badge = document.getElementById('todoBadge');
   if (!wrap) return;
-  const todayStr2 = dateKey(new Date());
-  const visibleItems = todoItems.filter(t => !t.createdDate || t.createdDate <= todayStr2);
-  const active = visibleItems.filter(t => !t.done);
+  const active = todoItems.filter(t => !t.done);
   if (badge) badge.textContent = active.length ? `${active.length}개` : '';
-  if (!visibleItems.length) {
+  if (!todoItems.length) {
     wrap.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray);font-size:12px;">할 일을 추가해보세요!</div>`;
     return;
   }
-  wrap.innerHTML = visibleItems.map(t => `
+  wrap.innerHTML = todoItems.map(t => `
     <div class="todo-item">
       <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
       <span class="todo-txt${t.done ? ' done' : ''}">${t.text}</span>
