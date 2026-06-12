@@ -1505,13 +1505,21 @@ function renderTodos() {
   const wrap = document.getElementById('todoList');
   const badge = document.getElementById('todoBadge');
   if (!wrap) return;
-  const active = todoItems.filter(t => !t.done);
+  const viewStr = dateKey(currentDate);
+  const todayStr = dateKey(new Date());
+  const visible = todoItems.filter(t => {
+    if (t.createdDate && t.createdDate > viewStr) return false;
+    if (t.done && t.doneDate && t.doneDate < viewStr) return false;
+    if (t.done && t.doneDate && t.doneDate === viewStr && viewStr < todayStr) return false;
+    return true;
+  });
+  const active = visible.filter(t => !t.done);
   if (badge) badge.textContent = active.length ? `${active.length}개` : '';
-  if (!todoItems.length) {
+  if (!visible.length) {
     wrap.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray);font-size:12px;">할 일을 추가해보세요!</div>`;
     return;
   }
-  wrap.innerHTML = todoItems.map(t => `
+  wrap.innerHTML = visible.map(t => `
     <div class="todo-item">
       <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
       <span class="todo-txt${t.done ? ' done' : ''}">${t.text}</span>
