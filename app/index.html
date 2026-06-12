@@ -1482,12 +1482,7 @@ async function loadTodos() {
   if (!academyId) return;
   try {
     const snap = await get(ref(db, `academies/${academyId}/todos`));
-    const all = snap.val() ? Object.values(snap.val()) : [];
-    const todayStr = dateKey(new Date());
-    todoItems = all.filter(t => {
-      if (t.done && t.doneDate && t.doneDate < todayStr) return false;
-      return true;
-    });
+    todoItems = snap.val() ? Object.values(snap.val()) : [];
     renderTodos();
     renderMonthlyTodos();
   } catch(e) { console.error('TODO 불러오기 실패:', e); }
