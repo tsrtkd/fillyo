@@ -1088,6 +1088,10 @@ window.importExcelStudents = async () => {
         const nameStr = String(rName||'').trim();
         const beltStr = String(rBelt||'').trim();
         if (!nameStr || !beltStr || !validBelts.has(beltStr)) { skipped++; continue; }
+        const isDuplicate = Object.values(students).some(
+          s => String(s.name||'').trim() === nameStr && String(s.belt||'').trim() === beltStr
+        );
+        if (isDuplicate) { skipped++; continue; }
         const newKey = push(ref(db, `academies/${academyId}/exam/students`)).key;
         await set(ref(db, `academies/${academyId}/exam/students/${newKey}`), {
           name:      nameStr,
