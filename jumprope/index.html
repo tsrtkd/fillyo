@@ -47,16 +47,17 @@ tr:hover td{background:#f0faf8}
 .modal h3{font-size:17px;font-weight:800;margin-bottom:20px}
 #cert-preview-wrap{display:flex;justify-content:center;padding:20px 0}
 .jmp-hdr{background:#0B1F3A;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,0.2);}
-.jmp-hdr-inner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;max-width:1100px;margin:0 auto;}
+.jmp-hdr-inner{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;max-width:1100px;margin:0 auto;position:relative;}
 .jmp-title{color:white;font-size:15px;font-weight:900;}
-.jmp-hb{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.18);color:white;padding:5px 10px;border-radius:7px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
-.jmp-hb:active{background:rgba(255,255,255,0.22);}
+.jmp-hb{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);color:white;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;margin-left:4px;font-weight:700;font-family:inherit;}
+.jmp-hb:active{background:rgba(255,255,255,0.28);}
 </style>
 </head>
 <body>
 <header class="jmp-hdr">
   <div class="jmp-hdr-inner">
     <span id="page-title" class="jmp-title">🏅 FILLYO 줄넘기 급수 평가</span>
+    <div onclick="location.href='../dashboard/index.html'" style="position:absolute;left:50%;transform:translateX(-50%);cursor:pointer;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:3px;text-shadow:0 0 10px rgba(255,255,255,0.8);border:2px solid rgba(255,255,255,0.6);padding:3px 12px;border-radius:8px;">FILLYO</div>
     <button class="jmp-hb" onclick="location.href='../dashboard/index.html'">🏠</button>
   </div>
 </header>

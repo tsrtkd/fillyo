@@ -48,8 +48,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 #headerTitle { flex: 1; font-size: 16px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.hdr-btn { background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.18); color:white; padding:5px 10px; border-radius:7px; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit; }
-.hdr-btn:active { background:rgba(255,255,255,0.22); }
+.hdr-btn { background:rgba(255,255,255,0.15); border:1.5px solid rgba(255,255,255,0.4); color:white; font-size:20px; cursor:pointer; padding:4px 8px; border-radius:8px; margin-left:4px; font-weight:700; font-family:inherit; }
+.hdr-btn:active { background:rgba(255,255,255,0.28); }
 #hdrBtns { display:flex; gap:6px; }
 
 /* ── MAIN ── */
@@ -226,6 +226,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 <!-- HEADER -->
 <div id="header">
   <div id="headerTitle">승급심사</div>
+  <div onclick="location.href='../dashboard/index.html'" style="position:absolute;left:50%;transform:translateX(-50%);cursor:pointer;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:3px;text-shadow:0 0 10px rgba(255,255,255,0.8);border:2px solid rgba(255,255,255,0.6);padding:3px 12px;border-radius:8px;">FILLYO</div>
   <div id="hdrBtns">
     <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
     <button class="hdr-btn" id="btnLogout" onclick="doLogout()">로그아웃</button>
