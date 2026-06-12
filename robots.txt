@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://fillyo.kr/sitemap.xml
