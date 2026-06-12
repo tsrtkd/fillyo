@@ -1034,13 +1034,13 @@ window.changeDate = async (d) => {
   if (dow === 0) nd.setDate(nd.getDate() + (d > 0 ? 1 : -2));
   if (dow === 6) nd.setDate(nd.getDate() + (d > 0 ? 2 : -1));
   currentDate = nd; icalDate = new Date(nd);
-  updateDateHeader(); loadCurrentDay(); updateMonthStrip();
+  updateDateHeader(); loadCurrentDay(); updateMonthStrip(); loadTodos();
   if (calOpen) renderInlineCal();
 };
 window.goToday = async () => {
   if (isDirty) { const ok = await showConfirmDialog(); if (!ok) return; }
   currentDate = new Date(); icalDate = new Date();
-  updateDateHeader(); loadCurrentDay(); updateMonthStrip();
+  updateDateHeader(); loadCurrentDay(); updateMonthStrip(); loadTodos();
   showView('daily'); if (calOpen) renderInlineCal();
 };
 function updateDateHeader() {
