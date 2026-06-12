@@ -1478,7 +1478,7 @@ window.confirmCancel = () => {
 let todoItems = [];
 
 async function loadTodos() {
-  if (!isOnline) return;
+  if (!academyId) return;
   try {
     const snap = await get(ref(db, `academies/${academyId}/todos`));
     todoItems = snap.val() ? Object.values(snap.val()) : [];
@@ -1487,7 +1487,7 @@ async function loadTodos() {
     await saveTodosToFirebase();
     renderTodos();
     renderMonthlyTodos();
-  } catch(e) {}
+  } catch(e) { console.error('TODO 불러오기 실패:', e); }
 }
 
 async function saveTodosToFirebase() {
