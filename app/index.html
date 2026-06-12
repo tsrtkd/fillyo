@@ -1548,7 +1548,7 @@ window.addTodoItem = async () => {
   const inp = document.getElementById('todoInput');
   const text = inp?.value.trim();
   if (!text) return;
-  const item = { id: Date.now().toString(), text, done: false, doneDate: null, createdDate: dateKey(new Date()) };
+  const item = { id: Date.now().toString(), text, done: false, doneDate: null, createdDate: dateKey(currentDate) };
   todoItems.push(item);
   inp.value = '';
   renderTodos();
