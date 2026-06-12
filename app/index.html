@@ -1558,7 +1558,7 @@ window.toggleTodo = async (id) => {
   const item = todoItems.find(t => t.id === id);
   if (!item) return;
   item.done = !item.done;
-  item.doneDate = item.done ? dateKey(new Date()) : null;
+  item.doneDate = item.done ? dateKey(currentDate) : null;
   renderTodos();
   renderMonthlyTodos();
   await saveTodosToFirebase();
