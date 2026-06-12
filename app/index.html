@@ -1510,7 +1510,6 @@ function renderTodos() {
   const visible = todoItems.filter(t => {
     if (t.createdDate && t.createdDate > viewStr) return false;
     if (t.done && t.doneDate && t.doneDate < viewStr) return false;
-    if (t.done && t.doneDate && t.doneDate === viewStr && viewStr < todayStr) return false;
     return true;
   });
   const active = visible.filter(t => !t.done);
