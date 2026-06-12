@@ -225,7 +225,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 <!-- HEADER -->
 <div id="header">
-  <div id="headerTitle">승급심사</div>
+  <div id="headerTitle"></div>
   <div onclick="location.href='../dashboard/index.html'" style="position:absolute;left:50%;transform:translateX(-50%);cursor:pointer;font-size:20px;font-weight:900;color:#ffffff;letter-spacing:3px;text-shadow:0 0 10px rgba(255,255,255,0.8);border:2px solid rgba(255,255,255,0.6);padding:3px 12px;border-radius:8px;">FILLYO</div>
   <div id="hdrBtns">
     <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
@@ -779,7 +779,7 @@ onAuthStateChanged(auth, async (user) => {
 
   const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
   academyName = nameSnap.val() || '';
-  document.getElementById('headerTitle').textContent = academyName || '승급심사';
+  document.getElementById('headerTitle').innerHTML = `<span style="font-size:15px;font-weight:900;">${academyName}</span><br><span style="font-size:11px;font-weight:400;opacity:0.7;">승급심사</span>`;
 
   const phoneSnap = await get(ref(db, `academies/${academyId}/settings/academyPhone`));
   academyPhone = phoneSnap.val() || '';
