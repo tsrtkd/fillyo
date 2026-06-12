@@ -1483,7 +1483,10 @@ async function loadTodos() {
     const snap = await get(ref(db, `academies/${academyId}/todos`));
     todoItems = snap.val() ? Object.values(snap.val()) : [];
     const todayStr = dateKey(new Date());
-    todoItems = todoItems.filter(t => !t.done || !t.doneDate || t.doneDate >= todayStr);
+    todoItems = todoItems.filter(t => {
+      if (t.done && t.doneDate && t.doneDate < todayStr) return false;
+      return true;
+    });
     await saveTodosToFirebase();
     renderTodos();
     renderMonthlyTodos();
@@ -1496,23 +1499,22 @@ async function saveTodosToFirebase() {
   todoItems.forEach(t => { obj[t.id] = t; });
   try {
     await set(ref(db, `academies/${academyId}/todos`), obj);
-  } catch(e) {
-    console.error('TODO 저장 실패:', e);
-    showToast('저장 중 오류가 발생했습니다.');
-  }
+  } catch(e) { console.error('TODO 저장 실패:', e); }
 }
 
 function renderTodos() {
   const wrap = document.getElementById('todoList');
   const badge = document.getElementById('todoBadge');
   if (!wrap) return;
-  const active = todoItems.filter(t => !t.done);
+  const todayStr2 = dateKey(new Date());
+  const visibleItems = todoItems.filter(t => !t.createdDate || t.createdDate <= todayStr2);
+  const active = visibleItems.filter(t => !t.done);
   if (badge) badge.textContent = active.length ? `${active.length}개` : '';
-  if (!todoItems.length) {
+  if (!visibleItems.length) {
     wrap.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray);font-size:12px;">할 일을 추가해보세요!</div>`;
     return;
   }
-  wrap.innerHTML = todoItems.map(t => `
+  wrap.innerHTML = visibleItems.map(t => `
     <div class="todo-item">
       <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
       <span class="todo-txt${t.done ? ' done' : ''}">${t.text}</span>
@@ -1541,7 +1543,7 @@ window.addTodoItem = async () => {
   const inp = document.getElementById('todoInput');
   const text = inp?.value.trim();
   if (!text) return;
-  const item = { id: Date.now().toString(), text, done: false, doneDate: null };
+  const item = { id: Date.now().toString(), text, done: false, doneDate: null, createdDate: dateKey(new Date()) };
   todoItems.push(item);
   inp.value = '';
   renderTodos();
