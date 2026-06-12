@@ -38,7 +38,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* HEADER */
 .hdr{background:var(--navy);position:sticky;top:0;z-index:200;}
-.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;}
+.hdr-top{display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;position:relative;}
 .brand{display:flex;align-items:center;gap:8px;min-width:0;}
 .brand-icon{font-size:24px;flex-shrink:0;}
 .brand-name{color:white;font-size:15px;font-weight:900;letter-spacing:-0.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px;}
@@ -314,7 +314,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <span class="brand-name" id="brandName">업무일지</span>
         <span class="brand-tag">업무일지</span>
       </div>
+      <div class="hdr-center" onclick="location.href='../dashboard/index.html'" style="position:absolute;left:50%;transform:translateX(-50%);cursor:pointer;font-size:18px;font-weight:900;color:white;letter-spacing:1px;">FILLYO</div>
       <div class="hdr-btns">
+        <button class="hb" id="saveTopBtn" onclick="saveDailyData()" title="저장">💾</button>
         <button class="hb" onclick="location.href='../dashboard/index.html'">🏠</button>
         <button class="hb" id="notifBtn" onclick="toggleNotifPanel()">
           🔔<span class="notif-badge hidden" id="notifBadge">0</span>
