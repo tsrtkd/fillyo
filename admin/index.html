@@ -169,6 +169,13 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 .req-empty-icon{font-size:32px;margin-bottom:8px;}
 .req-empty-text{font-size:13px;color:var(--gray);}
 
+/* ── NOTICE CARDS ────────────────────────────────────────────────── */
+.notice-item{background:#FAFBFF;border-radius:12px;padding:14px 16px;margin:10px 16px;border:1px solid var(--border);}
+.notice-item-title{font-size:14px;font-weight:900;color:var(--navy);margin-bottom:4px;}
+.notice-item-date{font-size:11px;color:var(--gray);margin-bottom:8px;}
+.notice-item-preview{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+.notice-item-footer{display:flex;justify-content:flex-end;margin-top:10px;}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
@@ -783,12 +790,13 @@ async function loadNotices() {
     const list = [];
     snap.forEach(c => list.unshift({ id: c.key, ...c.val() }));
     el.innerHTML = list.map(n => `
-      <div class="alert-row">
-        <div class="alert-info">
-          <div class="alert-name">${esc(n.title)}</div>
-          <div class="alert-meta">${fmt(n.createdAt)} &nbsp;·&nbsp; ${esc((n.content||'').slice(0,60))}${(n.content||'').length>60?'...':''}</div>
+      <div class="notice-item">
+        <div class="notice-item-title">${esc(n.title)}</div>
+        <div class="notice-item-date">${fmt(n.createdAt)}</div>
+        <div class="notice-item-preview">${esc(n.content || '')}</div>
+        <div class="notice-item-footer">
+          <button class="btn-act btn-del" onclick="deleteNotice('${n.id}')">삭제</button>
         </div>
-        <button class="btn-act btn-del" onclick="deleteNotice('${n.id}')">삭제</button>
       </div>`).join('');
   } catch (e) {
     el.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패</div></div>`;
