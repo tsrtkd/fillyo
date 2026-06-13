@@ -351,6 +351,34 @@
     /* TOAST */
     .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A2332;color:white;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity 0.25s,transform 0.25s;z-index:9999;white-space:nowrap;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    /* BELL DOT */
+    .bell-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;}
+    #bellDot{position:absolute;top:1px;right:1px;width:9px;height:9px;border-radius:50%;background:#ff2d55;display:none;border:1.5px solid #fff;}
+    #bellDot.show{display:block;}
+    /* NAV ALARM DOT */
+    .nav-alarm-wrap{position:relative;display:inline-block;}
+    #navDot{position:absolute;top:0;right:-1px;width:7px;height:7px;border-radius:50%;background:#ff2d55;display:none;border:1px solid #fff;}
+    #navDot.show{display:block;}
+    /* ALARM SCREEN */
+    #alarmScreen{
+      display:none;position:fixed;
+      top:0;left:50%;transform:translateX(-50%);
+      width:100%;max-width:430px;
+      bottom:72px;background:#f4f7fb;
+      z-index:50;overflow-y:auto;
+      flex-direction:column;
+    }
+    #alarmScreen.show{display:flex;}
+    .alarm-back-btn{display:flex;align-items:center;gap:6px;padding:20px 22px 10px;font-size:15px;font-weight:700;color:#1d1d1f;cursor:pointer;background:none;border:none;font-family:inherit;}
+    .alarm-title-bar{padding:0 22px 16px;font-size:20px;font-weight:900;letter-spacing:-0.5px;}
+    .notice-item{background:#fff;border-radius:16px;margin:0 16px 10px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.05);cursor:pointer;transition:transform 0.15s;border-left:4px solid transparent;}
+    .notice-item.unread{border-left-color:#ffb703;}
+    .notice-item:active{transform:scale(0.98);}
+    .notice-item-title{font-size:14px;font-weight:800;color:#1d1d1f;margin-bottom:4px;}
+    .notice-item-content{font-size:12px;color:#555;line-height:1.5;margin-bottom:6px;white-space:pre-wrap;}
+    .notice-item-date{font-size:11px;color:#aaa;}
+    .notice-empty{padding:60px 20px;text-align:center;color:#aaa;font-size:14px;}
   </style>
 </head>
 <body>
@@ -366,7 +394,7 @@
     <div class="header">
       <div class="logo">fillyo</div>
       <div class="header-icons">
-        <div class="icon-btn">🔔</div>
+        <div class="icon-btn" id="btnAlarm"><span class="bell-wrap">🔔<span id="bellDot"></span></span></div>
         <div class="icon-btn" id="btnMypage">👤</div>
       </div>
     </div>
@@ -513,7 +541,7 @@
         지원금
       </div>
       <div class="nav-item" id="navAlarm">
-        <div class="nav-icon">🔔</div>
+        <div class="nav-icon"><span class="nav-alarm-wrap">🔔<span id="navDot"></span></span></div>
         알림
       </div>
       <div class="nav-item" id="navMypage">
@@ -524,12 +552,21 @@
 
   </div>
 
+  <!-- ALARM SCREEN -->
+  <div id="alarmScreen">
+    <button class="alarm-back-btn" id="alarmBackBtn">← 뒤로</button>
+    <div class="alarm-title-bar">📢 알림</div>
+    <div id="alarmList"><div class="notice-empty">불러오는 중...</div></div>
+  </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, get, set }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+let _uid = null;
 
 const FB_CONFIG = {
   apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
@@ -548,6 +585,7 @@ const db    = getDatabase(fbApp);
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = '/login'; return; }
+  _uid = user.uid;
 
   try {
     const userSnap = await get(ref(db, `users/${user.uid}`));
@@ -577,15 +615,18 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById('academyName').textContent = '내 학원';
     }
 
-    // 무료 체험 trialStart 처리 (createdAt은 형식이 달라 사용 안 함)
+    // ── D-95124 버그 수정: trialStart 없으면 현재 시각 저장, 음수/비정상 방지 ──
     let trialStart = userData.trialStart || null;
     if (planType !== 'pro' && !trialStart) {
       trialStart = Date.now();
       await set(ref(db, `users/${user.uid}/trialStart`), trialStart);
     }
-    const rawDaysUsed  = trialStart ? Math.floor((Date.now() - trialStart) / 86400000) : 0;
+    // trialStart가 미래 값이거나 비정상인 경우 rawDaysUsed를 0으로 고정
+    const rawDaysUsed   = trialStart
+      ? Math.max(0, Math.floor((Date.now() - trialStart) / 86400000))
+      : 0;
     const trialDaysLeft = Math.min(7, Math.max(0, 7 - rawDaysUsed));
-    const inTrial = planType !== 'pro' && trialDaysLeft > 0;
+    const inTrial       = planType !== 'pro' && trialDaysLeft > 0;
 
     // 플랜 배지
     const badgeEl = document.getElementById('planBadge');
@@ -597,12 +638,12 @@ onAuthStateChanged(auth, async (user) => {
       badgeEl.textContent = '🔴 체험 종료';
     }
 
-    // D-day 카운트다운
+    // ── D-day 카운트다운 (비정상 값 방지: 음수 또는 5년 초과 시 만료 처리) ──
     const numEl   = document.getElementById('countdownNum');
     const labelEl = document.getElementById('countdownLabel');
     if (planType === 'pro' && planExpiry) {
       const diff = Math.ceil((planExpiry - Date.now()) / 86400000);
-      if (diff > 0) {
+      if (diff > 0 && diff <= 1825) {          // 1일 ~ 5년 이내만 정상
         numEl.textContent   = `D-${diff}`;
         labelEl.textContent = '구독 만료까지';
       } else {
@@ -660,6 +701,9 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   document.getElementById('loadingScreen').style.display = 'none';
+
+  // 읽지 않은 공지 확인
+  checkUnreadNotices(_uid);
 });
 
 // ── 클릭 이벤트 ───────────────────────────────────────────────────
@@ -734,13 +778,110 @@ document.getElementById('cardSlowmo').addEventListener('click', () => {
 });
 
 document.getElementById('navAlarm').addEventListener('click', () => {
-  location.href = '/mypage';
+  showAlarmScreen();
+});
+
+document.getElementById('btnAlarm').addEventListener('click', () => {
+  showAlarmScreen();
+});
+
+document.getElementById('alarmBackBtn').addEventListener('click', () => {
+  closeAlarmScreen();
 });
 
 document.getElementById('quickLogout').addEventListener('click', async () => {
   await signOut(auth);
   location.href = '/login';
 });
+
+// ── 알림 화면 ─────────────────────────────────────────────────────
+function showAlarmScreen() {
+  document.getElementById('alarmScreen').classList.add('show');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('navAlarm').classList.add('active');
+  loadAlarmNotices();
+}
+
+function closeAlarmScreen() {
+  document.getElementById('alarmScreen').classList.remove('show');
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('navHome').classList.add('active');
+}
+
+async function checkUnreadNotices(uid) {
+  if (!uid) return;
+  try {
+    const [nSnap, rSnap] = await Promise.all([
+      get(ref(db, 'notices')),
+      get(ref(db, `users/${uid}/readNotices`)),
+    ]);
+    if (!nSnap.exists()) return;
+    const readSet = rSnap.exists() ? new Set(Object.keys(rSnap.val())) : new Set();
+    let unread = 0;
+    nSnap.forEach(c => { if (!readSet.has(c.key)) unread++; });
+    updateBellDot(unread > 0);
+  } catch (_) {}
+}
+
+async function loadAlarmNotices() {
+  if (!_uid) return;
+  const listEl = document.getElementById('alarmList');
+  listEl.innerHTML = '<div class="notice-empty">불러오는 중...</div>';
+  try {
+    const [nSnap, rSnap] = await Promise.all([
+      get(ref(db, 'notices')),
+      get(ref(db, `users/${_uid}/readNotices`)),
+    ]);
+    if (!nSnap.exists()) {
+      listEl.innerHTML = '<div class="notice-empty">📭 공지사항이 없습니다.</div>';
+      return;
+    }
+    const readSet = rSnap.exists() ? new Set(Object.keys(rSnap.val())) : new Set();
+    const notices = [];
+    nSnap.forEach(c => notices.unshift({ id: c.key, ...c.val() }));
+
+    let unread = 0;
+    listEl.innerHTML = notices.map(n => {
+      const isUnread = !readSet.has(n.id);
+      if (isUnread) unread++;
+      const d = new Date(n.createdAt || 0);
+      const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+      return `<div class="notice-item${isUnread ? ' unread' : ''}" data-id="${n.id}">
+        <div class="notice-item-title">${xss(n.title)}</div>
+        <div class="notice-item-content">${xss(n.content)}</div>
+        <div class="notice-item-date">${dateStr}</div>
+      </div>`;
+    }).join('');
+    updateBellDot(unread > 0);
+
+    listEl.querySelectorAll('.notice-item').forEach(el => {
+      el.addEventListener('click', () => markRead(el.dataset.id, el));
+    });
+  } catch (e) {
+    listEl.innerHTML = '<div class="notice-empty">불러오기 실패</div>';
+  }
+}
+
+async function markRead(id, el) {
+  if (!_uid || !id || !el.classList.contains('unread')) return;
+  try {
+    await set(ref(db, `users/${_uid}/readNotices/${id}`), true);
+    el.classList.remove('unread');
+    const remaining = document.querySelectorAll('#alarmList .notice-item.unread').length;
+    updateBellDot(remaining > 0);
+  } catch (_) {}
+}
+
+function updateBellDot(hasUnread) {
+  document.getElementById('bellDot').classList.toggle('show', hasUnread);
+  document.getElementById('navDot').classList.toggle('show', hasUnread);
+}
+
+function xss(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 </script>
 </body>
 </html>
