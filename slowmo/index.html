@@ -1,0 +1,343 @@
+﻿<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>FILLYO 슬로우모션</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+
+:root {
+  --bg:#0a0a0f; --panel:#11111a; --accent:#0B7B6B;
+  --red:#ff2d55; --yellow:#ffd60a; --dim:#2a2a3a;
+  --text:#e0e0f0; --glow:0 0 12px #0B7B6B88;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
+  font-family:'Space Mono',monospace;overflow:hidden;}
+
+/* ── APP SHELL ── */
+#app{display:flex;flex-direction:column;width:100vw;height:100vh;padding:10px;gap:8px;}
+
+/* ── HEADER (portrait) ── */
+#hdr{display:flex;align-items:center;gap:10px;padding:8px 14px;flex-shrink:0;
+  background:#0B1F3A;box-shadow:0 2px 8px rgba(0,0,0,0.3);margin:-10px -10px 0;}
+.fillyo-icon{background:#0B7B6B;border-radius:8px;width:34px;height:34px;display:flex;
+  align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1.2;
+  text-align:center;color:white;flex-shrink:0;cursor:pointer;font-family:inherit;}
+#hdr-text{flex:1;min-width:0;}
+#hdr-title{font-size:15px;font-weight:700;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+#sb{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;line-height:1.5;}
+#sb b{color:var(--accent);}
+.hdr-btn{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);
+  color:white;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;
+  font-weight:700;font-family:inherit;}
+.hdr-btn:active{background:rgba(255,255,255,0.28);}
+
+/* ── GRID ── */
+#grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);
+  gap:5px;flex:1 1 auto;min-height:0;}
+
+.cell{position:relative;background:var(--panel);border:1.5px solid var(--dim);
+  border-radius:5px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
+.cell.recording{border-color:var(--red);box-shadow:0 0 12px #ff2d5566;}
+.cell.playing{border-color:var(--accent);box-shadow:0 0 12px #0B7B6B55;}
+.cell video{width:100%;height:100%;object-fit:cover;display:block;}
+
+.cnum{position:absolute;top:5px;left:7px;font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(.8rem,2vw,1.1rem);color:#ffffff88;pointer-events:none;z-index:3;}
+.cst{position:absolute;top:5px;right:7px;font-size:clamp(.48rem,1vw,.6rem);font-weight:700;
+  letter-spacing:.08em;padding:2px 6px;border-radius:999px;background:#00000088;
+  z-index:3;display:flex;align-items:center;gap:3px;transition:all .2s;}
+.cell.recording .cst{background:var(--red);color:#fff;}
+.cell.playing   .cst{background:var(--accent);color:#000;}
+.cell.idle      .cst{color:#ffffff44;}
+
+.rdot{display:none;width:7px;height:7px;border-radius:50%;background:#fff;
+  animation:blink .8s infinite;flex-shrink:0;}
+.cell.recording .rdot{display:block;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+.cprog{position:absolute;bottom:0;left:0;height:3px;width:0%;z-index:4;
+  background:var(--accent);transition:width .08s linear;}
+.cell.recording .cprog{background:var(--red);}
+
+/* ── CONTROLS (portrait) ── */
+#ctrl{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
+  justify-content:center;flex-shrink:0;}
+.cg{display:flex;align-items:center;gap:5px;
+  font-size:clamp(.58rem,1.2vw,.7rem);color:#aaa;}
+input[type=number],select{background:var(--dim);border-radius:4px;
+  font-family:'Space Mono',monospace;font-size:clamp(.58rem,1.1vw,.72rem);
+  padding:5px 7px;}
+input[type=number]{color:var(--accent);border:1px solid var(--accent);
+  width:56px;text-align:center;}
+select{color:var(--yellow);border:1px solid var(--yellow);}
+button{font-family:'Space Mono',monospace;font-size:clamp(.62rem,1.2vw,.76rem);
+  letter-spacing:.1em;padding:7px 18px;border:none;border-radius:4px;
+  cursor:pointer;transition:all .15s;font-weight:700;touch-action:manipulation;}
+#bstart{background:var(--accent);color:#000;}
+#bstart:hover{filter:brightness(1.15);box-shadow:var(--glow);}
+#bstop{background:var(--dim);color:var(--red);border:1.5px solid var(--red);display:none;}
+#bstop:hover{background:var(--red);color:#fff;}
+
+/* ── LANDSCAPE ── */
+@media(orientation:landscape){
+  #app{flex-direction:row;padding:8px;gap:8px;}
+  #hdr{display:none;}
+  #grid{flex:1 1 auto;height:100%;width:auto;}
+  #ctrl{flex-direction:column;flex-shrink:0;width:clamp(90px,16vw,145px);
+    justify-content:center;gap:10px;}
+  .cg{flex-direction:column;align-items:flex-start;gap:3px;width:100%;}
+  .cg label{font-size:.58rem;}
+  input[type=number],select{width:100%;}
+  #ctrl::before{content:'FILLYO 슬로우모션';display:block;
+    font-family:'Space Mono',monospace;font-size:clamp(.7rem,1.8vw,1rem);
+    color:var(--accent);text-shadow:var(--glow);letter-spacing:.05em;
+    text-align:center;margin-bottom:4px;}
+}
+
+/* ── COUNTDOWN ── */
+#cdown{display:none;position:fixed;inset:0;background:#0a0a0fcc;z-index:200;
+  align-items:center;justify-content:center;flex-direction:column;}
+#cdown.on{display:flex;}
+#cnum{font-family:'Bebas Neue',sans-serif;font-size:clamp(5rem,18vw,10rem);
+  color:var(--accent);text-shadow:0 0 40px #0B7B6Baa;animation:cpulse 1s ease-in-out infinite;}
+#clabel{font-size:clamp(.7rem,2vw,.95rem);color:var(--text);letter-spacing:.3em;margin-top:8px;}
+@keyframes cpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+/* ── ERROR ── */
+#errdlg{display:none;position:fixed;inset:0;background:#0a0a0fee;z-index:300;
+  align-items:center;justify-content:center;flex-direction:column;
+  gap:14px;text-align:center;padding:30px;}
+#errdlg.on{display:flex;}
+#errdlg h2{color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:2rem;}
+#errdlg p{color:#aaa;font-size:.75rem;line-height:1.8;max-width:300px;}
+#errdlg button{background:var(--accent);color:#000;margin-top:6px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hdr">
+    <div class="fillyo-icon" onclick="location.href='../dashboard/index.html'">FILL<br>YO</div>
+    <div id="hdr-text">
+      <div id="hdr-title">슬로우모션</div>
+      <div id="sb">SLOT <b id="sl">—</b> &nbsp;|&nbsp; <b id="ph">IDLE</b> &nbsp; CLIP <b id="cd">—</b>s &nbsp;SLOW <b id="sr">—</b>×</div>
+    </div>
+    <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
+  </div>
+
+  <div id="grid"></div>
+
+  <div id="ctrl">
+    <div class="cg"><label>클립 시간(초)</label><input id="dur" type="number" min="1" max="10" value="3"></div>
+    <div class="cg"><label>슬로우모션</label>
+      <select id="slow">
+        <option value="0.25">0.25×</option>
+        <option value="0.5" selected>0.5×</option>
+        <option value="0.33">0.33×</option>
+      </select>
+    </div>
+    <button id="bstart">▶ START</button>
+    <button id="bstop">■ STOP</button>
+  </div>
+</div>
+
+<div id="cdown"><div id="cnum">3</div><div id="clabel">RECORDING STARTS</div></div>
+
+<div id="errdlg">
+  <h2>카메라 오류</h2>
+  <p id="errmsg">카메라 접근 권한이 필요합니다.<br>브라우저 설정에서 허용해 주세요.</p>
+  <button onclick="document.getElementById('errdlg').classList.remove('on')">닫기</button>
+</div>
+
+<script>
+// ── Audio (lazy init) ─────────────────────────────────────────────────
+let AC = null;
+function ac() {
+  if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  if (AC.state === 'suspended') AC.resume();
+  return AC;
+}
+function beep(f=880,d=0.12,v=0.5) {
+  try {
+    const c=ac(), o=c.createOscillator(), g=c.createGain();
+    o.connect(g); g.connect(c.destination);
+    o.frequency.value=f;
+    g.gain.setValueAtTime(v,c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.0001,c.currentTime+d);
+    o.start(); o.stop(c.currentTime+d);
+  } catch(e){}
+}
+const bstart=()=>beep(1046,.10,.6);
+const bstop =()=>{beep(440,.18,.6);setTimeout(()=>beep(330,.18,.4),180);};
+const bcount=()=>beep(660,.08,.4);
+
+// ── Build cells ───────────────────────────────────────────────────────
+const TOTAL=8;
+let stream=null,running=false,slot=0;
+let recorders=[],chunks=[],blobs=[];
+let cells=[],vids=[],prevs=[];
+
+const gridEl=document.getElementById('grid');
+for(let i=0;i<TOTAL;i++){
+  const c=document.createElement('div');
+  c.className='cell idle';
+  c.innerHTML=`<span class="cnum">${i+1}</span>
+    <span class="cst"><span class="rdot"></span><span class="stx">IDLE</span></span>
+    <video class="sv" playsinline muted></video>
+    <video class="lv" playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2"></video>
+    <div class="cprog"></div>`;
+  gridEl.appendChild(c);
+  cells.push(c);
+  vids.push(c.querySelector('.sv'));
+  prevs.push(c.querySelector('.lv'));
+}
+
+function setState(i,s){
+  cells[i].className='cell '+s;
+  cells[i].querySelector('.stx').textContent=s==='recording'?'REC':s==='playing'?'PLAY':'IDLE';
+}
+function setProg(i,p){ cells[i].querySelector('.cprog').style.width=p+'%'; }
+function updateSB(i,ph){
+  document.getElementById('sl').textContent=i>=0?i+1:'—';
+  document.getElementById('ph').textContent=ph;
+}
+
+// ── Start ─────────────────────────────────────────────────────────────
+const BS=document.getElementById('bstart'),BP=document.getElementById('bstop');
+const durEl=document.getElementById('dur'),slowEl=document.getElementById('slow');
+let clipSec=3,slowRate=.5;
+
+async function startSys(){
+  clipSec=parseFloat(durEl.value)||3;
+  slowRate=parseFloat(slowEl.value)||.5;
+  document.getElementById('cd').textContent=clipSec;
+  document.getElementById('sr').textContent=slowRate;
+
+  // Try back camera, fallback to any camera
+  let s;
+  try { s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'},audio:false}); }
+  catch(e){
+    try { s=await navigator.mediaDevices.getUserMedia({video:true,audio:false}); }
+    catch(e2){
+      document.getElementById('errmsg').textContent='오류: '+e2.message;
+      document.getElementById('errdlg').classList.add('on');
+      return;
+    }
+  }
+  stream=s; running=true; slot=0;
+  BS.style.display='none'; BP.style.display='inline-block';
+  durEl.disabled=true; slowEl.disabled=true;
+
+  await countdown(3);
+  if(!running) return;
+  loop();
+}
+
+function stopSys(){
+  running=false;
+  recorders.forEach(r=>{try{if(r&&r.state!=='inactive')r.stop();}catch(e){}});
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
+  vids.forEach((v,i)=>{v.pause();v.src='';prevs[i].srcObject=null;prevs[i].style.display='none';});
+  cells.forEach((_,i)=>{setState(i,'idle');setProg(i,0);});
+  BS.style.display='inline-block'; BP.style.display='none';
+  durEl.disabled=false; slowEl.disabled=false;
+  updateSB(-1,'IDLE');
+}
+
+// ── Countdown ─────────────────────────────────────────────────────────
+function countdown(n){
+  return new Promise(res=>{
+    const ov=document.getElementById('cdown'),ne=document.getElementById('cnum');
+    ov.classList.add('on'); ne.textContent=n; bcount();
+    const iv=setInterval(()=>{
+      n--;
+      if(n<=0){clearInterval(iv);ov.classList.remove('on');res();}
+      else{ne.textContent=n;bcount();}
+    },1000);
+  });
+}
+
+// ── Loop ──────────────────────────────────────────────────────────────
+async function loop(){
+  if(!running)return;
+  const i=slot;
+  updateSB(i,'REC');
+  await recordSlot(i);
+  if(!running)return;
+  playSlot(i);
+  slot=(i+1)%TOTAL;
+  loop();
+}
+
+function recordSlot(i){
+  return new Promise(res=>{
+    if(!running||!stream){res();return;}
+
+    // 이 슬롯이 루프 재생 중이면 멈추기
+    vids[i].pause(); vids[i].loop=false;
+    if(playUrls[i]){ URL.revokeObjectURL(playUrls[i]); playUrls[i]=null; }
+
+    prevs[i].srcObject=stream; prevs[i].style.display='block';
+    prevs[i].play().catch(()=>{});
+    setState(i,'recording'); bstart();
+
+    const mime=getMime();
+    let rec;
+    try { rec=new MediaRecorder(stream,mime?{mimeType:mime}:{}); }
+    catch(e){ rec=new MediaRecorder(stream); }
+    recorders[i]=rec; chunks[i]=[];
+
+    rec.ondataavailable=e=>{if(e.data&&e.data.size>0)chunks[i].push(e.data);};
+    rec.onstop=()=>{
+      const type=mime||'video/webm';
+      blobs[i]=new Blob(chunks[i],{type});
+      prevs[i].srcObject=null; prevs[i].style.display='none';
+      setState(i,'idle'); setProg(i,0); bstop(); res();
+    };
+    rec.start(100);
+
+    const t0=Date.now();
+    const iv=setInterval(()=>{
+      if(!running){clearInterval(iv);return;}
+      setProg(i,Math.min(100,((Date.now()-t0)/(clipSec*1000))*100));
+    },80);
+    setTimeout(()=>{clearInterval(iv);if(rec.state!=='inactive')rec.stop();},clipSec*1000);
+  });
+}
+
+// 각 슬롯의 현재 재생 URL 추적 (새 녹화 시 정리용)
+let playUrls=[];
+
+function playSlot(i){
+  if(!blobs[i])return;
+
+  // 이전 재생 중이던 URL 해제
+  if(playUrls[i]){ URL.revokeObjectURL(playUrls[i]); playUrls[i]=null; }
+
+  const url=URL.createObjectURL(blobs[i]);
+  playUrls[i]=url;
+  const v=vids[i];
+  v.src=url;
+  v.playbackRate=slowRate;
+  v.loop=true;   // ← 무한 반복 재생
+  setState(i,'playing');
+  v.play().catch(()=>{});
+  // 새 녹화가 시작되면 recordSlot 안에서 stop/setState로 덮어씀
+}
+
+function getMime(){
+  for(const t of['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'])
+    if(MediaRecorder.isTypeSupported(t))return t;
+  return '';
+}
+
+// ── Bind buttons ─────────────────────────────────────────────────────
+BS.addEventListener('click', startSys);
+BP.addEventListener('click', stopSys);
+updateSB(-1,'IDLE');
+</script>
+</body>
+</html>
+
