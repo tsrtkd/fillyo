@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -8,167 +8,342 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
 
 :root {
-  --bg:#f4f7fb; --panel:#11111a; --accent:#0B7B6B;
-  --red:#ff2d55; --yellow:#e6a800; --dim:#2a2a3a;
-  --text:#1d2d3a; --glow:0 0 12px #0B7B6B88;
+  --accent:#7B61FF; --accent2:#0B7B6B;
+  --red:#ff2d55; --text:#1a1a2e; --text2:#7b7fa8;
+  --cell-bg:#0d0d14; --border:#e4e4f4;
+  --glow:0 4px 18px rgba(123,97,255,.35);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
-  font-family:'Space Mono',monospace;overflow:hidden;}
+html,body{
+  width:100%;height:100%;overflow:hidden;
+  font-family:'Space Mono',monospace;
+  background:linear-gradient(135deg,#f0f0ff 0%,#fafafe 55%,#ffffff 100%);
+  color:var(--text);
+}
 
-/* ── APP SHELL ── */
-#app{display:flex;flex-direction:column;width:100vw;height:100vh;padding:10px;gap:8px;}
+/* ── APP ── */
+#app{display:flex;flex-direction:column;width:100vw;height:100vh;}
 
 /* ── HEADER (portrait) ── */
-#hdr{display:flex;align-items:center;gap:10px;padding:8px 14px;flex-shrink:0;
-  background:#0B1F3A;box-shadow:0 2px 8px rgba(0,0,0,0.3);margin:-10px -10px 0;}
-.fillyo-icon{background:#0B7B6B;border-radius:8px;width:34px;height:34px;display:flex;
-  align-items:center;justify-content:center;font-size:10px;font-weight:900;line-height:1.2;
-  text-align:center;color:white;flex-shrink:0;cursor:pointer;font-family:inherit;}
-#hdr-text{flex:1;min-width:0;}
-#hdr-title{font-size:15px;font-weight:700;color:#fff;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
-#sb{font-size:10px;color:rgba(255,255,255,0.6);margin-top:1px;line-height:1.5;}
-#sb b{color:var(--accent);}
-.hdr-btn{background:rgba(255,255,255,0.15);border:1.5px solid rgba(255,255,255,0.4);
-  color:white;font-size:20px;cursor:pointer;padding:4px 8px;border-radius:8px;
-  font-weight:700;font-family:inherit;}
-.hdr-btn:active{background:rgba(255,255,255,0.28);}
+#hdr{
+  display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0;
+  background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+}
+#hdr-logo{
+  font-size:17px;font-weight:900;letter-spacing:.1em;flex-shrink:0;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+#hdr-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
+#hdr-ch{font-size:10px;font-weight:900;color:var(--text2);letter-spacing:.18em;}
+#hdr-st{font-size:9px;font-weight:700;color:var(--accent2);letter-spacing:.1em;}
+#hdr-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.hdr-btn{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;color:#fff;font-size:16px;cursor:pointer;
+  padding:6px 11px;border-radius:10px;font-weight:700;font-family:inherit;transition:all .15s;
+}
+.hdr-btn:active{filter:brightness(.88);transform:scale(.94);}
+
+/* ── GRID WRAP ── */
+#grid-wrap{flex:1 1 auto;padding:8px;min-height:0;}
 
 /* ── GRID ── */
-#grid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);
-  gap:5px;flex:1 1 auto;min-height:0;}
+#grid{
+  display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,1fr);
+  gap:6px;height:100%;
+}
 
-.cell{position:relative;background:var(--panel);border:1.5px solid var(--dim);
-  border-radius:5px;overflow:hidden;transition:border-color .2s,box-shadow .2s;}
-.cell.recording{border-color:var(--red);box-shadow:0 0 12px #ff2d5566;}
-.cell.playing{border-color:var(--accent);box-shadow:0 0 12px #0B7B6B55;}
+/* ── CELL ── */
+.cell{
+  position:relative;background:var(--cell-bg);
+  border-radius:8px;overflow:hidden;
+  border:2.5px solid transparent;
+  transition:border-color .2s,box-shadow .2s;
+}
+/* Colorful idle borders — declared BEFORE .recording/.playing so state rules take priority */
+.cell:nth-child(1){border-color:#FF6B6B;}
+.cell:nth-child(2){border-color:#FF9F43;}
+.cell:nth-child(3){border-color:#FFC312;}
+.cell:nth-child(4){border-color:#4FC3F7;}
+.cell:nth-child(5){border-color:#CE93D8;}
+.cell:nth-child(6){border-color:#80CBC4;}
+.cell:nth-child(7){border-color:#F48FB1;}
+.cell:nth-child(8){border-color:#80DEEA;}
+.cell.recording{border-color:var(--red);box-shadow:0 0 14px rgba(255,45,85,.45);}
+.cell.playing  {border-color:var(--accent);box-shadow:0 0 16px rgba(123,97,255,.4);}
 .cell video{width:100%;height:100%;object-fit:cover;display:block;}
 
-.cnum{position:absolute;top:5px;left:5px;width:20px;height:20px;border-radius:50%;
-  background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.3);
+/* Cell number badge */
+.cnum{
+  position:absolute;top:6px;left:6px;
+  width:20px;height:20px;border-radius:50%;
+  background:rgba(0,0,0,.65);border:1.5px solid rgba(255,255,255,.4);
   display:flex;align-items:center;justify-content:center;
-  font-size:10px;font-weight:900;color:rgba(255,255,255,0.95);
-  pointer-events:none;z-index:3;}
-.cst{position:absolute;top:5px;right:7px;font-size:clamp(.48rem,1vw,.6rem);font-weight:700;
-  letter-spacing:.08em;padding:2px 6px;border-radius:999px;background:#00000088;
-  z-index:3;display:flex;align-items:center;gap:3px;transition:all .2s;}
+  font-size:10px;font-weight:900;color:rgba(255,255,255,.95);
+  pointer-events:none;z-index:3;
+}
+/* Status badge */
+.cst{
+  position:absolute;top:6px;right:6px;
+  font-size:9px;font-weight:700;letter-spacing:.06em;
+  padding:2px 7px;border-radius:999px;background:rgba(0,0,0,.55);
+  z-index:3;display:flex;align-items:center;gap:3px;transition:all .2s;
+}
 .cell.recording .cst{background:var(--red);color:#fff;}
-.cell.playing   .cst{background:var(--accent);color:#000;}
-.cell.idle      .cst{color:rgba(255,255,255,0.75);}
+.cell.playing   .cst{background:var(--accent);color:#fff;}
+.cell.idle      .cst{color:rgba(255,255,255,.8);}
 
-.rdot{display:none;width:7px;height:7px;border-radius:50%;background:#fff;
-  animation:blink .8s infinite;flex-shrink:0;}
+.rdot{
+  display:none;width:6px;height:6px;border-radius:50%;
+  background:#fff;animation:blink .8s infinite;flex-shrink:0;
+}
 .cell.recording .rdot{display:block;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 
-.cprog{position:absolute;bottom:0;left:0;height:3px;width:0%;z-index:4;
-  background:var(--accent);transition:width .08s linear;}
+.cprog{
+  position:absolute;bottom:0;left:0;height:3px;width:0%;z-index:4;
+  background:linear-gradient(90deg,var(--accent),var(--accent2));
+  transition:width .08s linear;
+}
 .cell.recording .cprog{background:var(--red);}
 
-/* ── CONTROLS (portrait) ── */
-#ctrl{display:flex;flex-direction:column;gap:8px;flex-shrink:0;padding:4px 2px 2px;}
-.ctrl-row{display:flex;align-items:center;justify-content:center;gap:8px;}
-.cg{display:flex;align-items:center;gap:6px;background:#fff;
-  border:1px solid #d8e2ec;border-radius:20px;padding:5px 12px;
-  box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-.cg label{font-size:10px;color:#555;white-space:nowrap;font-weight:700;}
-input[type=number]{background:transparent;border:none;color:var(--accent);
-  font-family:'Space Mono',monospace;font-size:13px;font-weight:900;
-  width:28px;text-align:center;padding:0;-moz-appearance:textfield;}
+/* ── FILLYO ICON ── */
+.fillyo-icon{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border-radius:10px;width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:900;line-height:1.2;text-align:center;
+  color:#fff;flex-shrink:0;cursor:pointer;
+}
+
+/* ── CONTROL PANEL (portrait) ── */
+#ctrl{
+  display:flex;flex-direction:column;gap:8px;
+  flex-shrink:0;padding:10px 14px 10px;
+  background:rgba(255,255,255,0.94);
+  border-top:1px solid var(--border);
+}
+#ctrl-brand{display:none;}
+#ctrl-title-block{display:none;}
+
+.ctrl-mid{display:flex;align-items:flex-start;justify-content:center;gap:10px;}
+.ctrl-section{display:flex;flex-direction:column;gap:4px;}
+.ctrl-sec-label{
+  font-size:9px;font-weight:900;color:var(--text2);letter-spacing:.2em;margin-bottom:2px;
+}
+.cg{
+  display:flex;align-items:center;gap:6px;
+  background:#f0eeff;border:1.5px solid #d8d0ff;
+  border-radius:14px;padding:6px 10px;
+}
+.cg label{font-size:10px;color:var(--text2);font-weight:700;}
+.cg-icon{font-size:14px;}
+input[type=number]{
+  background:transparent;border:none;color:var(--accent);
+  font-family:'Space Mono',monospace;font-size:14px;font-weight:900;
+  width:28px;text-align:center;padding:0;-moz-appearance:textfield;
+}
 input[type=number]::-webkit-inner-spin-button,
 input[type=number]::-webkit-outer-spin-button{opacity:1;height:16px;}
 input[type=number]:focus{outline:none;}
-.slow-pills{display:flex;gap:3px;background:#fff;border:1px solid #d8e2ec;
-  border-radius:20px;padding:4px;box-shadow:0 1px 4px rgba(0,0,0,0.06);}
-.spill{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:700;
-  font-family:'Space Mono',monospace;color:#555;cursor:pointer;
-  transition:all .15s;border:none;background:transparent;touch-action:manipulation;}
-.spill.active{background:var(--accent);color:#000;}
-button{font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;
-  transition:all .15s;touch-action:manipulation;border:none;}
-#bstart{background:var(--accent);color:#000;border-radius:24px;
-  font-size:14px;letter-spacing:.08em;padding:13px 0;flex:1;max-width:180px;}
-#bstart:hover{filter:brightness(1.15);box-shadow:var(--glow);}
-#bstop{background:transparent;color:var(--red);border:2px solid var(--red);
-  border-radius:24px;font-size:14px;letter-spacing:.08em;padding:11px 0;
-  display:none;flex:1;max-width:180px;}
+
+.slow-pills{
+  display:flex;gap:3px;
+  background:#f0eeff;border:1.5px solid #d8d0ff;border-radius:14px;padding:4px;
+}
+.spill{
+  padding:5px 11px;border-radius:10px;font-size:11px;font-weight:700;
+  font-family:'Space Mono',monospace;color:var(--text2);cursor:pointer;
+  transition:all .15s;border:none;background:transparent;touch-action:manipulation;
+}
+.spill.active{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 2px 8px rgba(123,97,255,.3);
+}
+
+button{
+  font-family:'Space Mono',monospace;font-weight:700;
+  cursor:pointer;transition:all .15s;touch-action:manipulation;border:none;
+}
+.ctrl-btns{display:flex;gap:8px;justify-content:center;}
+#bstart{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;border-radius:20px;font-size:14px;font-weight:900;letter-spacing:.1em;
+  padding:13px 0;flex:1;max-width:200px;
+  box-shadow:0 4px 16px rgba(123,97,255,.28);
+}
+#bstart:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:var(--glow);}
+#bstop{
+  background:transparent;color:var(--red);border:2px solid var(--red);
+  border-radius:20px;font-size:14px;font-weight:900;letter-spacing:.1em;
+  padding:11px 0;display:none;flex:1;max-width:200px;
+}
 #bstop:hover{background:var(--red);color:#fff;}
+
+/* Status + footer: portrait hidden, landscape visible */
+#sb{display:none;}
+#ctrl-footer{display:none;}
 
 /* ── LANDSCAPE ── */
 @media(orientation:landscape){
-  #app{flex-direction:row;padding:8px;gap:8px;}
+  #app{flex-direction:row;}
   #hdr{display:none;}
-  #grid{flex:1 1 auto;height:100%;width:auto;}
-  #ctrl{flex-direction:column;flex-shrink:0;width:clamp(100px,18vw,155px);
-    justify-content:center;gap:8px;padding:8px 6px;
-    background:#fff;border-radius:12px;border:1px solid #d8e2ec;
-    box-shadow:0 2px 8px rgba(0,0,0,0.06);}
-  .ctrl-row{flex-direction:column;gap:6px;width:100%;}
-  .slow-pills{width:100%;justify-content:space-between;}
-  .spill{flex:1;padding:4px 2px;font-size:10px;text-align:center;}
+  #grid-wrap{flex:1 1 auto;padding:10px 0 10px 10px;min-height:0;}
+  #grid{height:100%;}
+
+  #ctrl{
+    flex-direction:column;flex-shrink:0;
+    width:clamp(170px,23vw,215px);
+    justify-content:center;gap:14px;
+    padding:20px 16px;
+    border-top:none;border-left:1px solid var(--border);
+    background:rgba(255,255,255,0.97);
+  }
+
+  #ctrl-brand{display:flex;align-items:center;gap:10px;}
+  .ctrl-star{font-size:20px;color:var(--accent);}
+
+  #ctrl-title-block{display:block;}
+  #ctrl-title{
+    font-size:21px;font-weight:900;color:var(--text);line-height:1.2;margin-bottom:3px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  }
+  #ctrl-sub{font-size:10px;color:var(--text2);font-weight:700;line-height:1.5;}
+
+  .ctrl-mid{flex-direction:column;align-items:stretch;gap:10px;}
+  .ctrl-section{width:100%;}
+  .slow-pills{width:100%;}
+  .spill{flex:1;text-align:center;padding:6px 4px;font-size:10px;}
   .cg{width:100%;justify-content:space-between;}
-  #bstart,#bstop{max-width:100%;width:100%;padding:11px 8px;}
-  #ctrl::before{content:'FILLYO 슬로우모션';display:block;
-    font-family:'Space Mono',monospace;font-size:clamp(.7rem,1.8vw,1rem);
-    color:var(--accent);text-shadow:var(--glow);letter-spacing:.05em;
-    text-align:center;margin-bottom:4px;}
+
+  .ctrl-btns{flex-direction:column;gap:8px;}
+  #bstart,#bstop{max-width:100%;width:100%;padding:12px 8px;font-size:13px;}
+
+  #sb{
+    display:block;font-size:9px;color:var(--text2);font-weight:700;
+    letter-spacing:.05em;text-align:center;
+    border-top:1px solid var(--border);padding-top:8px;line-height:1.8;
+  }
+  #sb b{color:var(--accent);}
+
+  #ctrl-footer{
+    display:block;font-size:8px;color:var(--text2);font-weight:700;
+    text-align:center;letter-spacing:.07em;line-height:1.6;
+    border-top:1px solid var(--border);padding-top:8px;
+  }
 }
 
 /* ── COUNTDOWN ── */
-#cdown{display:none;position:fixed;inset:0;background:#0a0a0fcc;z-index:200;
-  align-items:center;justify-content:center;flex-direction:column;}
+#cdown{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,10,20,.88);z-index:200;
+  align-items:center;justify-content:center;flex-direction:column;
+}
 #cdown.on{display:flex;}
-#cnum{font-family:'Bebas Neue',sans-serif;font-size:clamp(5rem,18vw,10rem);
-  color:var(--accent);text-shadow:0 0 40px #0B7B6Baa;animation:cpulse 1s ease-in-out infinite;}
-#clabel{font-size:clamp(.7rem,2vw,.95rem);color:#e0e0f0;letter-spacing:.3em;margin-top:8px;}
+#cnum{
+  font-family:'Bebas Neue',sans-serif;font-size:clamp(5rem,18vw,10rem);
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  animation:cpulse 1s ease-in-out infinite;
+}
+#clabel{font-size:clamp(.7rem,2vw,.95rem);color:#e0e0f0;letter-spacing:.3em;margin-top:8px;font-weight:700;}
 @keyframes cpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 
 /* ── ERROR ── */
-#errdlg{display:none;position:fixed;inset:0;background:#0a0a0fee;z-index:300;
+#errdlg{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,10,20,.94);z-index:300;
   align-items:center;justify-content:center;flex-direction:column;
-  gap:14px;text-align:center;padding:30px;}
+  gap:14px;text-align:center;padding:30px;
+}
 #errdlg.on{display:flex;}
 #errdlg h2{color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:2rem;}
 #errdlg p{color:#bbb;font-size:.75rem;line-height:1.8;max-width:300px;}
-#errdlg button{background:var(--accent);color:#000;margin-top:6px;
-  padding:10px 24px;border-radius:8px;font-size:13px;letter-spacing:.08em;}
+#errdlg button{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;margin-top:6px;
+  padding:10px 24px;border-radius:8px;font-size:13px;letter-spacing:.08em;
+}
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="hdr">
-    <div class="fillyo-icon" onclick="location.href='../dashboard/index.html'">FILL<br>YO</div>
-    <div id="hdr-text">
-      <div id="hdr-title">슬로우모션</div>
-      <div id="sb">SLOT <b id="sl">—</b> &nbsp;|&nbsp; <b id="ph">IDLE</b> &nbsp; CLIP <b id="cd">—</b>s &nbsp;SLOW <b id="sr">—</b>×</div>
+
+  <!-- HEADER (portrait only) -->
+  <header id="hdr">
+    <div id="hdr-logo">FILLYO</div>
+    <div id="hdr-center">
+      <span id="hdr-ch">8 CHANNELS</span>
+      <span id="hdr-st">● SYSTEM READY</span>
     </div>
-    <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
+    <div id="hdr-right">
+      <button class="hdr-btn" onclick="location.href='/dashboard/'">🏠</button>
+    </div>
+  </header>
+
+  <!-- GRID -->
+  <div id="grid-wrap">
+    <div id="grid"></div>
   </div>
 
-  <div id="grid"></div>
-
+  <!-- CONTROL PANEL -->
   <div id="ctrl">
-    <div class="ctrl-row">
-      <div class="cg">
-        <label>클립</label>
-        <input id="dur" type="number" min="1" max="10" value="3">
-        <label>초</label>
+
+    <!-- Landscape: brand block -->
+    <div id="ctrl-brand">
+      <div class="fillyo-icon" onclick="location.href='/dashboard/'">FILL<br>YO</div>
+      <span class="ctrl-star">✦</span>
+    </div>
+
+    <!-- Landscape: title block -->
+    <div id="ctrl-title-block">
+      <div id="ctrl-title">슬로우모션</div>
+      <div id="ctrl-sub">창의적인 결과를<br>만들어보세요</div>
+    </div>
+
+    <!-- MODE + SPEED (row in portrait, column in landscape) -->
+    <div class="ctrl-mid">
+      <div class="ctrl-section">
+        <div class="ctrl-sec-label">MODE</div>
+        <div class="cg">
+          <span class="cg-icon">🎬</span>
+          <label>클립</label>
+          <input id="dur" type="number" min="1" max="10" value="3">
+          <label>초</label>
+        </div>
       </div>
-      <div class="slow-pills">
-        <button class="spill" data-v="0.25">0.25×</button>
-        <button class="spill active" data-v="0.5">0.5×</button>
-        <button class="spill" data-v="0.33">0.33×</button>
+      <div class="ctrl-section">
+        <div class="ctrl-sec-label">SPEED</div>
+        <div class="slow-pills">
+          <button class="spill" data-v="0.25">0.25×</button>
+          <button class="spill active" data-v="0.5">0.5×</button>
+          <button class="spill" data-v="0.33">0.33×</button>
+        </div>
       </div>
     </div>
+
+    <!-- JS reads this select (hidden) -->
     <select id="slow" style="display:none">
       <option value="0.25">0.25×</option>
       <option value="0.5" selected>0.5×</option>
       <option value="0.33">0.33×</option>
     </select>
-    <div class="ctrl-row">
+
+    <!-- Main buttons -->
+    <div class="ctrl-btns">
       <button id="bstart">▶ START</button>
       <button id="bstop">■ STOP</button>
     </div>
+
+    <!-- Live status (landscape visible, portrait hidden) -->
+    <div id="sb">SLOT <b id="sl">—</b> &nbsp;·&nbsp; <b id="ph">IDLE</b> &nbsp;|&nbsp; CLIP <b id="cd">—</b>s &nbsp; SLOW <b id="sr">—</b>×</div>
+
+    <!-- Footer (landscape visible) -->
+    <div id="ctrl-footer">FILLYO · AI POWERED<br>CREATIVE SOLUTION</div>
+
   </div>
 </div>
 
@@ -378,4 +553,3 @@ document.querySelectorAll('.spill').forEach(btn=>{
 </script>
 </body>
 </html>
-
