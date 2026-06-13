@@ -559,6 +559,13 @@ onAuthStateChanged(auth, async (user) => {
     const academyId          = userData.academyId          || null;
     const subscribedServices = userData.subscribedServices || [];
 
+    // ── 관리자 계정 자동 설정 (최초 1회) ─────────────────────────────
+    if (user.email === 'audtls2g@gmail.com' && !userData.role) {
+      await set(ref(db, `users/${user.uid}/role`), 'admin');
+      userData.role = 'admin';
+    }
+    const isAdmin = userData.role === 'admin';
+
     // 학원명 로드
     if (academyId) {
       const acSnap = await get(ref(db, `academies/${academyId}/settings`));
@@ -618,12 +625,13 @@ onAuthStateChanged(auth, async (user) => {
       cdBox.addEventListener('click', () => location.href = '/mypage');
     }
 
-    // 서비스 카드 상태 동적 표시 (app · exam · jumprope만)
+    // ── 서비스 카드 상태 동적 표시 ───────────────────────────────────
+    // admin → 모두 이용중 / subscribed → 이용중 / 체험중 → 체험중 / 만료 → 결제 후 사용
     function setCardStatus(cardId, serviceKey) {
       const card = document.getElementById(cardId);
       if (!card) return;
       const st = card.querySelector('.status');
-      if (subscribedServices.includes(serviceKey)) {
+      if (isAdmin || subscribedServices.includes(serviceKey)) {
         st.textContent        = '이용중';
         st.style.background   = 'rgba(76,175,80,0.25)';
         st.style.color        = '#2e7d32';
@@ -632,14 +640,15 @@ onAuthStateChanged(auth, async (user) => {
         st.style.background   = 'rgba(255,183,3,0.3)';
         st.style.color        = '#7a5800';
       } else {
-        st.textContent        = '시작하기';
+        st.textContent        = '결제 후 사용';
         st.style.background   = 'rgba(0,0,0,0.08)';
-        st.style.color        = '#555';
+        st.style.color        = '#888';
       }
     }
     setCardStatus('cardApp',      'app');
     setCardStatus('cardExam',     'exam');
     setCardStatus('cardJumprope', 'jumprope');
+    setCardStatus('cardSlowmo',   'slowmo');
 
   } catch (e) {
     console.error(e);

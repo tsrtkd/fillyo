@@ -359,7 +359,7 @@ button{
 
     <!-- Main buttons -->
     <div class="ctrl-btns">
-      <button id="bstart">▶ START</button>
+      <button id="bstart" disabled style="opacity:.55;cursor:not-allowed">▶ START</button>
       <button id="bstop">■ STOP</button>
     </div>
 
@@ -589,6 +589,58 @@ document.querySelectorAll('.spill').forEach(btn=>{
     btn.classList.add('active');
     slowEl.value=btn.dataset.v;
   });
+});
+</script>
+
+<!-- ── Firebase 로그인 + 권한 체크 (module) ── -->
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const _fbApp = initializeApp({
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+});
+const _auth = getAuth(_fbApp);
+const _db   = getDatabase(_fbApp);
+
+onAuthStateChanged(_auth, async (user) => {
+  if (!user) { location.href = '/login'; return; }
+
+  try {
+    const snap = await get(ref(_db, `users/${user.uid}`));
+    if (!snap.exists()) { location.href = '/login'; return; }
+
+    const ud     = snap.val();
+    const admin  = ud.role === 'admin';
+    const ts     = ud.trialStart || null;
+    const days   = ts ? Math.floor((Date.now() - ts) / 86400000) : 0;
+    const trial  = days < 7;
+    const subs   = ud.subscribedServices || [];
+
+    if (!admin && !trial && !subs.includes('slowmo')) {
+      alert('무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
+      location.href = '/dashboard/';
+      return;
+    }
+  } catch (e) {
+    console.warn('slowmo auth check failed', e);
+    // 네트워크 오류 등 예외 시 진입 허용 (기기 카메라는 로컬 기능)
+  }
+
+  // 권한 통과 → START 버튼 활성화
+  const btn = document.getElementById('bstart');
+  btn.disabled = false;
+  btn.style.opacity = '';
+  btn.style.cursor  = '';
 });
 </script>
 </body>

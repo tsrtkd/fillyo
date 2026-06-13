@@ -705,6 +705,22 @@ onAuthStateChanged(auth, async (user) => {
     if (!userSnap.exists()) { await signOut(auth); return; }
 
     const userData = userSnap.val();
+
+    // ── 권한 체크 (admin / 체험 / 구독) ───────────────────────────
+    {
+      const _admin   = userData.role === 'admin';
+      const _ts      = userData.trialStart || null;
+      const _days    = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 0;
+      const _trial   = _days < 7;
+      const _subs    = userData.subscribedServices || [];
+      if (!_admin && !_trial && !_subs.includes('app')) {
+        document.getElementById('loadingScreen').style.display = 'none';
+        alert('무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
+        location.href = '/dashboard/';
+        return;
+      }
+    }
+
     academyId = userData.academyId;
     if (!academyId) { location.href = '/setup'; return; }
 

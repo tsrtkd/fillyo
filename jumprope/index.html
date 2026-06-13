@@ -800,6 +800,25 @@ window.saveCertImage = saveCertImage;
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = '/login'; return; }
   uid = user.uid;
+
+  // ── 권한 체크 (admin / 체험 / 구독) ─────────────────────────────
+  try {
+    const _uSnap = await get(ref(db, `users/${uid}`));
+    if (_uSnap.exists()) {
+      const _ud    = _uSnap.val();
+      const _admin = _ud.role === 'admin';
+      const _ts    = _ud.trialStart || null;
+      const _days  = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 0;
+      const _trial = _days < 7;
+      const _subs  = _ud.subscribedServices || [];
+      if (!_admin && !_trial && !_subs.includes('jumprope')) {
+        alert('무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
+        location.href = '/dashboard/';
+        return;
+      }
+    }
+  } catch (_e) { console.warn('permission check', _e); }
+
   try {
     const aidSnap = await get(ref(db, `users/${uid}/academyId`));
     if (aidSnap.exists()) {
