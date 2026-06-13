@@ -19,7 +19,7 @@
   --green:  #16A34A;
   --radius: 12px;
   --tab-h:  64px;
-  --hdr-h:  80px;
+  --hdr-h:  56px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 body { font-family: 'Noto Sans KR', sans-serif; background: var(--bg); color: var(--text); }
@@ -44,12 +44,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 #header {
   position: fixed; top: 0; left: 0; right: 0; height: var(--hdr-h);
   background: var(--navy); color: #fff;
-  display: flex; flex-direction: column; justify-content: space-evenly;
+  display: flex; align-items: center; gap: 10px;
   padding: 0 14px;
   z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-#hdr-row1 { display: flex; align-items: center; gap: 10px; }
-#hdr-row2 { display: flex; align-items: center; justify-content: flex-end; }
 #hdr-text { flex: 1; min-width: 0; }
 #headerTitle { font-size: 15px; font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 #hdr-program { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
@@ -271,18 +269,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 <!-- HEADER -->
 <div id="header">
-  <div id="hdr-row1">
-    <div class="fillyo-icon" onclick="location.href='../dashboard/index.html'">FILL<br>YO</div>
-    <div id="hdr-text">
-      <div id="headerTitle"></div>
-      <div id="hdr-program">승급심사</div>
-    </div>
+  <div class="fillyo-icon" onclick="location.href='../dashboard/index.html'">FILL<br>YO</div>
+  <div id="hdr-text">
+    <div id="headerTitle"></div>
+    <div id="hdr-program">승급심사</div>
   </div>
-  <div id="hdr-row2">
-    <div id="hdrBtns">
-      <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
-      <button class="hdr-btn" id="btnLogout" onclick="doLogout()" style="font-size:13px;">로그아웃</button>
-    </div>
+  <div id="hdrBtns">
+    <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
+    <button class="hdr-btn" id="btnLogout" onclick="doLogout()" style="font-size:13px;">로그아웃</button>
   </div>
 </div>
 
