@@ -44,8 +44,11 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
 .cell.playing{border-color:var(--accent);box-shadow:0 0 12px #0B7B6B55;}
 .cell video{width:100%;height:100%;object-fit:cover;display:block;}
 
-.cnum{position:absolute;top:5px;left:7px;font-family:'Bebas Neue',sans-serif;
-  font-size:clamp(.8rem,2vw,1.1rem);color:#ffffff88;pointer-events:none;z-index:3;}
+.cnum{position:absolute;top:5px;left:5px;width:18px;height:18px;border-radius:50%;
+  background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:rgba(255,255,255,0.6);
+  pointer-events:none;z-index:3;}
 .cst{position:absolute;top:5px;right:7px;font-size:clamp(.48rem,1vw,.6rem);font-weight:700;
   letter-spacing:.08em;padding:2px 6px;border-radius:999px;background:#00000088;
   z-index:3;display:flex;align-items:center;gap:3px;transition:all .2s;}
@@ -63,22 +66,31 @@ html,body{width:100%;height:100%;background:var(--bg);color:var(--text);
 .cell.recording .cprog{background:var(--red);}
 
 /* ── CONTROLS (portrait) ── */
-#ctrl{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;
-  justify-content:center;flex-shrink:0;}
-.cg{display:flex;align-items:center;gap:5px;
-  font-size:clamp(.58rem,1.2vw,.7rem);color:#aaa;}
-input[type=number],select{background:var(--dim);border-radius:4px;
-  font-family:'Space Mono',monospace;font-size:clamp(.58rem,1.1vw,.72rem);
-  padding:5px 7px;}
-input[type=number]{color:var(--accent);border:1px solid var(--accent);
-  width:56px;text-align:center;}
-select{color:var(--yellow);border:1px solid var(--yellow);}
-button{font-family:'Space Mono',monospace;font-size:clamp(.62rem,1.2vw,.76rem);
-  letter-spacing:.1em;padding:7px 18px;border:none;border-radius:4px;
-  cursor:pointer;transition:all .15s;font-weight:700;touch-action:manipulation;}
-#bstart{background:var(--accent);color:#000;}
+#ctrl{display:flex;flex-direction:column;gap:8px;flex-shrink:0;padding:4px 2px 2px;}
+.ctrl-row{display:flex;align-items:center;justify-content:center;gap:8px;}
+.cg{display:flex;align-items:center;gap:6px;background:var(--panel);
+  border:1px solid var(--dim);border-radius:20px;padding:5px 12px;}
+.cg label{font-size:10px;color:#888;white-space:nowrap;}
+input[type=number]{background:transparent;border:none;color:var(--accent);
+  font-family:'Space Mono',monospace;font-size:13px;font-weight:700;
+  width:28px;text-align:center;padding:0;-moz-appearance:textfield;}
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button{opacity:1;height:16px;}
+input[type=number]:focus{outline:none;}
+.slow-pills{display:flex;gap:3px;background:var(--panel);border:1px solid var(--dim);
+  border-radius:20px;padding:4px;}
+.spill{padding:5px 11px;border-radius:16px;font-size:11px;font-weight:700;
+  font-family:'Space Mono',monospace;color:#666;cursor:pointer;
+  transition:all .15s;border:none;background:transparent;touch-action:manipulation;}
+.spill.active{background:var(--accent);color:#000;}
+button{font-family:'Space Mono',monospace;font-weight:700;cursor:pointer;
+  transition:all .15s;touch-action:manipulation;border:none;}
+#bstart{background:var(--accent);color:#000;border-radius:24px;
+  font-size:14px;letter-spacing:.08em;padding:13px 0;flex:1;max-width:180px;}
 #bstart:hover{filter:brightness(1.15);box-shadow:var(--glow);}
-#bstop{background:var(--dim);color:var(--red);border:1.5px solid var(--red);display:none;}
+#bstop{background:transparent;color:var(--red);border:2px solid var(--red);
+  border-radius:24px;font-size:14px;letter-spacing:.08em;padding:11px 0;
+  display:none;flex:1;max-width:180px;}
 #bstop:hover{background:var(--red);color:#fff;}
 
 /* ── LANDSCAPE ── */
@@ -86,11 +98,13 @@ button{font-family:'Space Mono',monospace;font-size:clamp(.62rem,1.2vw,.76rem);
   #app{flex-direction:row;padding:8px;gap:8px;}
   #hdr{display:none;}
   #grid{flex:1 1 auto;height:100%;width:auto;}
-  #ctrl{flex-direction:column;flex-shrink:0;width:clamp(90px,16vw,145px);
-    justify-content:center;gap:10px;}
-  .cg{flex-direction:column;align-items:flex-start;gap:3px;width:100%;}
-  .cg label{font-size:.58rem;}
-  input[type=number],select{width:100%;}
+  #ctrl{flex-direction:column;flex-shrink:0;width:clamp(100px,18vw,155px);
+    justify-content:center;gap:8px;padding:8px 4px;}
+  .ctrl-row{flex-direction:column;gap:6px;width:100%;}
+  .slow-pills{width:100%;justify-content:space-between;}
+  .spill{flex:1;padding:4px 2px;font-size:10px;text-align:center;}
+  .cg{width:100%;justify-content:space-between;}
+  #bstart,#bstop{max-width:100%;width:100%;padding:11px 8px;}
   #ctrl::before{content:'FILLYO 슬로우모션';display:block;
     font-family:'Space Mono',monospace;font-size:clamp(.7rem,1.8vw,1rem);
     color:var(--accent);text-shadow:var(--glow);letter-spacing:.05em;
@@ -113,7 +127,8 @@ button{font-family:'Space Mono',monospace;font-size:clamp(.62rem,1.2vw,.76rem);
 #errdlg.on{display:flex;}
 #errdlg h2{color:var(--red);font-family:'Bebas Neue',sans-serif;font-size:2rem;}
 #errdlg p{color:#aaa;font-size:.75rem;line-height:1.8;max-width:300px;}
-#errdlg button{background:var(--accent);color:#000;margin-top:6px;}
+#errdlg button{background:var(--accent);color:#000;margin-top:6px;
+  padding:10px 24px;border-radius:8px;font-size:13px;letter-spacing:.08em;}
 </style>
 </head>
 <body>
@@ -130,16 +145,27 @@ button{font-family:'Space Mono',monospace;font-size:clamp(.62rem,1.2vw,.76rem);
   <div id="grid"></div>
 
   <div id="ctrl">
-    <div class="cg"><label>클립 시간(초)</label><input id="dur" type="number" min="1" max="10" value="3"></div>
-    <div class="cg"><label>슬로우모션</label>
-      <select id="slow">
-        <option value="0.25">0.25×</option>
-        <option value="0.5" selected>0.5×</option>
-        <option value="0.33">0.33×</option>
-      </select>
+    <div class="ctrl-row">
+      <div class="cg">
+        <label>클립</label>
+        <input id="dur" type="number" min="1" max="10" value="3">
+        <label>초</label>
+      </div>
+      <div class="slow-pills">
+        <button class="spill" data-v="0.25">0.25×</button>
+        <button class="spill active" data-v="0.5">0.5×</button>
+        <button class="spill" data-v="0.33">0.33×</button>
+      </div>
     </div>
-    <button id="bstart">▶ START</button>
-    <button id="bstop">■ STOP</button>
+    <select id="slow" style="display:none">
+      <option value="0.25">0.25×</option>
+      <option value="0.5" selected>0.5×</option>
+      <option value="0.33">0.33×</option>
+    </select>
+    <div class="ctrl-row">
+      <button id="bstart">▶ START</button>
+      <button id="bstop">■ STOP</button>
+    </div>
   </div>
 </div>
 
@@ -337,6 +363,15 @@ function getMime(){
 BS.addEventListener('click', startSys);
 BP.addEventListener('click', stopSys);
 updateSB(-1,'IDLE');
+
+// ── Slow rate pill UI
+document.querySelectorAll('.spill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.spill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    slowEl.value=btn.dataset.v;
+  });
+});
 </script>
 </body>
 </html>
