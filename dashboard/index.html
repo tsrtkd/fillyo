@@ -528,7 +528,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, get }
+import { getDatabase, ref, get, set }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const FB_CONFIG = {
@@ -547,58 +547,101 @@ const db    = getDatabase(fbApp);
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) {
-    location.href = '/login';
-    return;
-  }
+  if (!user) { location.href = '/login'; return; }
 
   try {
     const userSnap = await get(ref(db, `users/${user.uid}`));
     if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
 
-    const userData   = userSnap.val();
-    const planType   = userData.planType   || 'free';
-    const planExpiry = userData.planExpiry || null;
-    const academyId  = userData.academyId  || null;
+    const userData           = userSnap.val();
+    const planType           = userData.planType           || 'free';
+    const planExpiry         = userData.planExpiry         || null;
+    const academyId          = userData.academyId          || null;
+    const subscribedServices = userData.subscribedServices || [];
 
     // 학원명 로드
     if (academyId) {
       const acSnap = await get(ref(db, `academies/${academyId}/settings`));
       if (acSnap.exists()) {
-        const settings = acSnap.val();
-        document.getElementById('academyName').textContent = settings.academyName || settings.name || '내 학원';
+        const s = acSnap.val();
+        document.getElementById('academyName').textContent = s.academyName || s.name || '내 학원';
       }
     } else {
       document.getElementById('academyName').textContent = '내 학원';
     }
 
+    // 무료 체험 trialStart 처리
+    let trialStart = userData.trialStart || userData.createdAt || null;
+    if (planType !== 'pro' && !trialStart) {
+      trialStart = Date.now();
+      await set(ref(db, `users/${user.uid}/trialStart`), trialStart);
+    }
+    const trialDaysLeft = trialStart
+      ? Math.max(0, 7 - Math.floor((Date.now() - trialStart) / 86400000))
+      : 7;
+    const inTrial = planType !== 'pro' && trialDaysLeft > 0;
+
     // 플랜 배지
     const badgeEl = document.getElementById('planBadge');
     if (planType === 'pro') {
       badgeEl.textContent = '🟢 얼리버드 구독 중';
-    } else {
+    } else if (inTrial) {
       badgeEl.textContent = '🟡 무료 체험 중';
+    } else {
+      badgeEl.textContent = '🔴 체험 종료';
     }
 
     // D-day 카운트다운
     const numEl   = document.getElementById('countdownNum');
     const labelEl = document.getElementById('countdownLabel');
     if (planType === 'pro' && planExpiry) {
-      const diff = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));
+      const diff = Math.ceil((planExpiry - Date.now()) / 86400000);
       if (diff > 0) {
         numEl.textContent   = `D-${diff}`;
         labelEl.textContent = '구독 만료까지';
       } else {
-        numEl.textContent   = '만료';
-        labelEl.textContent = '구독을 갱신해주세요';
-        numEl.style.color   = '#C62828';
+        numEl.textContent    = '만료';
+        labelEl.textContent  = '구독을 갱신해주세요';
+        numEl.style.color    = '#C62828';
         numEl.style.fontSize = '18px';
       }
+    } else if (inTrial) {
+      numEl.textContent   = `D-${trialDaysLeft}`;
+      labelEl.textContent = '무료체험 중';
     } else {
-      numEl.textContent   = '∞';
-      labelEl.textContent = '무료 플랜';
-      numEl.style.fontSize = '32px';
+      numEl.textContent    = '종료';
+      numEl.style.color    = '#C62828';
+      numEl.style.fontSize = '16px';
+      labelEl.textContent  = '구독하기';
+      labelEl.style.color  = '#C62828';
+      const cdBox = document.querySelector('.countdown');
+      cdBox.style.cursor = 'pointer';
+      cdBox.addEventListener('click', () => location.href = '/mypage');
     }
+
+    // 서비스 카드 상태 동적 표시 (app · exam · jumprope만)
+    function setCardStatus(cardId, serviceKey) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      const st = card.querySelector('.status');
+      if (subscribedServices.includes(serviceKey)) {
+        st.textContent        = '이용중';
+        st.style.background   = 'rgba(76,175,80,0.25)';
+        st.style.color        = '#2e7d32';
+      } else if (inTrial) {
+        st.textContent        = '체험중';
+        st.style.background   = 'rgba(255,183,3,0.3)';
+        st.style.color        = '#7a5800';
+      } else {
+        st.textContent        = '시작하기';
+        st.style.background   = 'rgba(0,0,0,0.08)';
+        st.style.color        = '#555';
+      }
+    }
+    setCardStatus('cardApp',      'app');
+    setCardStatus('cardExam',     'exam');
+    setCardStatus('cardJumprope', 'jumprope');
+
   } catch (e) {
     console.error(e);
     document.getElementById('academyName').textContent = '내 학원';
