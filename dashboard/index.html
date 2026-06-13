@@ -360,25 +360,72 @@
     .nav-alarm-wrap{position:relative;display:inline-block;}
     #navDot{position:absolute;top:0;right:-1px;width:7px;height:7px;border-radius:50%;background:#ff2d55;display:none;border:1px solid #fff;}
     #navDot.show{display:block;}
-    /* ALARM SCREEN */
-    #alarmScreen{
-      display:none;position:fixed;
-      top:0;left:50%;transform:translateX(-50%);
-      width:100%;max-width:430px;
-      bottom:72px;background:#f4f7fb;
-      z-index:50;overflow-y:auto;
-      flex-direction:column;
+
+    /* ── ALARM MODAL (bottom sheet) ── */
+    .alarm-dim{
+      display:none;position:fixed;inset:0;
+      background:rgba(0,0,0,0.45);
+      backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+      z-index:100;
     }
-    #alarmScreen.show{display:flex;}
-    .alarm-back-btn{display:flex;align-items:center;gap:6px;padding:20px 22px 10px;font-size:15px;font-weight:700;color:#1d1d1f;cursor:pointer;background:none;border:none;font-family:inherit;}
-    .alarm-title-bar{padding:0 22px 16px;font-size:20px;font-weight:900;letter-spacing:-0.5px;}
-    .notice-item{background:#fff;border-radius:16px;margin:0 16px 10px;padding:16px 18px;box-shadow:0 2px 8px rgba(0,0,0,0.05);cursor:pointer;transition:transform 0.15s;border-left:4px solid transparent;}
-    .notice-item.unread{border-left-color:#ffb703;}
-    .notice-item:active{transform:scale(0.98);}
-    .notice-item-title{font-size:14px;font-weight:800;color:#1d1d1f;margin-bottom:4px;}
-    .notice-item-content{font-size:12px;color:#555;line-height:1.5;margin-bottom:6px;white-space:pre-wrap;}
-    .notice-item-date{font-size:11px;color:#aaa;}
-    .notice-empty{padding:60px 20px;text-align:center;color:#aaa;font-size:14px;}
+    .alarm-dim.show{display:block;}
+    .alarm-modal{
+      position:fixed;bottom:0;
+      left:50%;transform:translateX(-50%) translateY(100%);
+      width:100%;max-width:430px;
+      background:#fff;
+      border-radius:28px 28px 0 0;
+      z-index:101;
+      max-height:75vh;
+      display:flex;flex-direction:column;
+      transition:transform 0.35s cubic-bezier(0.32,0.72,0,1);
+      box-shadow:0 -8px 40px rgba(0,0,0,0.15);
+    }
+    .alarm-modal.show{transform:translateX(-50%) translateY(0);}
+    .alarm-handle-wrap{display:flex;justify-content:center;padding:12px 0 4px;flex-shrink:0;}
+    .alarm-handle{width:40px;height:4px;border-radius:2px;background:#e0e0e0;}
+    .alarm-modal-hdr{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:6px 20px 14px;flex-shrink:0;
+      border-bottom:1px solid #f0f0f0;
+    }
+    .alarm-modal-title{font-size:18px;font-weight:900;color:#1d1d1f;letter-spacing:-0.5px;}
+    .alarm-close-btn{
+      width:32px;height:32px;border-radius:50%;border:none;
+      background:#f4f4f4;color:#666;font-size:14px;font-weight:700;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      font-family:inherit;transition:background 0.15s;
+    }
+    .alarm-close-btn:hover{background:#e8e8e8;}
+    .alarm-list{overflow-y:auto;flex:1;padding:12px 16px 32px;}
+    /* notice cards */
+    .notice-card{
+      background:#fafafa;border-radius:16px;margin-bottom:10px;
+      padding:14px 16px 14px 24px;cursor:pointer;
+      transition:background 0.15s;position:relative;
+    }
+    .notice-card:hover{background:#f0f0f0;}
+    .notice-card:active{transform:scale(0.98);}
+    .notice-unread-dot{
+      position:absolute;left:10px;top:18px;
+      width:6px;height:6px;border-radius:50%;
+      background:#34C759;display:none;
+    }
+    .notice-card.unread .notice-unread-dot{display:block;}
+    .notice-card-title{font-size:14px;font-weight:800;color:#1d1d1f;margin-bottom:2px;}
+    .notice-card-date{font-size:11px;color:#bbb;margin-bottom:6px;}
+    .notice-card-preview{
+      font-size:12px;color:#888;line-height:1.4;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    .notice-card-full{
+      display:none;font-size:13px;color:#444;line-height:1.65;
+      margin-top:10px;padding-top:10px;border-top:1px solid #eee;
+      white-space:pre-wrap;
+    }
+    .notice-card.open .notice-card-preview{display:none;}
+    .notice-card.open .notice-card-full{display:block;}
+    .notice-empty{padding:52px 20px;text-align:center;color:#bbb;font-size:14px;}
   </style>
 </head>
 <body>
@@ -552,11 +599,17 @@
 
   </div>
 
-  <!-- ALARM SCREEN -->
-  <div id="alarmScreen">
-    <button class="alarm-back-btn" id="alarmBackBtn">← 뒤로</button>
-    <div class="alarm-title-bar">📢 알림</div>
-    <div id="alarmList"><div class="notice-empty">불러오는 중...</div></div>
+  <!-- ALARM MODAL: dim + bottom sheet -->
+  <div class="alarm-dim" id="alarmDim"></div>
+  <div class="alarm-modal" id="alarmModal">
+    <div class="alarm-handle-wrap"><div class="alarm-handle"></div></div>
+    <div class="alarm-modal-hdr">
+      <span class="alarm-modal-title">📢 공지사항</span>
+      <button class="alarm-close-btn" id="alarmCloseBtn">✕</button>
+    </div>
+    <div class="alarm-list" id="alarmList">
+      <div class="notice-empty">불러오는 중...</div>
+    </div>
   </div>
 
 <script type="module">
@@ -778,15 +831,20 @@ document.getElementById('cardSlowmo').addEventListener('click', () => {
 });
 
 document.getElementById('navAlarm').addEventListener('click', () => {
-  showAlarmScreen();
+  showAlarmModal();
 });
 
 document.getElementById('btnAlarm').addEventListener('click', () => {
-  showAlarmScreen();
+  showAlarmModal();
 });
 
-document.getElementById('alarmBackBtn').addEventListener('click', () => {
-  closeAlarmScreen();
+document.getElementById('alarmCloseBtn').addEventListener('click', () => {
+  closeAlarmModal();
+});
+
+// 딤 클릭으로 닫기
+document.getElementById('alarmDim').addEventListener('click', () => {
+  closeAlarmModal();
 });
 
 document.getElementById('quickLogout').addEventListener('click', async () => {
@@ -794,18 +852,18 @@ document.getElementById('quickLogout').addEventListener('click', async () => {
   location.href = '/login';
 });
 
-// ── 알림 화면 ─────────────────────────────────────────────────────
-function showAlarmScreen() {
-  document.getElementById('alarmScreen').classList.add('show');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('navAlarm').classList.add('active');
+// ── 알림 모달 ─────────────────────────────────────────────────────
+function showAlarmModal() {
+  document.getElementById('alarmDim').classList.add('show');
+  document.getElementById('alarmModal').classList.add('show');
+  document.body.style.overflow = 'hidden';
   loadAlarmNotices();
 }
 
-function closeAlarmScreen() {
-  document.getElementById('alarmScreen').classList.remove('show');
-  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-  document.getElementById('navHome').classList.add('active');
+function closeAlarmModal() {
+  document.getElementById('alarmDim').classList.remove('show');
+  document.getElementById('alarmModal').classList.remove('show');
+  document.body.style.overflow = '';
 }
 
 async function checkUnreadNotices(uid) {
@@ -833,7 +891,7 @@ async function loadAlarmNotices() {
       get(ref(db, `users/${_uid}/readNotices`)),
     ]);
     if (!nSnap.exists()) {
-      listEl.innerHTML = '<div class="notice-empty">📭 공지사항이 없습니다.</div>';
+      listEl.innerHTML = '<div class="notice-empty">📭 아직 공지사항이 없어요</div>';
       return;
     }
     const readSet = rSnap.exists() ? new Set(Object.keys(rSnap.val())) : new Set();
@@ -846,19 +904,25 @@ async function loadAlarmNotices() {
       if (isUnread) unread++;
       const d = new Date(n.createdAt || 0);
       const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
-      return `<div class="notice-item${isUnread ? ' unread' : ''}" data-id="${n.id}">
-        <div class="notice-item-title">${xss(n.title)}</div>
-        <div class="notice-item-content">${xss(n.content)}</div>
-        <div class="notice-item-date">${dateStr}</div>
+      const preview = xss((n.content || '').replace(/\n/g, ' '));
+      return `<div class="notice-card${isUnread ? ' unread' : ''}" data-id="${n.id}">
+        <div class="notice-unread-dot"></div>
+        <div class="notice-card-title">${xss(n.title)}</div>
+        <div class="notice-card-date">${dateStr}</div>
+        <div class="notice-card-preview">${preview}</div>
+        <div class="notice-card-full">${xss(n.content)}</div>
       </div>`;
     }).join('');
     updateBellDot(unread > 0);
 
-    listEl.querySelectorAll('.notice-item').forEach(el => {
-      el.addEventListener('click', () => markRead(el.dataset.id, el));
+    listEl.querySelectorAll('.notice-card').forEach(el => {
+      el.addEventListener('click', () => {
+        el.classList.toggle('open');
+        if (el.classList.contains('unread')) markRead(el.dataset.id, el);
+      });
     });
   } catch (e) {
-    listEl.innerHTML = '<div class="notice-empty">불러오기 실패</div>';
+    listEl.innerHTML = '<div class="notice-empty">아직 공지사항이 없습니다 🔔</div>';
   }
 }
 
@@ -867,7 +931,7 @@ async function markRead(id, el) {
   try {
     await set(ref(db, `users/${_uid}/readNotices/${id}`), true);
     el.classList.remove('unread');
-    const remaining = document.querySelectorAll('#alarmList .notice-item.unread').length;
+    const remaining = document.querySelectorAll('#alarmList .notice-card.unread').length;
     updateBellDot(remaining > 0);
   } catch (_) {}
 }
