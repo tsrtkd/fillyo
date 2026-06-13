@@ -897,8 +897,9 @@ async function loadAlarmNotices() {
       return;
     }
     const readSet = rSnap.exists() ? new Set(Object.keys(rSnap.val())) : new Set();
-    const notices = [];
-    nSnap.forEach(c => notices.unshift({ id: c.key, ...c.val() }));
+    const notices = Object.entries(nSnap.val())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
     let unread = 0;
     listEl.innerHTML = notices.map(n => {

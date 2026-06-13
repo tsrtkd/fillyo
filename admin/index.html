@@ -787,8 +787,9 @@ async function loadNotices() {
       el.innerHTML = `<div class="req-empty"><div class="req-empty-icon">📭</div><div class="req-empty-text">발송된 공지가 없습니다.</div></div>`;
       return;
     }
-    const list = [];
-    snap.forEach(c => list.unshift({ id: c.key, ...c.val() }));
+    const list = Object.entries(snap.val())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     el.innerHTML = list.map(n => `
       <div class="notice-item">
         <div class="notice-item-title">${esc(n.title)}</div>
