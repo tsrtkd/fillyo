@@ -29,27 +29,23 @@ html,body{
   height:100svh;       /* 브라우저 크롬 제외 정확한 높이 */
 }
 
-/* ── HEADER (portrait) ── */
-#hdr{
-  display:flex;align-items:center;gap:10px;padding:10px 14px;flex-shrink:0;
-  background:rgba(255,255,255,0.92);backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--border);
+/* ── PORTRAIT 미니 네비 (헤더 대체) ── */
+#ctrl-mini-nav{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-shrink:0;padding-bottom:4px;border-bottom:1px solid var(--border);
 }
-#hdr-logo{
-  font-size:17px;font-weight:900;letter-spacing:.1em;flex-shrink:0;
+#ctrl-mini-logo{
+  font-size:14px;font-weight:900;letter-spacing:.1em;
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
 }
-#hdr-center{flex:1;display:flex;flex-direction:column;align-items:center;gap:1px;}
-#hdr-ch{font-size:10px;font-weight:900;color:var(--text2);letter-spacing:.18em;}
-#hdr-st{font-size:9px;font-weight:700;color:var(--accent2);letter-spacing:.1em;}
-#hdr-right{display:flex;align-items:center;gap:6px;flex-shrink:0;}
-.hdr-btn{
+#ctrl-mini-home{
   background:linear-gradient(135deg,var(--accent),var(--accent2));
-  border:none;color:#fff;font-size:16px;cursor:pointer;
-  padding:6px 11px;border-radius:10px;font-weight:700;font-family:inherit;transition:all .15s;
+  border:none;color:#fff;font-size:14px;cursor:pointer;
+  padding:5px 9px;border-radius:8px;font-weight:700;font-family:inherit;transition:all .15s;
 }
-.hdr-btn:active{filter:brightness(.88);transform:scale(.94);}
+#ctrl-mini-home:active{filter:brightness(.88);transform:scale(.94);}
+/* Landscape에서는 미니 네비 숨김 */
 
 /* ── GRID WRAP ── */
 #grid-wrap{flex:1 1 auto;padding:8px;min-height:0;}
@@ -208,56 +204,67 @@ button{
 /* Status + footer: portrait hidden */
 #sb{display:none;}
 #ctrl-footer{display:none;}
+/* 홈 버튼 (ctrl-brand 내) */
+.ctrl-home-btn{
+  margin-left:auto;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  border:none;color:#fff;font-size:14px;cursor:pointer;
+  padding:5px 9px;border-radius:8px;font-weight:700;font-family:inherit;transition:all .15s;
+}
+.ctrl-home-btn:active{filter:brightness(.88);transform:scale(.94);}
 
 /* ── LANDSCAPE + 태블릿/PC: 좌측 그리드 + 우측 패널 ── */
 @media(orientation:landscape), (min-width:768px){
   #app{flex-direction:row;height:100vh;height:100svh;}
-  #hdr{display:none;}
   #grid-wrap{flex:1 1 auto;padding:10px 0 10px 10px;min-height:0;}
   #grid{height:100%;}
 
   #ctrl{
     flex-direction:column;flex-shrink:0;
     width:clamp(170px,23vw,220px);
-    justify-content:center;gap:14px;
-    padding:20px 16px;
+    /* justify-content 제거 → 내용 상단 정렬, #sb가 margin-top:auto로 하단 고정 */
+    gap:12px;
+    padding:16px 14px;
     border-top:none;border-left:1px solid var(--border);
     background:rgba(255,255,255,0.97);
+    overflow:hidden;
+    overflow-y:auto;
+    scrollbar-width:none;
   }
+  #ctrl::-webkit-scrollbar{display:none;}
 
-  #ctrl-brand{display:flex;align-items:center;gap:10px;}
-  .ctrl-star{font-size:20px;color:var(--accent);}
+  /* 미니 네비 숨김 (landscape는 ctrl-brand가 담당) */
+  #ctrl-mini-nav{display:none;}
 
-  #ctrl-title-block{display:block;}
+  #ctrl-brand{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+  .ctrl-star{font-size:18px;color:var(--accent);}
+
+  #ctrl-title-block{display:block;flex-shrink:0;}
   #ctrl-title{
-    font-size:21px;font-weight:900;color:var(--text);line-height:1.2;margin-bottom:3px;
+    font-size:20px;font-weight:900;color:var(--text);line-height:1.2;margin-bottom:3px;
     background:linear-gradient(135deg,var(--accent),var(--accent2));
     -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
   }
   #ctrl-sub{font-size:10px;color:var(--text2);font-weight:700;line-height:1.5;}
 
   .ctrl-sec-label{display:block;}
-  .ctrl-mid{flex-direction:column;align-items:stretch;gap:10px;}
+  .ctrl-mid{flex-direction:column;align-items:stretch;gap:10px;flex-shrink:0;}
   .ctrl-section{width:100%;}
   .slow-pills{width:100%;}
   .spill{flex:1;text-align:center;padding:6px 4px;font-size:10px;}
   .cg{width:100%;justify-content:space-between;}
 
-  .ctrl-btns{flex-direction:column;gap:8px;}
+  .ctrl-btns{flex-direction:column;gap:8px;flex-shrink:0;}
   #bstart,#bstop{max-width:100%;width:100%;padding:12px 8px;font-size:13px;}
 
+  /* 상태바: 하단 고정 */
   #sb{
-    display:block;font-size:9px;color:var(--text2);font-weight:700;
-    letter-spacing:.05em;text-align:center;
-    border-top:1px solid var(--border);padding-top:8px;line-height:1.8;
+    display:block;margin-top:auto;flex-shrink:0;
+    font-size:8px;color:var(--text2);font-weight:700;
+    letter-spacing:.04em;text-align:center;
+    border-top:1px solid var(--border);padding-top:8px;line-height:1.7;
   }
   #sb b{color:var(--accent);}
-
-  #ctrl-footer{
-    display:block;font-size:8px;color:var(--text2);font-weight:700;
-    text-align:center;letter-spacing:.07em;line-height:1.6;
-    border-top:1px solid var(--border);padding-top:8px;
-  }
 }
 
 /* ── COUNTDOWN ── */
@@ -296,18 +303,6 @@ button{
 <body>
 <div id="app">
 
-  <!-- HEADER (portrait only) -->
-  <header id="hdr">
-    <div id="hdr-logo">FILLYO</div>
-    <div id="hdr-center">
-      <span id="hdr-ch">8 CHANNELS</span>
-      <span id="hdr-st">● SYSTEM READY</span>
-    </div>
-    <div id="hdr-right">
-      <button class="hdr-btn" onclick="location.href='/dashboard/'">🏠</button>
-    </div>
-  </header>
-
   <!-- GRID -->
   <div id="grid-wrap">
     <div id="grid"></div>
@@ -316,10 +311,17 @@ button{
   <!-- CONTROL PANEL -->
   <div id="ctrl">
 
-    <!-- Landscape: brand block -->
+    <!-- Portrait: 미니 네비 (로고 + 🏠) -->
+    <div id="ctrl-mini-nav">
+      <span id="ctrl-mini-logo">FILLYO</span>
+      <button id="ctrl-mini-home" onclick="location.href='/dashboard/'">🏠</button>
+    </div>
+
+    <!-- Landscape: brand block (로고 + 별 + 🏠) -->
     <div id="ctrl-brand">
       <div class="fillyo-icon" onclick="location.href='/dashboard/'">FILL<br>YO</div>
       <span class="ctrl-star">✦</span>
+      <button class="ctrl-home-btn" onclick="location.href='/dashboard/'">🏠</button>
     </div>
 
     <!-- Landscape: title block -->
@@ -365,8 +367,6 @@ button{
     <!-- Live status (landscape visible, portrait hidden) -->
     <div id="sb">SLOT <b id="sl">—</b> &nbsp;·&nbsp; <b id="ph">IDLE</b> &nbsp;|&nbsp; CLIP <b id="cd">—</b>s &nbsp; SLOW <b id="sr">—</b>×</div>
 
-    <!-- Footer (landscape visible) -->
-    <div id="ctrl-footer">FILLYO · AI POWERED<br>CREATIVE SOLUTION</div>
 
   </div>
 </div>
