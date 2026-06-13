@@ -12,8 +12,8 @@
 body{font-family:"Noto Sans KR",sans-serif;background:#f0f2f5;color:#1a1a2e;min-height:100vh}
 .wrap{max-width:1100px;margin:0 auto;padding:16px}
 h1{font-size:22px;font-weight:900;color:#0B7B6B;margin-bottom:16px;text-align:center}
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.tab{flex:1;padding:10px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;color:#666;transition:.2s}
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:#fff;border-radius:12px;padding:6px;box-shadow:0 2px 8px rgba(0,0,0,.08);overflow-x:auto;-webkit-overflow-scrolling:touch;white-space:nowrap;flex-wrap:nowrap}
+.tab{flex:1;flex-shrink:0;padding:10px;border:none;background:transparent;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;color:#666;transition:.2s}
 .tab.on{background:#0B7B6B;color:#fff}
 .card{background:#fff;border-radius:12px;padding:20px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
 .section{display:none}.section.on{display:block}
@@ -29,6 +29,12 @@ input:focus,select:focus{border-color:#0B7B6B}
 .btn-sm{padding:6px 14px;font-size:12px}
 .btn-blue{background:#1565C0;color:#fff}.btn-blue:hover{background:#1976D2}
 .btn-orange{background:#E65100;color:#fff}.btn-orange:hover{background:#BF360C}
+@media (max-width:480px){
+  .fr{flex-wrap:wrap}
+  .fr>div{min-width:0}
+  table{font-size:12px}
+  table th,table td{padding:6px 4px}
+}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th{background:#f5f5f5;padding:10px 8px;text-align:center;font-weight:700;font-size:12px;color:#555;border-bottom:2px solid #e0e0e0}
 td{padding:10px 8px;text-align:center;border-bottom:1px solid #f0f0f0}
@@ -78,6 +84,20 @@ tr:hover td{background:#f0faf8}
 
   <!-- 학생 관리 -->
   <div id="sec-students" class="section on">
+    <div id="students-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 0 4px">
+      <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:12px 8px;text-align:center">
+        <div id="stat-total" style="font-size:22px;font-weight:800;color:#0B7B6B">0</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">전체</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:12px 8px;text-align:center">
+        <div id="stat-special" style="font-size:22px;font-weight:800;color:#7c3aed">0</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">특급</div>
+      </div>
+      <div style="background:#fff;border-radius:10px;border:1px solid #e2e8f0;padding:12px 8px;text-align:center">
+        <div id="stat-basic" style="font-size:22px;font-weight:800;color:#2563eb">0</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">기본급</div>
+      </div>
+    </div>
     <div class="card">
       <div class="fr">
         <div><div class="lbl">이름</div><input type="text" id="s-name" placeholder="홍길동" style="width:110px"></div>
@@ -354,6 +374,12 @@ function renderStudents() {
     <td><span class="badge ${bCls(s.level)}">${s.level}</span></td>
     <td><button class="btn btn-gray btn-sm" onclick="openEdit(${s.id})" style="margin-right:4px">✏️ 수정</button><button class="btn btn-r btn-sm" onclick="delStudent(${s.id})">삭제</button></td>
   </tr>`).join('');
+  const total = students.length;
+  const special = students.filter(s => s.level && s.level.startsWith('특')).length;
+  const basic = students.filter(s => s.level && !s.level.startsWith('특') && s.level !== '미평가').length;
+  document.getElementById('stat-total').textContent = total;
+  document.getElementById('stat-special').textContent = special;
+  document.getElementById('stat-basic').textContent = basic;
 }
 window.renderStudents = renderStudents;
 
