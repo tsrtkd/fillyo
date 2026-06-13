@@ -570,15 +570,14 @@ onAuthStateChanged(auth, async (user) => {
       document.getElementById('academyName').textContent = '내 학원';
     }
 
-    // 무료 체험 trialStart 처리
-    let trialStart = userData.trialStart || userData.createdAt || null;
+    // 무료 체험 trialStart 처리 (createdAt은 형식이 달라 사용 안 함)
+    let trialStart = userData.trialStart || null;
     if (planType !== 'pro' && !trialStart) {
       trialStart = Date.now();
       await set(ref(db, `users/${user.uid}/trialStart`), trialStart);
     }
-    const trialDaysLeft = trialStart
-      ? Math.max(0, 7 - Math.floor((Date.now() - trialStart) / 86400000))
-      : 7;
+    const rawDaysUsed  = trialStart ? Math.floor((Date.now() - trialStart) / 86400000) : 0;
+    const trialDaysLeft = Math.min(7, Math.max(0, 7 - rawDaysUsed));
     const inTrial = planType !== 'pro' && trialDaysLeft > 0;
 
     // 플랜 배지
