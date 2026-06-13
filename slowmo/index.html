@@ -21,8 +21,13 @@ html,body{
   color:var(--text);
 }
 
-/* ── APP ── */
-#app{display:flex;flex-direction:column;width:100vw;height:100vh;}
+/* ── APP — 모바일 safe viewport 대응 ── */
+#app{
+  display:flex;flex-direction:column;
+  width:100vw;
+  height:100vh;        /* fallback */
+  height:100svh;       /* 브라우저 크롬 제외 정확한 높이 */
+}
 
 /* ── HEADER (portrait) ── */
 #hdr{
@@ -62,7 +67,7 @@ html,body{
   border:2.5px solid transparent;
   transition:border-color .2s,box-shadow .2s;
 }
-/* Colorful idle borders — declared BEFORE .recording/.playing so state rules take priority */
+/* Colorful idle borders — BEFORE .recording/.playing so state rules override */
 .cell:nth-child(1){border-color:#FF6B6B;}
 .cell:nth-child(2){border-color:#FF9F43;}
 .cell:nth-child(3){border-color:#FFC312;}
@@ -109,6 +114,23 @@ html,body{
 }
 .cell.recording .cprog{background:var(--red);}
 
+/* ── 저장 버튼 (셀 오버레이) ── */
+.csave{
+  display:none;                              /* 기본 숨김 */
+  position:absolute;bottom:10px;left:50%;
+  transform:translateX(-50%);
+  background:rgba(123,97,255,0.88);
+  backdrop-filter:blur(6px);
+  color:#fff;border:none;border-radius:20px;
+  padding:5px 14px;font-size:10px;font-weight:700;
+  font-family:'Space Mono',monospace;
+  cursor:pointer;z-index:5;white-space:nowrap;
+  touch-action:manipulation;transition:all .15s;
+  box-shadow:0 2px 8px rgba(123,97,255,.4);
+}
+.cell.playing .csave{display:block;}        /* 재생 중일 때만 표시 */
+.csave:active{filter:brightness(.82);transform:translateX(-50%) scale(.94);}
+
 /* ── FILLYO ICON ── */
 .fillyo-icon{
   background:linear-gradient(135deg,var(--accent),var(--accent2));
@@ -118,43 +140,44 @@ html,body{
   color:#fff;flex-shrink:0;cursor:pointer;
 }
 
-/* ── CONTROL PANEL (portrait) ── */
+/* ── CONTROL PANEL (portrait: 컴팩트 고정 하단 바) ── */
 #ctrl{
-  display:flex;flex-direction:column;gap:8px;
-  flex-shrink:0;padding:10px 14px 10px;
-  background:rgba(255,255,255,0.94);
+  display:flex;flex-direction:column;gap:6px;
+  flex-shrink:0;padding:8px 12px 10px;
+  background:rgba(255,255,255,0.96);
   border-top:1px solid var(--border);
+  /* 내용이 넘쳐도 ctrl 자체 크기는 유지 */
 }
 #ctrl-brand{display:none;}
 #ctrl-title-block{display:none;}
 
-.ctrl-mid{display:flex;align-items:flex-start;justify-content:center;gap:10px;}
-.ctrl-section{display:flex;flex-direction:column;gap:4px;}
-.ctrl-sec-label{
-  font-size:9px;font-weight:900;color:var(--text2);letter-spacing:.2em;margin-bottom:2px;
-}
+/* Portrait: MODE + SPEED 한 줄, 라벨 숨김 */
+.ctrl-mid{display:flex;align-items:center;justify-content:center;gap:8px;}
+.ctrl-section{display:flex;flex-direction:column;gap:2px;}
+.ctrl-sec-label{display:none;font-size:9px;font-weight:900;color:var(--text2);letter-spacing:.2em;}
+
 .cg{
-  display:flex;align-items:center;gap:6px;
+  display:flex;align-items:center;gap:5px;
   background:#f0eeff;border:1.5px solid #d8d0ff;
-  border-radius:14px;padding:6px 10px;
+  border-radius:14px;padding:5px 9px;
 }
 .cg label{font-size:10px;color:var(--text2);font-weight:700;}
-.cg-icon{font-size:14px;}
+.cg-icon{font-size:13px;}
 input[type=number]{
   background:transparent;border:none;color:var(--accent);
-  font-family:'Space Mono',monospace;font-size:14px;font-weight:900;
-  width:28px;text-align:center;padding:0;-moz-appearance:textfield;
+  font-family:'Space Mono',monospace;font-size:13px;font-weight:900;
+  width:26px;text-align:center;padding:0;-moz-appearance:textfield;
 }
 input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button{opacity:1;height:16px;}
+input[type=number]::-webkit-outer-spin-button{opacity:1;height:14px;}
 input[type=number]:focus{outline:none;}
 
 .slow-pills{
   display:flex;gap:3px;
-  background:#f0eeff;border:1.5px solid #d8d0ff;border-radius:14px;padding:4px;
+  background:#f0eeff;border:1.5px solid #d8d0ff;border-radius:14px;padding:3px;
 }
 .spill{
-  padding:5px 11px;border-radius:10px;font-size:11px;font-weight:700;
+  padding:5px 10px;border-radius:10px;font-size:11px;font-weight:700;
   font-family:'Space Mono',monospace;color:var(--text2);cursor:pointer;
   transition:all .15s;border:none;background:transparent;touch-action:manipulation;
 }
@@ -171,31 +194,31 @@ button{
 #bstart{
   background:linear-gradient(135deg,var(--accent),var(--accent2));
   color:#fff;border-radius:20px;font-size:14px;font-weight:900;letter-spacing:.1em;
-  padding:13px 0;flex:1;max-width:200px;
+  padding:12px 0;flex:1;max-width:220px;
   box-shadow:0 4px 16px rgba(123,97,255,.28);
 }
 #bstart:hover{filter:brightness(1.1);transform:translateY(-1px);box-shadow:var(--glow);}
 #bstop{
   background:transparent;color:var(--red);border:2px solid var(--red);
   border-radius:20px;font-size:14px;font-weight:900;letter-spacing:.1em;
-  padding:11px 0;display:none;flex:1;max-width:200px;
+  padding:10px 0;display:none;flex:1;max-width:220px;
 }
 #bstop:hover{background:var(--red);color:#fff;}
 
-/* Status + footer: portrait hidden, landscape visible */
+/* Status + footer: portrait hidden */
 #sb{display:none;}
 #ctrl-footer{display:none;}
 
-/* ── LANDSCAPE ── */
-@media(orientation:landscape){
-  #app{flex-direction:row;}
+/* ── LANDSCAPE + 태블릿/PC: 좌측 그리드 + 우측 패널 ── */
+@media(orientation:landscape), (min-width:768px){
+  #app{flex-direction:row;height:100vh;height:100svh;}
   #hdr{display:none;}
   #grid-wrap{flex:1 1 auto;padding:10px 0 10px 10px;min-height:0;}
   #grid{height:100%;}
 
   #ctrl{
     flex-direction:column;flex-shrink:0;
-    width:clamp(170px,23vw,215px);
+    width:clamp(170px,23vw,220px);
     justify-content:center;gap:14px;
     padding:20px 16px;
     border-top:none;border-left:1px solid var(--border);
@@ -213,6 +236,7 @@ button{
   }
   #ctrl-sub{font-size:10px;color:var(--text2);font-weight:700;line-height:1.5;}
 
+  .ctrl-sec-label{display:block;}
   .ctrl-mid{flex-direction:column;align-items:stretch;gap:10px;}
   .ctrl-section{width:100%;}
   .slow-pills{width:100%;}
@@ -304,7 +328,7 @@ button{
       <div id="ctrl-sub">창의적인 결과를<br>만들어보세요</div>
     </div>
 
-    <!-- MODE + SPEED (row in portrait, column in landscape) -->
+    <!-- MODE + SPEED -->
     <div class="ctrl-mid">
       <div class="ctrl-section">
         <div class="ctrl-sec-label">MODE</div>
@@ -391,11 +415,14 @@ for(let i=0;i<TOTAL;i++){
     <span class="cst"><span class="rdot"></span><span class="stx">IDLE</span></span>
     <video class="sv" playsinline muted></video>
     <video class="lv" playsinline muted style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2"></video>
-    <div class="cprog"></div>`;
+    <div class="cprog"></div>
+    <button class="csave">💾 저장</button>`;
   gridEl.appendChild(c);
   cells.push(c);
   vids.push(c.querySelector('.sv'));
   prevs.push(c.querySelector('.lv'));
+  // 저장 버튼 이벤트 (클로저로 인덱스 고정)
+  (function(idx){ c.querySelector('.csave').addEventListener('click',()=>saveSlot(idx)); })(i);
 }
 
 function setState(i,s){
@@ -535,6 +562,20 @@ function getMime(){
   for(const t of['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm','video/mp4'])
     if(MediaRecorder.isTypeSupported(t))return t;
   return '';
+}
+
+// ── 영상 저장 ─────────────────────────────────────────────────────────
+function saveSlot(i){
+  if(!blobs[i])return;
+  const ext=blobs[i].type.includes('mp4')?'mp4':'webm';
+  const url=URL.createObjectURL(blobs[i]);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=`fillyo_slowmo_${i+1}_${Date.now()}.${ext}`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
 }
 
 // ── Bind buttons ─────────────────────────────────────────────────────
