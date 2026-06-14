@@ -569,7 +569,7 @@ async function saveSlot(i){
   const ext = blobs[i].type.includes('mp4') ? 'mp4' : 'webm';
   const mime = blobs[i].type.includes('mp4') ? 'video/mp4' : 'video/webm';
 
-  showToast ? showToast('슬로우모션 저장 중... 잠시만 기다려주세요', 'ok') : null;
+  if (typeof showToast === 'function') showToast('슬로우모션 저장 중... 잠시만 기다려주세요', 'ok');
 
   // 원본 영상을 느린 속도로 재생하면서 canvas로 재녹화
   const srcUrl = URL.createObjectURL(blobs[i]);
@@ -623,7 +623,7 @@ async function saveSlot(i){
   document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url), 3000);
 
-  showToast ? showToast('슬로우모션 저장 완료!', 'ok') : null;
+  if (typeof showToast === 'function') showToast('슬로우모션 저장 완료!', 'ok');
 }
 
 // ── Bind buttons ─────────────────────────────────────────────────────
