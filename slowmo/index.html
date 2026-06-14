@@ -564,17 +564,66 @@ function getMime(){
 }
 
 // ── 영상 저장 ─────────────────────────────────────────────────────────
-function saveSlot(i){
-  if(!blobs[i])return;
-  const ext=blobs[i].type.includes('mp4')?'mp4':'webm';
-  const url=URL.createObjectURL(blobs[i]);
-  const a=document.createElement('a');
-  a.href=url;
-  a.download=`fillyo_slowmo_${i+1}_${Date.now()}.${ext}`;
+async function saveSlot(i){
+  if(!blobs[i]) return;
+  const ext = blobs[i].type.includes('mp4') ? 'mp4' : 'webm';
+  const mime = blobs[i].type.includes('mp4') ? 'video/mp4' : 'video/webm';
+
+  showToast ? showToast('슬로우모션 저장 중... 잠시만 기다려주세요', 'ok') : null;
+
+  // 원본 영상을 느린 속도로 재생하면서 canvas로 재녹화
+  const srcUrl = URL.createObjectURL(blobs[i]);
+  const tempVideo = document.createElement('video');
+  tempVideo.src = srcUrl;
+  tempVideo.muted = true;
+  tempVideo.playbackRate = slowRate;
+
+  await new Promise(res => { tempVideo.onloadedmetadata = res; });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = tempVideo.videoWidth;
+  canvas.height = tempVideo.videoHeight;
+  const ctx = canvas.getContext('2d');
+
+  const canvasStream = canvas.captureStream(30);
+  let recMime = '';
+  for (const t of ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']) {
+    if (MediaRecorder.isTypeSupported(t)) { recMime = t; break; }
+  }
+  const recorder = new MediaRecorder(canvasStream, recMime ? {mimeType: recMime} : {});
+  const outChunks = [];
+  recorder.ondataavailable = e => { if(e.data && e.data.size > 0) outChunks.push(e.data); };
+
+  const drawFrame = () => {
+    if (!tempVideo.paused && !tempVideo.ended) {
+      ctx.drawImage(tempVideo, 0, 0, canvas.width, canvas.height);
+      requestAnimationFrame(drawFrame);
+    }
+  };
+
+  await new Promise((resolve) => {
+    recorder.onstop = resolve;
+    tempVideo.onended = () => recorder.stop();
+    tempVideo.play().then(() => {
+      recorder.start();
+      drawFrame();
+    });
+  });
+
+  URL.revokeObjectURL(srcUrl);
+
+  const outBlob = new Blob(outChunks, {type: recMime || mime});
+  const outExt = outBlob.type.includes('mp4') ? 'mp4' : 'webm';
+  const url = URL.createObjectURL(outBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `fillyo_slowmo_${i+1}_${Date.now()}.${outExt}`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),3000);
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+
+  showToast ? showToast('슬로우모션 저장 완료!', 'ok') : null;
 }
 
 // ── Bind buttons ─────────────────────────────────────────────────────
