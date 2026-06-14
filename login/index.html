@@ -115,6 +115,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
       <input type="email" id="signupEmail" placeholder="example@email.com" required>
     </div>
     <div class="field">
+      <label>휴대폰번호</label>
+      <input type="tel" id="signupPhone" placeholder="휴대폰번호 (010-0000-0000)" required>
+    </div>
+    <div class="field">
       <label>비밀번호 (6자 이상)</label>
       <input type="password" id="signupPw" placeholder="비밀번호 입력" required minlength="6">
     </div>
@@ -151,6 +155,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
 
 <div class="auth-footer">
   서비스 이용약관 · 개인정보처리방침<br>
+  수집 항목: 이메일, 휴대폰번호 / 목적: 서비스 안내 및 고객지원<br>
   <a href="https://fillyo.kr">fillyo.kr</a>
 </div>
 
@@ -259,8 +264,20 @@ window.doSignup = async (e) => {
   e.preventDefault();
   clearErrors();
   const email = document.getElementById('signupEmail').value.trim();
+  const phone = document.getElementById('signupPhone').value.trim();
   const pw    = document.getElementById('signupPw').value;
   const pw2   = document.getElementById('signupPw2').value;
+
+  if (!phone) {
+    document.getElementById('signupPhone').classList.add('err');
+    showErr('signupErr', '휴대폰번호를 입력해주세요.');
+    return;
+  }
+  if (!/^[0-9-]{9,13}$/.test(phone)) {
+    document.getElementById('signupPhone').classList.add('err');
+    showErr('signupErr', '올바른 휴대폰번호 형식이 아닙니다 (예: 010-1234-5678).');
+    return;
+  }
 
   if (pw !== pw2) {
     document.getElementById('signupPw2').classList.add('err');
@@ -273,6 +290,7 @@ window.doSignup = async (e) => {
     const cred = await createUserWithEmailAndPassword(auth, email, pw);
     await set(ref(db, `users/${cred.user.uid}`), {
       email,
+      phone,
       planType:    selectedPlan,
       planExpiry:  selectedPlan === 'pro' ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
       createdAt:   Date.now(),
