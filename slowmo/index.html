@@ -297,6 +297,7 @@ button{
   color:#fff;margin-top:6px;
   padding:10px 24px;border-radius:8px;font-size:13px;letter-spacing:.08em;
 }
+@keyframes saveSpin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
 </style>
 </head>
 <body>
@@ -570,6 +571,8 @@ async function saveSlot(i){
   const mime = blobs[i].type.includes('mp4') ? 'video/mp4' : 'video/webm';
 
   if (typeof showToast === 'function') showToast('슬로우모션 저장 중... 잠시만 기다려주세요', 'ok');
+  const saveOv = document.getElementById('saveOverlay');
+  if (saveOv) saveOv.style.display = 'flex';
 
   // 원본 영상을 느린 속도로 재생하면서 canvas로 재녹화
   const srcUrl = URL.createObjectURL(blobs[i]);
@@ -624,6 +627,7 @@ async function saveSlot(i){
   setTimeout(()=>URL.revokeObjectURL(url), 3000);
 
   if (typeof showToast === 'function') showToast('슬로우모션 저장 완료!', 'ok');
+  if (saveOv) saveOv.style.display = 'none';
 }
 
 // ── Bind buttons ─────────────────────────────────────────────────────
@@ -692,5 +696,10 @@ onAuthStateChanged(_auth, async (user) => {
   btn.style.cursor  = '';
 });
 </script>
+<div id="saveOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.75);z-index:9999;flex-direction:column;align-items:center;justify-content:center;color:#fff;">
+  <div style="width:48px;height:48px;border:4px solid rgba(255,255,255,0.3);border-top-color:#0B7B6B;border-radius:50%;animation:saveSpin 1s linear infinite;"></div>
+  <div style="margin-top:16px;font-size:15px;font-weight:600;">슬로우모션 저장 중...</div>
+  <div style="margin-top:6px;font-size:12px;color:rgba(255,255,255,0.6);">잠시만 기다려주세요</div>
+</div>
 </body>
 </html>
