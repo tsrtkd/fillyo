@@ -314,6 +314,8 @@ let scoringStudentId = null, scoringResult = null;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function nextLevel(current) {
+  // 숫자로 저장된 경우 문자열로 변환 (예: 10 → '10급', 9 → '9급')
+  if (typeof current === 'number') current = current + '급';
   if (!current || current === '미평가' || !LEVEL.includes(current)) return LEVEL[0];
   const idx = LEVEL.indexOf(current);
   return idx === LEVEL.length - 1 ? null : LEVEL[idx + 1];
@@ -524,7 +526,6 @@ function renderEvalList() {
   function card(s, isDone) {
     const nxt = nextLevel(s.level);
     const res = getSessionResult(session, s.id);
-    console.log('[debug] s.name:', s.name, '| s.level:', s.level, '| nxt:', nxt);
     return `<div class="student-eval-card${isDone ? ' done' : ''}" ${isDone ? '' : `onclick="openScoring(${s.id})"`}>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
