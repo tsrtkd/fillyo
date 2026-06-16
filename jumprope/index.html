@@ -524,6 +524,7 @@ function renderEvalList() {
   function card(s, isDone) {
     const nxt = nextLevel(s.level);
     const res = getSessionResult(session, s.id);
+    console.log('[debug] s.name:', s.name, '| s.level:', s.level, '| nxt:', nxt);
     return `<div class="student-eval-card${isDone ? ' done' : ''}" ${isDone ? '' : `onclick="openScoring(${s.id})"`}>
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
