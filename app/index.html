@@ -315,7 +315,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <span class="hdr-program">업무일지</span>
       </div>
       <div class="hdr-btns">
-        <span id="autoSaveIndicator" style="font-size:11px;color:#0B7B6B;opacity:0;transition:opacity 0.5s;margin-right:8px;font-weight:600;">✓ 저장됨</span>
         <button class="hb" id="saveTopBtn" onclick="saveDay()" title="저장">💾</button>
         <button class="hb" onclick="location.href='../dashboard/index.html'">🏠</button>
         <button class="hb" id="notifBtn" onclick="toggleNotifPanel()">
@@ -637,6 +636,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </div>
 
 <div class="toast" id="toast"></div>
+<div id="autoSaveIndicator" style="position:fixed;bottom:70px;right:16px;background:#0B7B6B;color:white;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:600;opacity:0;transition:opacity 0.5s;z-index:9999;">✓ 저장됨</div>
 
 <div class="modal-bg hidden" id="confirmModal">
   <div class="modal-box">
