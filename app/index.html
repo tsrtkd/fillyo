@@ -948,13 +948,19 @@ function loadCurrentDay() {
 let autoSaveTimer = null;
 function triggerAutoSave() {
   clearTimeout(autoSaveTimer);
+  // 저장됨 표시를 입력 중 상태로
+  const indicator = document.getElementById('autoSaveIndicator');
+  if (indicator) { indicator.style.opacity = '0'; }
   autoSaveTimer = setTimeout(async () => {
     await saveDay(true);
   }, 2500);
 }
 
 window.saveDay = async (isAuto = false) => {
-  if (!isOnline) { showToast('오프라인 상태입니다. 연결 후 저장해주세요.'); return; }
+  if (!isOnline) {
+    if (!isAuto) showToast('오프라인 상태입니다. 온라인 연결 후 저장해주세요.');
+    return;
+  }
   const btn = document.getElementById('saveBtn'), txt = document.getElementById('saveBtnTxt');
   if (!isAuto) { btn.className = 'save-btn saving'; txt.textContent = '저장 중...'; }
   const key = dateKey(currentDate);
@@ -978,6 +984,7 @@ window.saveDay = async (isAuto = false) => {
     // 저장됨 표시
     const indicator = document.getElementById('autoSaveIndicator');
     if (indicator) {
+      indicator.textContent = '✓ 저장됨';
       indicator.style.opacity = '1';
       setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
     }
