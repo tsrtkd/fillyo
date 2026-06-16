@@ -314,7 +314,7 @@ let scoringStudentId = null, scoringResult = null;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function nextLevel(current) {
-  if (!current || current === '미평가' || !LEVEL.includes(current)) return '10급';
+  if (!current || current === '미평가' || !LEVEL.includes(current)) return LEVEL[0];
   const idx = LEVEL.indexOf(current);
   return idx === LEVEL.length - 1 ? null : LEVEL[idx + 1];
 }
@@ -832,6 +832,8 @@ onAuthStateChanged(auth, async (user) => {
     }
     const studSnap = await get(ref(db, `academies/${academyId}/jumprope/students`));
     students = studSnap.exists() ? studSnap.val() : [];
+    if (!Array.isArray(students)) students = Object.values(students).filter(Boolean);
+    students.forEach(s => { if (!s.level) s.level = '미평가'; });
     idCnt = students.length ? Math.max(...students.map(s => s.id)) : 0;
 
     const histSnap = await get(ref(db, `academies/${academyId}/jumprope/evalHistory`));
