@@ -314,10 +314,11 @@ let scoringStudentId = null, scoringResult = null;
 
 // ── Helpers ──────────────────────────────────────────────────────────
 function nextLevel(current) {
-  // 숫자로 저장된 경우 문자열로 변환 (예: 10 → '10급', 9 → '9급')
-  if (typeof current === 'number') current = current + '급';
-  if (!current || current === '미평가' || !LEVEL.includes(current)) return LEVEL[0];
-  const idx = LEVEL.indexOf(current);
+  if (current === null || current === undefined) return LEVEL[0];
+  const str = String(current).trim();
+  const withSuffix = str.endsWith('급') ? str : str + '급';
+  if (withSuffix === '미평가급' || !LEVEL.includes(withSuffix)) return LEVEL[0];
+  const idx = LEVEL.indexOf(withSuffix);
   return idx === LEVEL.length - 1 ? null : LEVEL[idx + 1];
 }
 function bCls(lv) {
@@ -467,11 +468,12 @@ function renderEvalSetup() {
   if (!di.value) di.value = today;
   document.getElementById('eval-setup-students').innerHTML = students.map(s => {
     const nxt = nextLevel(s.level);
+    const lvDisp = (s.level === null || s.level === undefined) ? '미평가' : (String(s.level).endsWith('급') ? s.level : s.level + '급');
     return `<tr>
       <td><input type="checkbox" class="eval-student-check" value="${s.id}" checked></td>
       <td style="font-weight:700;text-align:left">${s.name}</td>
       <td>${s.grade}학년</td>
-      <td><span class="badge ${bCls(s.level)}">${s.level}</span></td>
+      <td><span class="badge ${bCls(lvDisp)}">${lvDisp}</span></td>
       <td>${nxt ? `<span class="badge ${bCls(nxt)}">${nxt}</span>` : '<span style="font-size:11px;color:#aaa">최상위</span>'}</td>
     </tr>`;
   }).join('');
