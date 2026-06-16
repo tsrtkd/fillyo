@@ -411,10 +411,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
 
-    <div class="sec"><div class="sec-hd red">⚡ 특이사항</div><textarea class="ta" id="taEvent" placeholder="오늘의 특이사항을 입력하세요..." style="min-height:52px;max-height:64px;" oninput="triggerAutoSave()"></textarea></div>
-    <div class="sec"><div class="sec-hd navy">💬 회의 내용</div><textarea class="ta" id="taMtg" placeholder="회의 내용을 입력하세요..." style="min-height:140px;" oninput="triggerAutoSave()"></textarea></div>
-    <div class="sec"><div class="sec-hd teal">📚 교육 내용</div><textarea class="ta" id="taEdu" placeholder="오늘의 교육 내용을 입력하세요..." oninput="triggerAutoSave()"></textarea></div>
-    <div class="sec"><div class="sec-hd purple">🤝 상담 내용</div><textarea class="ta" id="taCons" placeholder="상담 내용을 입력하세요..." oninput="triggerAutoSave()"></textarea></div>
+    <div class="sec"><div class="sec-hd red">⚡ 특이사항</div><textarea class="ta" id="taEvent" placeholder="오늘의 특이사항을 입력하세요..." style="min-height:52px;max-height:64px;"></textarea></div>
+    <div class="sec"><div class="sec-hd navy">💬 회의 내용</div><textarea class="ta" id="taMtg" placeholder="회의 내용을 입력하세요..." style="min-height:140px;"></textarea></div>
+    <div class="sec"><div class="sec-hd teal">📚 교육 내용</div><textarea class="ta" id="taEdu" placeholder="오늘의 교육 내용을 입력하세요..."></textarea></div>
+    <div class="sec"><div class="sec-hd purple">🤝 상담 내용</div><textarea class="ta" id="taCons" placeholder="상담 내용을 입력하세요..."></textarea></div>
 
     <div class="sec">
       <div class="sec-hd blue">📋 출석 인원 (부별)</div>
@@ -437,9 +437,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="sec">
       <div class="sec-hd navy">📋 오늘 변동 명단</div>
       <div class="mgr-row">
-        <div class="mgr-item"><span class="mgr-lbl">입 관</span><input class="mgr-inp" id="mgrIn" placeholder="이름 (쉼표로 구분)" oninput="triggerAutoSave()"></div>
-        <div class="mgr-item"><span class="mgr-lbl">복 관</span><input class="mgr-inp" id="mgrRe" placeholder="이름 (쉼표로 구분)" oninput="triggerAutoSave()"></div>
-        <div class="mgr-item"><span class="mgr-lbl">휴·퇴관</span><input class="mgr-inp" id="mgrOut" placeholder="이름 (쉼표로 구분)" oninput="triggerAutoSave()"></div>
+        <div class="mgr-item"><span class="mgr-lbl">입 관</span><input class="mgr-inp" id="mgrIn" placeholder="이름 (쉼표로 구분)"></div>
+        <div class="mgr-item"><span class="mgr-lbl">복 관</span><input class="mgr-inp" id="mgrRe" placeholder="이름 (쉼표로 구분)"></div>
+        <div class="mgr-item"><span class="mgr-lbl">휴·퇴관</span><input class="mgr-inp" id="mgrOut" placeholder="이름 (쉼표로 구분)"></div>
       </div>
     </div>
 
@@ -844,7 +844,7 @@ function buildAttTable() {
     div.style.cssText = `text-align:center;padding:10px 4px;border-right:1px solid #F0F4F8;`;
     if (i === BU_LABELS.length - 1) div.style.borderRight = 'none';
     div.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px;">${lbl}</div>
-      <input type="number" id="att_${i}" min="0" value="0" oninput="updateTotals();triggerAutoSave()"
+      <input type="number" id="att_${i}" min="0" value="0" oninput="updateTotals()"
         style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:6px 2px;font-size:18px;font-weight:900;font-family:inherit;text-align:center;color:var(--blue);background:#F8FBFF;">`;
     wrap.appendChild(div);
   });
@@ -942,11 +942,17 @@ function loadCurrentDay() {
   renderVehicleTodayCard();
   updateTotals();
   isDirty = false;
+  // 자동저장 이벤트 리스너 등록
+  const autoSaveFields = ['taEvent','taMtg','taEdu','taCons','mgrIn','mgrRe','mgrOut'];
+  autoSaveFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', triggerAutoSave);
+  });
 }
 
 // 자동저장 debounce
 let autoSaveTimer = null;
-window.triggerAutoSave = function() {
+function triggerAutoSave() {
   clearTimeout(autoSaveTimer);
   // 저장됨 표시를 입력 중 상태로
   const indicator = document.getElementById('autoSaveIndicator');
