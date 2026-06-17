@@ -782,7 +782,16 @@ function startApp() {
   renderInlineCal();
   renderNotifList();
   initFirebase();
-  document.getElementById('viewDaily').addEventListener('input', () => { isDirty = true; });
+  document.getElementById('viewDaily').addEventListener('input', (e) => {
+    // 자동저장 대상 필드는 isDirty를 건드리지 않음 (자동저장이 처리)
+    if (e.target.id && (
+      e.target.id.startsWith('att_') ||
+      e.target.id.startsWith('absN_') ||
+      e.target.id.startsWith('absR_') ||
+      ['taEvent','taMtg','taEdu','taCons','mgrIn','mgrRe','mgrOut'].includes(e.target.id)
+    )) return;
+    isDirty = true;
+  });
 }
 
 // ── Firebase 실시간 연결 ───────────────────────────────────────────
@@ -959,6 +968,7 @@ window.triggerAutoSave = function() {
   if (indicator) { indicator.style.opacity = '0'; }
   autoSaveTimer = setTimeout(async () => {
     await saveDay(true);
+    isDirty = false;
   }, 2500);
 }
 
