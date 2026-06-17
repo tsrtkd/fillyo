@@ -194,6 +194,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .invite-btn{background:var(--navy);color:white;border:none;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;white-space:nowrap;}
 .invite-hint{font-size:11px;color:var(--gray);margin-top:8px;line-height:1.6;}
 .logout-btn{width:100%;padding:14px;background:#FFEBEE;color:var(--red);border:none;border-radius:12px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;margin-top:4px;}
+.sett-title{background:var(--navy);color:white;padding:10px 14px;font-size:13px;font-weight:700;}
+.sett-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px;padding:0 16px;}
+.sett-label{font-size:14px;font-weight:600;color:#333;min-width:90px;padding-top:6px;}
+.sett-ctrl{display:flex;flex-direction:column;gap:4px;flex:1;}
+.sett-ctrl select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;cursor:pointer;}
+.sett-hint{font-size:11px;color:#999;}
 
 /* GUIDE */
 .guide-card{background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
@@ -536,6 +542,41 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <!-- SETTINGS VIEW -->
   <div class="view" id="viewSettings">
     <div class="sett-card">
+      <div class="sett-title">⚙️ 도장 운영 설정</div>
+
+      <div class="sett-row">
+        <label class="sett-label">수업 부제 수</label>
+        <div class="sett-ctrl">
+          <select id="buCountSelect" onchange="saveBuCount()">
+            <option value="1">1부</option>
+            <option value="2">2부</option>
+            <option value="3">3부</option>
+            <option value="4">4부</option>
+            <option value="5">5부</option>
+            <option value="6" selected>6부</option>
+          </select>
+          <span class="sett-hint">업무일지 출석 인원 칸 수에 반영됩니다</span>
+        </div>
+      </div>
+
+      <div class="sett-row">
+        <label class="sett-label">차량 대수</label>
+        <div class="sett-ctrl">
+          <select id="carCountSelect" onchange="saveCarCount()">
+            <option value="1">1대</option>
+            <option value="2" selected>2대</option>
+            <option value="3">3대</option>
+            <option value="4">4대</option>
+            <option value="5">5대</option>
+          </select>
+          <span class="sett-hint">차량운행 탭의 차량 수에 반영됩니다</span>
+        </div>
+      </div>
+
+      <div id="settingSavedMsg" style="color:#0B7B6B;font-size:12px;margin-top:8px;opacity:0;transition:opacity 0.5s;">✓ 설정이 저장됐습니다</div>
+    </div>
+
+    <div class="sett-card">
       <div class="sett-hd">🏫 학원 정보</div>
       <div class="sett-row">
         <span class="sett-row-lbl">학원명</span>
@@ -672,6 +713,7 @@ const db     = getDatabase(fbApp);
 // ── 상태 변수 ─────────────────────────────────────────────────────
 const DAYS_KR = ['일','월','화','수','목','금','토'];
 let BU_LABELS  = ['1부','2부','3부','4부','5부','6부'];
+let carCount   = 2;
 
 let currentUser  = null;
 let academyId    = null;
@@ -740,6 +782,7 @@ onAuthStateChanged(auth, async (user) => {
       BU_LABELS  = academySettings.buLabels  || BU_LABELS;
       const buCount = academySettings.buCount || BU_LABELS.length;
       BU_LABELS  = BU_LABELS.slice(0, buCount);
+      carCount   = academySettings.carCount  || 2;
     }
 
     // 헤더 학원명 표시
@@ -980,6 +1023,30 @@ window.triggerAutoSave = function() {
     await saveDay(true);
     isDirty = false;
   }, 2500);
+}
+
+// ── 도장 운영 설정 저장 ────────────────────────────────────────────
+window.saveBuCount = async function() {
+  const count = parseInt(document.getElementById('buCountSelect').value);
+  await set(ref(db, `academies/${academyId}/settings/buCount`), count);
+  BU_LABELS = ['1부','2부','3부','4부','5부','6부'].slice(0, count);
+  buildAttTable();
+  showSettingSaved();
+};
+
+window.saveCarCount = async function() {
+  const count = parseInt(document.getElementById('carCountSelect').value);
+  await set(ref(db, `academies/${academyId}/settings/carCount`), count);
+  carCount = count;
+  showSettingSaved();
+  if (typeof buildVehicleWeekGrid === 'function') buildVehicleWeekGrid();
+};
+
+function showSettingSaved() {
+  const el = document.getElementById('settingSavedMsg');
+  if (!el) return;
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 2000);
 }
 
 window.saveDay = async (isAuto = false) => {
@@ -1520,13 +1587,23 @@ window.exportCSV = () => {
 // ── 뷰 전환 ───────────────────────────────────────────────────────
 const viewMap = { daily: 'viewDaily', monthly: 'viewMonthly', settings: 'viewSettings', vehicle: 'viewVehicle' };
 const bniMap  = { daily: 0, monthly: 1, vehicle: 2, settings: 4 };
-window.showView = (name) => {
+window.showView = async (name) => {
   Object.values(viewMap).forEach(v => document.getElementById(v).classList.remove('on'));
   for (let i = 0; i < 5; i++) document.getElementById('bni' + i).classList.remove('on');
   if (viewMap[name])      document.getElementById(viewMap[name]).classList.add('on');
   if (bniMap[name] !== undefined) document.getElementById('bni' + bniMap[name]).classList.add('on');
   if (name === 'monthly') updateMonthStrip();
   if (name === 'vehicle') { loadVehicleNote(); renderVehicleTodayCard(); }
+  if (name === 'settings') {
+    const buSel = document.getElementById('buCountSelect');
+    if (buSel) buSel.value = String(BU_LABELS.length);
+    const carSel = document.getElementById('carCountSelect');
+    if (carSel) {
+      const snap = await get(ref(db, `academies/${academyId}/settings/carCount`));
+      const savedCarCount = snap.val() || 2;
+      carSel.value = String(savedCarCount);
+    }
+  }
 };
 
 // ── 미저장 경고 모달 ──────────────────────────────────────────────
@@ -1702,7 +1779,13 @@ function renderVehicleTodayCard() {
         <div class="vtd-acc-content${val ? '' : ' vtd-empty'}">${val ? esc(val) : '등록된 운행 없음'}</div>
       </div>
     </div>`;
-  wrap.innerHTML = makeItem('car1','🚌','1호차', sch.car1) + makeItem('car2','🚐','2호차', sch.car2);
+  const CAR_ICONS = ['🚌','🚐','🚗','🚕','🚙'];
+  let vHtml = '';
+  for (let c = 1; c <= carCount; c++) {
+    const ck = 'car' + c;
+    vHtml += makeItem(ck, CAR_ICONS[c - 1] || '🚗', c + '호차', sch[ck]);
+  }
+  wrap.innerHTML = vHtml;
 }
 
 window.toggleVehicleAcc = (id) => {
@@ -1719,36 +1802,27 @@ function renderVehicleEditPanel() {
   }
   const contentEl = document.getElementById('vehicleEditContent');
   if (!contentEl) return;
-  const sch  = vehicleSchedule[vehicleEditDay] || {};
-  const car1 = (sch.car1 || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const car2 = (sch.car2 || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  const car1Img = sch.car1Image || '';
-  const car2Img = sch.car2Image || '';
-  contentEl.innerHTML = `
+  const sch = vehicleSchedule[vehicleEditDay] || {};
+  let editHtml = '';
+  for (let c = 1; c <= carCount; c++) {
+    const ck  = 'car' + c;
+    const val = (sch[ck] || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const img = sch[ck + 'Image'] || '';
+    editHtml += `
     <div class="vehicle-car-row">
-      <span class="vehicle-car-lbl">1호차</span>
+      <span class="vehicle-car-lbl">${c}호차</span>
       <div>
         <div class="vedit-quick-row">
-          <button class="vedit-quick-btn blue" onclick="insertVehicleText('car1','🔵 ')">🔵 탑승</button>
-          <button class="vedit-quick-btn red"  onclick="insertVehicleText('car1','🔴 ')">🔴 하차</button>
-          <button class="vedit-quick-btn gray" onclick="openVehicleImagePicker('car1')">📷 사진</button>
+          <button class="vedit-quick-btn blue" onclick="insertVehicleText('${ck}','🔵 ')">🔵 탑승</button>
+          <button class="vedit-quick-btn red"  onclick="insertVehicleText('${ck}','🔴 ')">🔴 하차</button>
+          <button class="vedit-quick-btn gray" onclick="openVehicleImagePicker('${ck}')">📷 사진</button>
         </div>
-        <textarea class="vehicle-car-inp" id="vedit_car1" placeholder="운행 내용 입력...">${car1}</textarea>
-        <img id="vedit_car1_img" class="vedit-img-preview" src="${car1Img}" style="${car1Img ? '' : 'display:none'}">
-      </div>
-    </div>
-    <div class="vehicle-car-row">
-      <span class="vehicle-car-lbl">2호차</span>
-      <div>
-        <div class="vedit-quick-row">
-          <button class="vedit-quick-btn blue" onclick="insertVehicleText('car2','🔵 ')">🔵 탑승</button>
-          <button class="vedit-quick-btn red"  onclick="insertVehicleText('car2','🔴 ')">🔴 하차</button>
-          <button class="vedit-quick-btn gray" onclick="openVehicleImagePicker('car2')">📷 사진</button>
-        </div>
-        <textarea class="vehicle-car-inp" id="vedit_car2" placeholder="운행 내용 입력...">${car2}</textarea>
-        <img id="vedit_car2_img" class="vedit-img-preview" src="${car2Img}" style="${car2Img ? '' : 'display:none'}">
+        <textarea class="vehicle-car-inp" id="vedit_${ck}" placeholder="운행 내용 입력...">${val}</textarea>
+        <img id="vedit_${ck}_img" class="vedit-img-preview" src="${img}" style="${img ? '' : 'display:none'}">
       </div>
     </div>`;
+  }
+  contentEl.innerHTML = editHtml;
 }
 
 window.insertVehicleText = (carId, text) => {
@@ -1784,8 +1858,10 @@ window.openVehicleImagePicker = (carId) => {
 function saveCurrentEditInputs() {
   if (!vehicleEditOpen) return;
   if (!vehicleSchedule[vehicleEditDay]) vehicleSchedule[vehicleEditDay] = {};
-  vehicleSchedule[vehicleEditDay].car1 = document.getElementById('vedit_car1')?.value || '';
-  vehicleSchedule[vehicleEditDay].car2 = document.getElementById('vedit_car2')?.value || '';
+  for (let c = 1; c <= carCount; c++) {
+    const ck = 'car' + c;
+    vehicleSchedule[vehicleEditDay][ck] = document.getElementById('vedit_' + ck)?.value || '';
+  }
 }
 
 window.toggleVehicleEdit = () => {
