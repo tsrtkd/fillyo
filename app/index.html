@@ -940,6 +940,7 @@ window.checkAbsDuplicate = () => {
 
 // ── 로드 / 저장 ───────────────────────────────────────────────────
 function loadCurrentDay() {
+  userInteracting = false;
   const key = dateKey(currentDate), d = allData[key] || {};
   for (let i = 0; i < BU_LABELS.length; i++) {
     const el = document.getElementById('att_' + i);
@@ -957,17 +958,20 @@ function loadCurrentDay() {
   renderVehicleTodayCard();
   updateTotals();
   isDirty = false;
+  userInteracting = true;
   // 자동저장 이벤트 리스너 등록
   const autoSaveFields = ['taEvent','taMtg','taEdu','taCons','mgrIn','mgrRe','mgrOut'];
   autoSaveFields.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', triggerAutoSave);
+    if (el) el.addEventListener('input', () => { if (userInteracting) triggerAutoSave(); });
   });
 }
 
 // 자동저장 debounce
 let autoSaveTimer = null;
+let userInteracting = false;
 window.triggerAutoSave = function() {
+  if (!userInteracting) return;
   clearTimeout(autoSaveTimer);
   // 저장됨 표시를 입력 중 상태로
   const indicator = document.getElementById('autoSaveIndicator');
