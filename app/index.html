@@ -844,7 +844,7 @@ function buildAttTable() {
     div.style.cssText = `text-align:center;padding:10px 4px;border-right:1px solid #F0F4F8;`;
     if (i === BU_LABELS.length - 1) div.style.borderRight = 'none';
     div.innerHTML = `<div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:6px;">${lbl}</div>
-      <input type="number" id="att_${i}" min="0" value="0" oninput="updateTotals()"
+      <input type="number" id="att_${i}" min="0" value="0" oninput="updateTotals();triggerAutoSave()"
         style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:6px 2px;font-size:18px;font-weight:900;font-family:inherit;text-align:center;color:var(--blue);background:#F8FBFF;">`;
     wrap.appendChild(div);
   });
@@ -867,8 +867,8 @@ window.addAbsRow = () => {
   const id = absCount++;
   const div = document.createElement('div');
   div.className = 'abs-row'; div.id = 'absRow_' + id;
-  div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" oninput="countAbsNames();checkAbsDuplicate()">
-    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유">
+  div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()">
+    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()">
     <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
   document.getElementById('absRows').appendChild(div);
 };
@@ -905,8 +905,8 @@ function setAbsList(list) {
     const id = absCount++;
     const div = document.createElement('div');
     div.className = 'abs-row'; div.id = 'absRow_' + id;
-    div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" value="${item.name||''}" oninput="countAbsNames();checkAbsDuplicate()">
-      <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" value="${item.reason||''}">
+    div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" value="${item.name||''}" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()">
+      <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" value="${item.reason||''}" oninput="triggerAutoSave()">
       <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
     document.getElementById('absRows').appendChild(div);
   });
