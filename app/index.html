@@ -889,7 +889,7 @@ window.delAbsRow = (id) => {
   triggerAutoSave();
 };
 
-function countAbsNames() {
+window.countAbsNames = function() {
   let cnt = 0;
   document.querySelectorAll('[id^="absRow_"]').forEach(row => {
     const id = row.id.split('_')[1];
