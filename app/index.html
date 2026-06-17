@@ -908,8 +908,10 @@ function getAbsList() {
     const id = row.id.split('_')[1];
     const n = document.getElementById('absN_' + id)?.value.trim();
     const r = document.getElementById('absR_' + id)?.value.trim();
+    console.log('[debug] absRow id:', id, '| name:', n, '| reason:', r);
     if (n) list.push({ name: n, reason: r || '' });
   });
+  console.log('[debug] getAbsList result:', list);
   return list;
 }
 
