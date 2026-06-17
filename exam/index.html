@@ -256,6 +256,13 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .grade-card-row:last-child { border-bottom: none; }
 .grade-row-label { font-size: 11px; font-weight: 700; color: #374151; }
 .grade-row-content { font-size: 11px; color: #64748b; }
+.sett-card { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 2px 8px rgba(0,0,0,0.06); }
+.sett-title { font-size:15px; font-weight:700; color:#1a1a1a; margin-bottom:16px; }
+.sett-row { display:flex; align-items:flex-start; gap:12px; margin-bottom:16px; }
+.sett-label { font-size:14px; font-weight:600; color:#333; min-width:90px; padding-top:6px; }
+.sett-ctrl { display:flex; flex-direction:column; gap:4px; flex:1; }
+.sett-ctrl select { padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; }
+.sett-hint { font-size:11px; color:#999; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -288,6 +295,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="top-tab" onclick="switchTab('exam')">📋 심사</button>
   <button class="top-tab" onclick="switchTab('status')">📊 현황</button>
   <button class="top-tab" onclick="switchTab('grade')">📜 급수표</button>
+  <button class="top-tab" onclick="switchTab('settings')">⚙️ 설정</button>
 </div>
 
   <!-- 수련생 탭 -->
@@ -397,6 +405,47 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     <div id="gradeChartList"></div>
   </div>
 
+  <!-- 설정 탭 -->
+  <div id="tab-settings" class="tab-content" style="padding:16px;">
+    <div class="sett-card">
+      <div class="sett-title">⚙️ 승급심사 설정</div>
+
+      <div class="sett-row">
+        <label class="sett-label">승급 단위</label>
+        <div class="sett-ctrl">
+          <select id="gradeStepSelect" onchange="saveExamSettings()">
+            <option value="1">1개급씩 (12급→11급→10급...)</option>
+            <option value="2">2개급씩 (12급→10급→8급...)</option>
+          </select>
+          <span class="sett-hint">품단 내 급수 진행 단위를 설정합니다</span>
+        </div>
+      </div>
+
+      <div class="sett-row">
+        <label class="sett-label">심사 항목</label>
+        <div class="sett-ctrl">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
+              <input type="checkbox" id="chkPoomsae" checked onchange="saveExamSettings()"> 품새
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
+              <input type="checkbox" id="chkKick" checked onchange="saveExamSettings()"> 발차기
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
+              <input type="checkbox" id="chkExtreme" onchange="saveExamSettings()"> 익스트림
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
+              <input type="checkbox" id="chkCharacter" onchange="saveExamSettings()"> 인성교육
+            </label>
+          </div>
+          <span class="sett-hint">체크한 항목만 심사 평가 화면에 표시됩니다. 품새는 필수입니다.</span>
+        </div>
+      </div>
+
+      <div id="examSettingSavedMsg" style="color:#0B7B6B;font-size:12px;margin-top:8px;opacity:0;transition:opacity 0.5s;">✓ 설정이 저장됐습니다</div>
+    </div>
+  </div>
+
   <!-- 현황 탭 -->
   <div id="tab-status" class="tab-content">
     <div style="display:flex;gap:8px;align-items:center;padding:12px 16px">
@@ -443,6 +492,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="tab-btn" data-tab="grade" onclick="switchTab('grade')">
     <span class="tab-icon">📋</span>
     <span class="tab-label">급수표</span>
+  </button>
+  <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
+    <span class="tab-icon">⚙️</span>
+    <span class="tab-label">설정</span>
   </button>
 </div>
 
@@ -596,6 +649,7 @@ let _editPassed         = null;
 let academyName         = '';
 let academyPhone        = '';
 let academyPhoneDisplay = '';
+let academyExamSettings = {};
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -624,27 +678,39 @@ function getPromoMap(age) {
   return map;
 }
 
+// 품단 급수 배열 생성 (gradeStep 반영)
+function getDanGradesStepped(belt, step) {
+  const d   = DAN_BELTS.indexOf(belt) + 1;
+  const max = d * 12;
+  const min = step === 1 ? 1 : 2;
+  const arr = [];
+  for (let g = max; g >= min; g -= step) arr.push(g + '급');
+  arr.push(d + '단');
+  return arr;
+}
+
 // 합격 시 다음 띠/급수 계산
 function calcNext(ss) {
-  const st = students[ss.id] || {};
-  const belt = ss.belt;
+  const st        = students[ss.id] || {};
+  const belt      = ss.belt;
+  const gradeStep = academyExamSettings.gradeStep || 2;
   if (isDan(belt)) {
-    const grades = DAN_GRADES[belt];
+    const grades   = getDanGradesStepped(belt, gradeStep);
     const curGrade = ss.grade || st.grade || grades[0];
-    const idx = grades.indexOf(curGrade);
-    const atTop = idx === -1 || idx >= grades.length - 1;
+    const idx      = grades.indexOf(curGrade);
+    const atTop    = idx === -1 || idx >= grades.length - 1;
     if (atTop) {
       const nextDanIdx = DAN_BELTS.indexOf(belt) + 1;
       if (nextDanIdx >= DAN_BELTS.length) return null;
       const nextBelt = DAN_BELTS[nextDanIdx];
-      return { nextBelt, nextGrade: DAN_GRADES[nextBelt][0] };
+      return { nextBelt, nextGrade: getDanGradesStepped(nextBelt, gradeStep)[0] };
     }
     return { nextBelt: belt, nextGrade: grades[idx + 1] };
   } else {
     const promoMap = getPromoMap(st.age);
     const nextBelt = promoMap[belt];
     if (!nextBelt) return null;
-    if (isDan(nextBelt)) return { nextBelt, nextGrade: DAN_GRADES[nextBelt][0] };
+    if (isDan(nextBelt)) return { nextBelt, nextGrade: getDanGradesStepped(nextBelt, gradeStep)[0] };
     return { nextBelt, nextGrade: '' };
   }
 }
@@ -863,6 +929,9 @@ onAuthStateChanged(auth, async (user) => {
   const phoneDisplaySnap = await get(ref(db, `academies/${academyId}/settings/academyPhoneDisplay`));
   academyPhoneDisplay = phoneDisplaySnap.val() || '';
 
+  const examSettingsSnap = await get(ref(db, `academies/${academyId}/settings/exam`));
+  academyExamSettings = examSettingsSnap.val() || {};
+
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = snap.val() || {};
     renderStudentList();
@@ -907,8 +976,41 @@ window.switchTab = (tab) => {
     b.classList.toggle('active', b.getAttribute('onclick').includes(`'${tab}'`));
   });
   document.getElementById('fab').classList.toggle('hidden', tab !== 'students');
+  if (tab === 'settings') loadExamSettings();
 };
 document.getElementById('tab-students').classList.add('active');
+
+// ── 심사 설정 저장/로드 ───────────────────────────────────────────────
+window.saveExamSettings = async function() {
+  document.getElementById('chkPoomsae').checked = true;
+  const settings = {
+    gradeStep: parseInt(document.getElementById('gradeStepSelect').value),
+    examItems: {
+      poomsae:   true,
+      kick:      document.getElementById('chkKick').checked,
+      extreme:   document.getElementById('chkExtreme').checked,
+      character: document.getElementById('chkCharacter').checked,
+    },
+  };
+  await set(ref(db, `academies/${academyId}/settings/exam`), settings);
+  academyExamSettings = settings;
+  const el = document.getElementById('examSettingSavedMsg');
+  if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 2000); }
+};
+
+async function loadExamSettings() {
+  const snap = await get(ref(db, `academies/${academyId}/settings/exam`));
+  const s = snap.val() || {};
+  academyExamSettings = s;
+  const step = s.gradeStep || 2;
+  const sel = document.getElementById('gradeStepSelect');
+  if (sel) sel.value = String(step);
+  const items = s.examItems || { poomsae:true, kick:true, extreme:false, character:false };
+  document.getElementById('chkPoomsae').checked  = true;
+  document.getElementById('chkKick').checked     = items.kick !== false;
+  document.getElementById('chkExtreme').checked  = !!items.extreme;
+  document.getElementById('chkCharacter').checked = !!items.character;
+}
 
 // ── 급수표 탭 ─────────────────────────────────────────────────────────
 const BELT_HEADER_STYLE = {
@@ -1391,6 +1493,7 @@ function renderExamTable() {
 function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
   const crr = CURRICULUM[belt] || CURRICULUM['흰띠'];
 
+  const examItems = (academyExamSettings.examItems) || { poomsae:true, kick:true, extreme:false, character:false };
   const scoreRows = [
     { key: 'poomsae',   label: '품새 정확도',   i: 0 },
     { key: 'poomsae',   label: '품새 완성도',   i: 1 },
@@ -1401,7 +1504,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
     { key: 'character', label: '인성 태도',     i: 0 },
     { key: 'character', label: '인성 집중력',   i: 1 },
     { key: 'character', label: '인성 교재',     i: 2 },
-  ];
+  ].filter(r => examItems[r.key] !== false);
 
   const labelCol = `
     <div class="exam-col exam-col-label">
