@@ -554,6 +554,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             <option value="4">4부</option>
             <option value="5">5부</option>
             <option value="6" selected>6부</option>
+            <option value="7">7부</option>
+            <option value="8">8부</option>
+            <option value="9">9부</option>
+            <option value="10">10부</option>
           </select>
           <span class="sett-hint">업무일지 출석 인원 칸 수에 반영됩니다</span>
         </div>
@@ -712,7 +716,7 @@ const db     = getDatabase(fbApp);
 
 // ── 상태 변수 ─────────────────────────────────────────────────────
 const DAYS_KR = ['일','월','화','수','목','금','토'];
-let BU_LABELS  = ['1부','2부','3부','4부','5부','6부'];
+let BU_LABELS  = ['1부','2부','3부','4부','5부','6부','7부','8부','9부','10부'];
 let carCount   = 2;
 
 let currentUser  = null;
@@ -1029,7 +1033,7 @@ window.triggerAutoSave = function() {
 window.saveBuCount = async function() {
   const count = parseInt(document.getElementById('buCountSelect').value);
   await set(ref(db, `academies/${academyId}/settings/buCount`), count);
-  BU_LABELS = ['1부','2부','3부','4부','5부','6부'].slice(0, count);
+  BU_LABELS = ['1부','2부','3부','4부','5부','6부','7부','8부','9부','10부'].slice(0, count);
   buildAttTable();
   showSettingSaved();
 };
