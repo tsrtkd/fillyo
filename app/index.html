@@ -880,8 +880,14 @@ window.addAbsRow = () => {
     <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()">
     <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
   document.getElementById('absRows').appendChild(div);
+  triggerAutoSave();
 };
-window.delAbsRow = (id) => { document.getElementById('absRow_' + id)?.remove(); countAbsNames(); checkAbsDuplicate(); };
+window.delAbsRow = (id) => {
+  const el = document.getElementById('absRow_' + id);
+  if (el) el.remove();
+  countAbsNames();
+  triggerAutoSave();
+};
 
 function countAbsNames() {
   let cnt = 0;
