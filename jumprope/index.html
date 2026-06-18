@@ -86,6 +86,7 @@ tr:hover td{background:#f0faf8}
     <button class="tab" onclick="showTab(this,'dash')">📊 현황</button>
     <button class="tab" onclick="showTab(this,'cert')">🏆 급수증</button>
     <button class="tab" onclick="showTab(this,'chart')">📜 급수표</button>
+    <button class="tab" onclick="showTab(this,'settings')">⚙️ 설정</button>
   </div>
 
   <!-- 학생 관리 -->
@@ -240,6 +241,59 @@ tr:hover td{background:#f0faf8}
       </div>
     </div>
   </div>
+
+  <!-- 설정 탭 -->
+  <div id="sec-settings" class="section">
+    <div class="card">
+      <h2 style="font-size:16px;font-weight:800;margin-bottom:6px">⚙️ 급수표 설정</h2>
+      <p style="font-size:12px;color:#888;margin-bottom:20px">엑셀 또는 이미지를 업로드하면 기본 급수표를 교체합니다. Firebase에 저장되어 다음 접속 시에도 유지됩니다.</p>
+
+      <!-- 엑셀 업로드 -->
+      <div style="border:1.5px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">📊 엑셀로 급수표 교체</div>
+        <p style="font-size:11px;color:#888;margin-bottom:10px">
+          형식: A열=급수명, B열=종목설명, C열=1~2학년기준, D열=3~4학년기준, E열=5학년+기준<br>
+          예) 10급 | 모둠발 앞으로 뛰기 | 1도약20 | 1도약40 | 1도약60
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <label class="btn btn-blue btn-sm" style="cursor:pointer">
+            📥 엑셀 업로드
+            <input type="file" id="settings-excel-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadLevelExcel(this)">
+          </label>
+          <button class="btn btn-gray btn-sm" onclick="downloadLevelTemplate()">📋 양식 다운로드</button>
+        </div>
+        <div id="excel-upload-status" style="font-size:12px;margin-top:8px;color:#0B7B6B;display:none"></div>
+      </div>
+
+      <!-- 이미지 업로드 -->
+      <div style="border:1.5px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:16px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:8px">🖼️ 이미지로 급수표 표시</div>
+        <p style="font-size:11px;color:#888;margin-bottom:10px">
+          급수표 이미지를 업로드하면 📜 급수표 탭에 표 대신 이미지로 보여집니다.<br>
+          (JPG/PNG, 권장 2MB 이하)
+        </p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <label class="btn btn-blue btn-sm" style="cursor:pointer">
+            🖼️ 이미지 업로드
+            <input type="file" id="settings-img-input" accept="image/*" style="display:none" onchange="uploadLevelImage(this)">
+          </label>
+          <button class="btn btn-r btn-sm" id="remove-img-btn" style="display:none" onclick="removeLevelImage()">🗑️ 이미지 제거</button>
+        </div>
+        <div id="img-upload-status" style="font-size:12px;margin-top:8px;color:#0B7B6B;display:none"></div>
+        <div id="settings-img-preview" style="margin-top:12px;display:none">
+          <img id="settings-img-tag" style="max-width:100%;border-radius:8px;border:1px solid #e0e0e0">
+        </div>
+      </div>
+
+      <!-- 기본값 복원 -->
+      <div style="border:1.5px dashed #e0e0e0;border-radius:10px;padding:16px">
+        <div style="font-weight:700;font-size:13px;margin-bottom:6px">🔄 기본 급수표로 복원</div>
+        <p style="font-size:11px;color:#888;margin-bottom:10px">커스텀 급수표를 삭제하고 FILLYO 기본 급수표로 되돌립니다.</p>
+        <button class="btn btn-gray btn-sm" onclick="resetLevelTable()">🔄 기본값으로 복원</button>
+        <div id="reset-status" style="font-size:12px;margin-top:8px;color:#0B7B6B;display:none"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- 학생 수정 모달 -->
@@ -305,6 +359,176 @@ const CRITERIA = [
   {g12:'15개',g34:'30개',g5:'40개'},
 ];
 
+// ── 커스텀 급수표 로드 (Firebase → LEVEL/SKILL/CRITERIA 덮어쓰기) ──────
+async function loadCustomLevelTable() {
+  if (!academyId) return;
+  try {
+    const snap = await get(ref(db, `academies/${academyId}/settings/jumprope`));
+    if (!snap.exists()) return;
+    const data = snap.val();
+    if (data.levelTable && Array.isArray(data.levelTable) && data.levelTable.length > 0) {
+      LEVEL.length = 0;
+      Object.keys(SKILL).forEach(k => delete SKILL[k]);
+      CRITERIA.length = 0;
+      data.levelTable.forEach(row => {
+        LEVEL.push(row.level);
+        SKILL[row.level] = row.skill || '';
+        CRITERIA.push({ g12: row.g12 || '', g34: row.g34 || '', g5: row.g5 || '' });
+      });
+    }
+    window._customChartImage = data.chartImage || null;
+  } catch(e) { console.warn('loadCustomLevelTable', e); }
+}
+
+// ── 설정탭 렌더 ─────────────────────────────────────────────────────
+function renderSettingsTab() {
+  const hasImg = !!window._customChartImage;
+  document.getElementById('settings-img-preview').style.display = hasImg ? 'block' : 'none';
+  document.getElementById('remove-img-btn').style.display = hasImg ? '' : 'none';
+  if (hasImg) document.getElementById('settings-img-tag').src = window._customChartImage;
+}
+window.renderSettingsTab = renderSettingsTab;
+
+// ── 엑셀 업로드 → Firebase 저장 ─────────────────────────────────────
+function uploadLevelExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('excel-upload-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '📂 파일 읽는 중...';
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type: 'binary' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const levelTable = [];
+      rows.forEach((row, i) => {
+        if (i === 0 && typeof row[0] === 'string' && row[0].includes('급수')) return;
+        const level = String(row[0] || '').trim();
+        if (!level) return;
+        levelTable.push({
+          level,
+          skill: String(row[1] || '').trim(),
+          g12:   String(row[2] || '').trim(),
+          g34:   String(row[3] || '').trim(),
+          g5:    String(row[4] || '').trim(),
+        });
+      });
+      if (levelTable.length === 0) { statusEl.textContent = '❌ 유효한 데이터가 없습니다. 양식을 확인해주세요.'; return; }
+      await set(ref(db, `academies/${academyId}/settings/jumprope/levelTable`), levelTable);
+      LEVEL.length = 0;
+      Object.keys(SKILL).forEach(k => delete SKILL[k]);
+      CRITERIA.length = 0;
+      levelTable.forEach(row => {
+        LEVEL.push(row.level);
+        SKILL[row.level] = row.skill;
+        CRITERIA.push({ g12: row.g12, g34: row.g34, g5: row.g5 });
+      });
+      statusEl.textContent = `✅ ${levelTable.length}개 급수 저장 완료!`;
+      renderStudents();
+    } catch(err) { statusEl.textContent = '❌ 오류: ' + err.message; }
+  };
+  reader.readAsBinaryString(file);
+  input.value = '';
+}
+window.uploadLevelExcel = uploadLevelExcel;
+
+// ── 엑셀 양식 다운로드 ───────────────────────────────────────────────
+function downloadLevelTemplate() {
+  const header = [['급수', '종목설명', '1~2학년기준', '3~4학년기준', '5학년+기준']];
+  const rows = LEVEL.map((lv, i) => [
+    lv, SKILL[lv] || '',
+    CRITERIA[i] ? CRITERIA[i].g12 : '',
+    CRITERIA[i] ? CRITERIA[i].g34 : '',
+    CRITERIA[i] ? CRITERIA[i].g5  : ''
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([...header, ...rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '급수표');
+  XLSX.writeFile(wb, 'fillyo_줄넘기_급수표_양식.xlsx');
+}
+window.downloadLevelTemplate = downloadLevelTemplate;
+
+// ── 이미지 업로드 → base64 → Firebase 저장 ──────────────────────────
+function uploadLevelImage(input) {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 3 * 1024 * 1024) { alert('이미지가 너무 큽니다. 3MB 이하로 업로드해주세요.'); input.value = ''; return; }
+  const statusEl = document.getElementById('img-upload-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '📂 이미지 업로드 중...';
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const base64 = e.target.result;
+    try {
+      await set(ref(db, `academies/${academyId}/settings/jumprope/chartImage`), base64);
+      window._customChartImage = base64;
+      statusEl.textContent = '✅ 이미지 저장 완료!';
+      renderSettingsTab();
+      renderChartTab();
+    } catch(err) { statusEl.textContent = '❌ 오류: ' + err.message; }
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+window.uploadLevelImage = uploadLevelImage;
+
+// ── 이미지 제거 ─────────────────────────────────────────────────────
+async function removeLevelImage() {
+  if (!confirm('이미지를 제거하고 기본 급수표로 돌아갈까요?')) return;
+  await set(ref(db, `academies/${academyId}/settings/jumprope/chartImage`), null);
+  window._customChartImage = null;
+  renderSettingsTab();
+  renderChartTab();
+}
+window.removeLevelImage = removeLevelImage;
+
+// ── 기본값 복원 ─────────────────────────────────────────────────────
+async function resetLevelTable() {
+  if (!confirm('커스텀 급수표를 삭제하고 기본값으로 되돌릴까요?')) return;
+  const statusEl = document.getElementById('reset-status');
+  statusEl.style.display = 'block';
+  statusEl.textContent = '처리 중...';
+  await set(ref(db, `academies/${academyId}/settings/jumprope`), null);
+  const DEFAULT_LEVEL = ['10급','9급','8급','7급','6급','5급','4급','3급','2급','1급','특9급','특8급','특7급','특6급','특5급','특4급','특3급','특2급','특1급','특급'];
+  const DEFAULT_SKILL = {'10급':'모둠발 앞으로 뛰기','9급':'모둠발 뒤로 뛰기','8급':'한발 번갈아 뛰기','7급':'가위바위보 뛰기','6급':'무릎올리기+엉덩이차기','5급':'엇걸어 뛰기','4급':'엇걸었다 풀어 뛰기','3급':'되돌리기','2급':'되돌리기+다리 들어주기','1급':'2단 뛰기','특9급':'OOO','특8급':'OO+SOC','특7급':'OO+SOO','특6급':'OO+CO+OC+CC','특5급':'OO+CC','특4급':'OO+CO','특3급':'OO+OC','특2급':'SO+SC','특1급':'SC 왕복','특급':'되돌리기+OO'};
+  const DEFAULT_CRITERIA = [{g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},{g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},{g12:'오/왼20 왕복15',g34:'오/왼30 왕복20',g5:'오/왼40 왕복30'},{g12:'20개',g34:'40개',g5:'50개'},{g12:'무릎20/엉덩이20',g34:'무릎20/엉덩이20',g5:'무릎20/엉덩이20'},{g12:'20개',g34:'30개',g5:'40개'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'15개',g34:'30개',g5:'40개'}];
+  LEVEL.length = 0; DEFAULT_LEVEL.forEach(l => LEVEL.push(l));
+  Object.keys(SKILL).forEach(k => delete SKILL[k]); Object.assign(SKILL, DEFAULT_SKILL);
+  CRITERIA.length = 0; DEFAULT_CRITERIA.forEach(c => CRITERIA.push(c));
+  window._customChartImage = null;
+  renderSettingsTab();
+  renderChartTab();
+  renderStudents();
+  statusEl.textContent = '✅ 기본값으로 복원 완료!';
+}
+window.resetLevelTable = resetLevelTable;
+
+// ── 급수표 탭 렌더 (이미지/테이블 전환) ─────────────────────────────
+function renderChartTab() {
+  const area = document.getElementById('chart-print-area');
+  if (!area) return;
+  if (window._customChartImage) {
+    area.innerHTML = `<img src="${window._customChartImage}" style="max-width:100%;border-radius:8px">`;
+    return;
+  }
+  const basicRows = LEVEL.slice(0, 10).map((lv, i) => `
+    <tr><td><span class="badge bg-green">${lv}</span></td>
+    <td>${SKILL[lv]||''}</td>
+    <td>${CRITERIA[i]?.g12||''}</td><td>${CRITERIA[i]?.g34||''}</td><td>${CRITERIA[i]?.g5||''}</td></tr>`).join('');
+  const specRows = LEVEL.slice(10).map((lv, si) => `
+    <tr><td><span class="badge bg-purple">${lv}</span></td>
+    <td>${SKILL[lv]||''}</td>
+    <td>${CRITERIA[10+si]?.g12||'10개'}</td><td>${CRITERIA[10+si]?.g34||'15개'}</td><td>${CRITERIA[10+si]?.g5||'20개'}</td></tr>`).join('');
+  area.innerHTML = `
+    <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">일반 급수</h2>
+    <table style="margin-bottom:24px"><thead><tr><th>급수</th><th>종목 설명</th><th>1~2학년</th><th>3~4학년</th><th>5학년+</th></tr></thead><tbody>${basicRows}</tbody></table>
+    <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">특급 급수표</h2>
+    <table><thead><tr><th>급수</th><th>종목</th><th>1~2학년</th><th>3~4학년</th><th>5학년+</th></tr></thead><tbody>${specRows}</tbody></table>`;
+}
+window.renderChartTab = renderChartTab;
+
 let uid = null, academyId = null;
 let students = [], evalHistory = [], sessions = {}, activeSessionId = null;
 let idCnt = 0, hIdCnt = 0, sCnt = 0;
@@ -358,6 +582,8 @@ function showTab(btn, n) {
   if (n === 'eval') renderEval();
   if (n === 'dash') renderDash();
   if (n === 'cert') populateCertSel();
+  if (n === 'chart') renderChartTab();
+  if (n === 'settings') renderSettingsTab();
 }
 window.showTab = showTab;
 
@@ -833,6 +1059,7 @@ onAuthStateChanged(auth, async (user) => {
         document.getElementById('page-title').textContent = aName;
         document.title = aName + ' 줄넘기 급수 평가';
       }
+      await loadCustomLevelTable();
     }
     const studSnap = await get(ref(db, `academies/${academyId}/jumprope/students`));
     students = studSnap.exists() ? studSnap.val() : [];
