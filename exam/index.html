@@ -1161,7 +1161,7 @@ window.onBeltChange = () => {
   const sel  = document.getElementById('fGrade');
   if (isDan(belt)) {
     row.classList.remove('hidden');
-    sel.innerHTML = (DAN_GRADES[belt] || []).map(g => `<option value="${g}">${g}</option>`).join('');
+    sel.innerHTML = getDanGradesStepped(belt, academyExamSettings.gradeStep || 2).map(g => `<option value="${g}">${g}</option>`).join('');
   } else {
     row.classList.add('hidden');
     sel.innerHTML = '';
