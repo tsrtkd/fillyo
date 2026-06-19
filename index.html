@@ -165,7 +165,8 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
   transition:border-color .3s,transform .3s,box-shadow .3s;
   position:relative;overflow:hidden;
   box-sizing:border-box;
-  box-shadow:0 4px 24px rgba(0,0,0,.35)
+  box-shadow:0 4px 24px rgba(0,0,0,.35);
+  padding-bottom:140px
 }
 .svc-thumb{
   width:100%;
@@ -228,9 +229,11 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
 .svc-features li::before{content:'✓';color:var(--t2);font-weight:700;font-size:11px;flex-shrink:0;margin-top:2px}
 
 .svc-footer{
-  border-top:1px solid var(--border);padding-top:20px;
+  position:absolute;
+  bottom:32px;left:32px;right:32px;
+  border-top:1px solid rgba(11,123,107,.15);padding-top:20px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-  margin-top:auto
+  margin-top:0
 }
 
 .price-tbd{
