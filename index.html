@@ -165,8 +165,7 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
   transition:border-color .3s,transform .3s,box-shadow .3s;
   position:relative;overflow:hidden;
   box-sizing:border-box;
-  box-shadow:0 4px 24px rgba(0,0,0,.35);
-  padding-bottom:160px
+  box-shadow:0 4px 24px rgba(0,0,0,.35)
 }
 .svc-thumb{
   width:100%;
@@ -224,15 +223,14 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
 .svc-name{font-size:21px;font-weight:700;color:var(--t7);margin-bottom:8px;letter-spacing:.2px;min-height:2em}
 .svc-desc{font-size:14px;color:var(--muted);line-height:1.7;margin-bottom:24px;min-height:3em}
 
-.svc-features{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:0}
+.svc-features{list-style:none;flex:1;display:flex;flex-direction:column;gap:7px;margin-bottom:0}
 .svc-features li{font-size:13px;color:var(--muted);display:flex;align-items:flex-start;gap:8px;line-height:1.5}
 .svc-features li::before{content:'✓';color:var(--t2);font-weight:700;font-size:11px;flex-shrink:0;margin-top:2px}
 
 .svc-footer{
-  position:absolute;
-  bottom:32px;left:32px;right:32px;
   border-top:1px solid rgba(11,123,107,.15);padding-top:20px;
   display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  margin-top:auto
 }
 
 .price-tbd{
@@ -446,7 +444,7 @@ footer a:hover{color:rgba(255,255,255,.8)}
           <li>월별 결산 & CSV 내보내기</li>
           <li>달력으로 날짜별 이력 조회</li>
           <li>홈 화면 추가 — 앱처럼 사용</li>
-          <li>차량 운행표 관리 — 호차별 일정 기록</li>
+          <li>차량·호차 운행표 관리</li>
           <li>할 일 체크리스트</li>
           <li>결석자 명단 자동 집계</li>
         </ul>
@@ -474,12 +472,12 @@ footer a:hover{color:rgba(255,255,255,.8)}
         <ul class="svc-features">
           <li>채점→승급→결과지 자동 발송</li>
           <li>승급 이력·대상자 자동 추출</li>
-          <li>결과지 자동 생성 & 카카오 발송</li>
-          <li>우리 아이 성장, 한눈에 확인하는 결과지</li>
-          <li>학부모 신뢰도 높이는 투명한 평가 시스템</li>
+          <li>결과지 카카오 자동 발송</li>
+          <li>성장 결과지 한눈에 확인</li>
+          <li>투명한 학부모 신뢰 평가</li>
           <li>복수 심사위원 채점 지원</li>
-          <li>대한태권도협회 표준과정 참고 심사표</li>
-          <li>스마트폰만으로 어디서든 채점 가능</li>
+          <li>협회 표준과정 참고 심사표</li>
+          <li>스마트폰으로 어디서든 채점</li>
         </ul>
         <div class="svc-footer">
           <div>
@@ -535,10 +533,10 @@ footer a:hover{color:rgba(255,255,255,.8)}
         <div class="svc-desc">스마트폰으로 전문 동작 분석. 수업 교정부터 학부모 참관일까지 — 설치 없이 브라우저에서 바로.</div>
         <ul class="svc-features">
           <li>8분할 동시 녹화·재생</li>
-          <li>0.25×·0.33×·0.5× 배속 조절</li>
+          <li>0.25~0.5× 배속 조절</li>
           <li>아이폰·갤럭시 모두 지원</li>
           <li>설치 없이 브라우저 즉시 실행</li>
-          <li>시중 앱 대비 비용 100% 절약</li>
+          <li>시중 앱 대비 100% 절약</li>
           <li>업무일지 구독 시 무료 제공</li>
           <li>별도 앱 설치 불필요</li>
           <li>수업 교정·학부모 참관일 활용</li>
@@ -564,11 +562,11 @@ footer a:hover{color:rgba(255,255,255,.8)}
         <div class="svc-name">학부모 AI 안내데스크</div>
         <div class="svc-desc">학원 문의를 AI가 24시간 자동응대. 시간표·학원비·차량 안내까지 — 카카오·네이버 자동응답을 대체합니다.</div>
         <ul class="svc-features">
-          <li>학원 맞춤 정보 입력으로 즉시 세팅</li>
-          <li>시간표·학원비·차량 FAQ 자동응대</li>
+          <li>학원 맞춤 정보 즉시 세팅</li>
+          <li>시간표·학원비 FAQ 자동응대</li>
           <li>24시간 무중단 응대</li>
           <li>카카오·네이버 자동응답 대체</li>
-          <li>원장님 확인 후 직접 답변 전환 가능</li>
+          <li>원장 직접 답변 전환 가능</li>
         </ul>
         <div class="svc-footer">
           <div>
