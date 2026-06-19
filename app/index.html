@@ -918,8 +918,8 @@ window.updateTotals = () => {
 };
 
 // ── 결석자 행 ────────────────────────────────────────────────────
-function buildAbsRows() { document.getElementById('absRows').innerHTML = ''; absCount = 0; addAbsRow(); }
-window.addAbsRow = () => {
+function buildAbsRows() { document.getElementById('absRows').innerHTML = ''; absCount = 0; addAbsRow(false); }
+window.addAbsRow = (shouldFocus = true) => {
   const id = absCount++;
   const div = document.createElement('div');
   div.className = 'abs-row'; div.id = 'absRow_' + id;
@@ -927,8 +927,10 @@ window.addAbsRow = () => {
     <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
     <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
   document.getElementById('absRows').appendChild(div);
-  const firstInput = document.getElementById('absN_' + id);
-  if (firstInput) firstInput.focus();
+  if (shouldFocus) {
+    const firstInput = document.getElementById('absN_' + id);
+    if (firstInput) firstInput.focus();
+  }
 };
 window.delAbsRow = (id) => {
   const el = document.getElementById('absRow_' + id);
@@ -963,7 +965,7 @@ function getAbsList() {
 
 function setAbsList(list) {
   document.getElementById('absRows').innerHTML = ''; absCount = 0;
-  if (!list || !list.length) { addAbsRow(); countAbsNames(); return; }
+  if (!list || !list.length) { addAbsRow(false); countAbsNames(); return; }
   list.forEach(item => {
     const id = absCount++;
     const div = document.createElement('div');
