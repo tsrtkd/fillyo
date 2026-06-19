@@ -159,12 +159,13 @@ nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.
 @media(max-width:780px){.services-grid{grid-template-columns:1fr}}
 
 .svc-card{
-  background:#FFFFFF;border:1px solid var(--border);
+  background:var(--bg3);border:1px solid rgba(11,123,107,.2);
   border-radius:var(--r24);padding:36px 32px 32px;
   display:flex;flex-direction:column;height:100%;
   transition:border-color .3s,transform .3s,box-shadow .3s;
   position:relative;overflow:hidden;
-  box-shadow:0 4px 24px rgba(0,0,0,.06)
+  box-sizing:border-box;
+  box-shadow:0 4px 24px rgba(0,0,0,.35)
 }
 .svc-thumb{
   width:100%;
