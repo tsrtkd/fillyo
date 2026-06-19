@@ -923,11 +923,12 @@ window.addAbsRow = () => {
   const id = absCount++;
   const div = document.createElement('div');
   div.className = 'abs-row'; div.id = 'absRow_' + id;
-  div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()">
-    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()">
+  div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
+    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
     <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
   document.getElementById('absRows').appendChild(div);
-  triggerAutoSave();
+  const firstInput = document.getElementById('absN_' + id);
+  if (firstInput) firstInput.focus();
 };
 window.delAbsRow = (id) => {
   const el = document.getElementById('absRow_' + id);
@@ -1017,8 +1018,10 @@ function loadCurrentDay() {
 // 자동저장 debounce
 let autoSaveTimer = null;
 let userInteracting = false;
+let absFocused = false;
 window.triggerAutoSave = function() {
   if (!userInteracting) return;
+  if (absFocused) return;
   clearTimeout(autoSaveTimer);
   // 저장됨 표시를 입력 중 상태로
   const indicator = document.getElementById('autoSaveIndicator');
