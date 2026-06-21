@@ -86,6 +86,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .invite-box{background:var(--teal-lt);border:1.5px solid var(--teal);border-radius:10px;padding:12px 14px;margin-top:10px;}
 .invite-box p{font-size:12px;color:var(--teal);line-height:1.6;}
 .invite-box strong{font-weight:900;}
+
+/* PARENT DESK */
+.field textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;resize:vertical;min-height:72px;line-height:1.7;transition:border-color 0.15s;}
+.field textarea:focus{border-color:var(--blue);}
+.pd-faq-item{background:var(--bg);border-radius:10px;padding:12px;margin-bottom:8px;position:relative;}
+.pd-faq-num{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;}
+.pd-faq-q{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;margin-bottom:6px;transition:border-color 0.15s;}
+.pd-faq-q:focus{border-color:var(--blue);}
+.pd-faq-a{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 11px;font-size:14px;font-family:inherit;color:var(--text);background:#FAFBFF;outline:none;resize:vertical;min-height:60px;line-height:1.6;transition:border-color 0.15s;}
+.pd-faq-a:focus{border-color:var(--blue);}
+.pd-faq-del{position:absolute;top:10px;right:10px;background:var(--red-lt);color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.pd-add-btn{width:100%;padding:10px;background:var(--sky);color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -158,6 +170,28 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <p>설정 완료 후 앱 내 <strong>설정 → 강사 초대</strong> 메뉴에서<br>강사의 이메일을 입력해 초대할 수 있습니다.</p>
       </div>
     </div>
+
+    <div class="sec">
+      <div class="sec-title"><span>🏠</span> 학부모 안내데스크 정보 <span style="font-size:11px;color:var(--gray);font-weight:500;">(선택)</span></div>
+      <p style="font-size:12px;color:var(--gray);line-height:1.6;margin-bottom:14px;">학부모 안내데스크에 표시될 도장 정보를 입력하세요. 나중에 언제든지 수정할 수 있습니다.</p>
+      <div class="field">
+        <label>운영시간표</label>
+        <textarea id="pdSchedule" placeholder="예: 월~금 14:00~20:00, 토 10:00~13:00"></textarea>
+      </div>
+      <div class="field">
+        <label>학원비 안내</label>
+        <textarea id="pdTuition" placeholder="예: 주3회 12만원 / 주5회 15만원, 형제할인 10%"></textarea>
+      </div>
+      <div class="field">
+        <label>차량 운행 안내</label>
+        <textarea id="pdCarpool" placeholder="예: ○○동, △△아파트 단지 운행, 신청은 전화 문의"></textarea>
+      </div>
+      <div class="field">
+        <label>자주 묻는 질문 (FAQ)</label>
+        <div id="pdFaqList"></div>
+        <button type="button" class="pd-add-btn" onclick="addParentDeskFaq()">+ FAQ 항목 추가</button>
+      </div>
+    </div>
   </div>
 
   <!-- STEP 3: 완료 -->
@@ -203,6 +237,9 @@ let currentStep = 1;
 let buCount = 6;
 let currentUser = null;
 let userPlanType = 'free';
+let academyId = null;
+let existingBuLabels = null;
+let pdFaqList = [];
 
 // ── 인증 확인 ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -212,17 +249,47 @@ onAuthStateChanged(auth, async (user) => {
   const snap = await get(ref(db, `users/${user.uid}`));
   if (snap.exists()) {
     const data = snap.val();
-    if (data.academyId) { location.href = '/dashboard'; return; }
     userPlanType = data.planType || 'free';
+    if (data.academyId) {
+      academyId = data.academyId;
+      await loadExistingSettings();
+    }
   }
 
   initUI();
 });
 
+// ── 기존 설정 로드 (재방문 사용자) ────────────────────────────────────
+async function loadExistingSettings() {
+  const snap = await get(ref(db, `academies/${academyId}/settings`));
+  if (!snap.exists()) return;
+  const s = snap.val();
+
+  if (s.academyName) document.getElementById('academyName').value = s.academyName;
+  if (s.ownerName)   document.getElementById('ownerName').value   = s.ownerName;
+  if (s.type) {
+    const sel = document.getElementById('academyType');
+    for (let i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === s.type) { sel.selectedIndex = i; break; }
+    }
+  }
+  if (s.buCount)  buCount = s.buCount;
+  if (s.buLabels) existingBuLabels = s.buLabels;
+
+  if (s.parentDesk) {
+    const pd = s.parentDesk;
+    document.getElementById('pdSchedule').value = pd.schedule || '';
+    document.getElementById('pdTuition').value  = pd.tuition  || '';
+    document.getElementById('pdCarpool').value  = pd.carpool  || '';
+    pdFaqList = Array.isArray(pd.faq) ? pd.faq.map(f => ({ q: f.q||'', a: f.a||'' })) : [];
+    renderPdFaqList();
+  }
+}
+
 // ── UI 초기화 ─────────────────────────────────────────────────────
 function initUI() {
   buildBuCountRow();
-  setBuCount(6);
+  setBuCount(buCount);
   if (userPlanType === 'pro') {
     document.getElementById('proInviteSec').style.display = '';
   }
@@ -253,13 +320,14 @@ function setBuCount(n) {
 function buildBuGrid(n) {
   const grid = document.getElementById('buGrid');
   grid.innerHTML = '';
-  const defaultLabels = ['1부','2부','3부','4부','5부','6부','7부','8부','9부','10부'];
+  const fallback = ['1부','2부','3부','4부','5부','6부','7부','8부','9부','10부'];
   for (let i = 0; i < n; i++) {
+    const label = (existingBuLabels && existingBuLabels[i]) || fallback[i];
     const row = document.createElement('div');
     row.className = 'bu-row';
     row.innerHTML = `
       <div class="bu-row-num">${i+1}</div>
-      <input class="bu-inp" id="buLabel_${i}" placeholder="${defaultLabels[i]}" value="${defaultLabels[i]}" maxlength="6">
+      <input class="bu-inp" id="buLabel_${i}" placeholder="${fallback[i]}" value="${label}" maxlength="6">
     `;
     grid.appendChild(row);
   }
@@ -297,7 +365,7 @@ function goToStep(n) {
   document.getElementById('btnPrev').style.display = n > 1 ? '' : 'none';
 
   const btnNext = document.getElementById('btnNext');
-  btnNext.textContent = n === 3 ? '업무일지 시작하기 →' : '다음';
+  btnNext.textContent = n === 3 ? (academyId ? '저장하고 돌아가기 →' : '업무일지 시작하기 →') : '다음';
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -356,9 +424,7 @@ async function saveAndFinish() {
   btn.classList.add('loading');
 
   try {
-    const uid = currentUser.uid;
-    const academyId = 'ac_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-
+    const uid   = currentUser.uid;
     const name  = document.getElementById('academyName').value.trim();
     const owner = document.getElementById('ownerName').value.trim();
     const type  = document.getElementById('academyType').value;
@@ -368,23 +434,33 @@ async function saveAndFinish() {
       buLabels.push(document.getElementById(`buLabel_${i}`).value.trim() || `${i+1}부`);
     }
 
-    await set(ref(db, `academies/${academyId}`), {
-      settings: {
-        academyName: name,
-        ownerName:  owner,
-        type,
-        planType:   userPlanType,
-        buCount,
-        buLabels,
-        createdAt:  Date.now(),
-      },
-      members: { [uid]: 'owner' },
-    });
+    const parentDesk = {
+      schedule: document.getElementById('pdSchedule').value,
+      tuition:  document.getElementById('pdTuition').value,
+      carpool:  document.getElementById('pdCarpool').value,
+      faq:      pdFaqList.map(f => ({ q: f.q, a: f.a })),
+    };
 
-    await update(ref(db, `users/${uid}`), {
-      academyId,
-      ownerName: owner,
-    });
+    if (academyId) {
+      // 기존 설정 업데이트
+      await update(ref(db, `academies/${academyId}/settings`), {
+        academyName: name, ownerName: owner, type,
+        planType: userPlanType, buCount, buLabels, parentDesk,
+      });
+      await update(ref(db, `users/${uid}`), { ownerName: owner });
+    } else {
+      // 신규 학원 생성
+      const newId = 'ac_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+      await set(ref(db, `academies/${newId}`), {
+        settings: {
+          academyName: name, ownerName: owner, type,
+          planType: userPlanType, buCount, buLabels,
+          parentDesk, createdAt: Date.now(),
+        },
+        members: { [uid]: 'owner' },
+      });
+      await update(ref(db, `users/${uid}`), { academyId: newId, ownerName: owner });
+    }
 
     location.href = '/dashboard';
   } catch (err) {
@@ -394,6 +470,41 @@ async function saveAndFinish() {
     btn.classList.remove('loading');
   }
 }
+
+// ── 학부모 안내데스크 FAQ ─────────────────────────────────────────────
+function renderPdFaqList() {
+  const container = document.getElementById('pdFaqList');
+  if (!container) return;
+  container.innerHTML = '';
+  pdFaqList.forEach((item, i) => {
+    const div = document.createElement('div');
+    div.className = 'pd-faq-item';
+    div.innerHTML = `
+      <button type="button" class="pd-faq-del" onclick="removeParentDeskFaq(${i})">✕ 삭제</button>
+      <div class="pd-faq-num">Q${i + 1}</div>
+      <input class="pd-faq-q" type="text" placeholder="질문을 입력하세요">
+      <textarea class="pd-faq-a" placeholder="답변을 입력하세요"></textarea>
+    `;
+    const qEl = div.querySelector('.pd-faq-q');
+    const aEl = div.querySelector('.pd-faq-a');
+    qEl.value = item.q || '';
+    aEl.value = item.a || '';
+    qEl.addEventListener('input', e => { pdFaqList[i].q = e.target.value; });
+    aEl.addEventListener('input', e => { pdFaqList[i].a = e.target.value; });
+    container.appendChild(div);
+  });
+}
+
+window.addParentDeskFaq = function() {
+  pdFaqList.push({ q: '', a: '' });
+  renderPdFaqList();
+  document.getElementById('pdFaqList').lastElementChild?.querySelector('.pd-faq-q')?.focus();
+};
+
+window.removeParentDeskFaq = function(i) {
+  pdFaqList.splice(i, 1);
+  renderPdFaqList();
+};
 
 // ── 토스트 ────────────────────────────────────────────────────────
 function showToast(msg) {

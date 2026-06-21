@@ -201,23 +201,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .sett-ctrl select{padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;cursor:pointer;}
 .sett-hint{font-size:11px;color:#999;}
 
-/* PARENT DESK SETTINGS */
-.pd-section{padding:14px 16px 0;}
-.pd-label{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;}
-.pd-textarea{width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-size:13px;font-family:inherit;resize:vertical;min-height:72px;color:var(--text);background:#fff;box-sizing:border-box;outline:none;line-height:1.7;}
-.pd-textarea:focus{border-color:var(--blue);}
-.pd-faq-item{background:var(--bg);border-radius:8px;padding:10px;margin-bottom:8px;position:relative;}
-.pd-faq-num{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:5px;}
-.pd-faq-q{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;margin-bottom:6px;color:var(--text);background:#fff;box-sizing:border-box;outline:none;}
-.pd-faq-q:focus{border-color:var(--blue);}
-.pd-faq-a{width:100%;border:1.5px solid var(--border);border-radius:7px;padding:8px 10px;font-size:13px;font-family:inherit;resize:vertical;min-height:60px;color:var(--text);background:#fff;box-sizing:border-box;outline:none;line-height:1.6;}
-.pd-faq-a:focus{border-color:var(--blue);}
-.pd-faq-del{position:absolute;top:8px;right:8px;background:var(--red-lt);color:var(--red);border:none;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
-.pd-add-btn{width:100%;padding:10px;background:var(--sky);color:var(--blue);border:1.5px dashed var(--blue);border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;margin-bottom:14px;}
-.pd-save-btn{width:100%;padding:13px;background:var(--teal);color:white;border:none;border-radius:10px;font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;}
-.pd-save-btn:active{opacity:0.85;}
-.pd-saved-msg{color:var(--teal);font-size:12px;margin-top:8px;opacity:0;transition:opacity 0.5s;text-align:center;}
-
 /* GUIDE */
 .guide-card{background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;box-shadow:var(--shadow);}
 .guide-hd{background:var(--navy);color:white;padding:10px 14px;font-size:13px;font-weight:700;}
@@ -643,38 +626,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
 
-    <!-- 학부모 안내데스크 정보 -->
-    <div class="sett-card">
-      <div class="sett-title">🏠 학부모 안내데스크 정보</div>
-      <div style="padding:10px 16px 4px;font-size:11px;color:var(--gray);line-height:1.7;">학부모 안내데스크에 표시될 도장 안내 정보를 입력하세요.<br>저장 후 안내데스크 화면에 반영됩니다.</div>
-
-      <div class="pd-section">
-        <div class="pd-label">운영시간표</div>
-        <textarea id="pdSchedule" class="pd-textarea" placeholder="예: 월~금 14:00~20:00, 토 10:00~13:00"></textarea>
-      </div>
-
-      <div class="pd-section">
-        <div class="pd-label">학원비 안내</div>
-        <textarea id="pdTuition" class="pd-textarea" placeholder="예: 주3회 12만원 / 주5회 15만원, 형제할인 10%"></textarea>
-      </div>
-
-      <div class="pd-section">
-        <div class="pd-label">차량 운행 안내</div>
-        <textarea id="pdCarpool" class="pd-textarea" placeholder="예: ○○동, △△아파트 단지 운행, 신청은 전화 문의"></textarea>
-      </div>
-
-      <div class="pd-section" style="margin-bottom:12px;">
-        <div class="pd-label" style="margin-bottom:10px;">자주 묻는 질문 (FAQ)</div>
-        <div id="pdFaqList"></div>
-        <button class="pd-add-btn" onclick="addParentDeskFaq()">+ FAQ 항목 추가</button>
-      </div>
-
-      <div style="padding:0 16px 16px;">
-        <button class="pd-save-btn" onclick="saveParentDesk()">저장하기</button>
-        <div id="pdSavedMsg" class="pd-saved-msg">✓ 저장되었습니다</div>
-      </div>
-    </div>
-
     <button class="logout-btn" onclick="doLogout()">🚪 로그아웃</button>
   </div>
 
@@ -847,16 +798,6 @@ onAuthStateChanged(auth, async (user) => {
     document.getElementById('settAcademyName').textContent = name;
     document.getElementById('settOwnerName').textContent   = academySettings.ownerName || userData.ownerName || '—';
     document.getElementById('settBuCount').textContent     = `${BU_LABELS.length}부제 (${BU_LABELS.join(', ')})`;
-
-    // 학부모 안내데스크 데이터 로드
-    if (academySettings.parentDesk) {
-      const pd = academySettings.parentDesk;
-      document.getElementById('pdSchedule').value = pd.schedule || '';
-      document.getElementById('pdTuition').value  = pd.tuition  || '';
-      document.getElementById('pdCarpool').value  = pd.carpool  || '';
-      pdFaqList = Array.isArray(pd.faq) ? pd.faq.map(f => ({q: f.q||'', a: f.a||''})) : [];
-      renderPdFaqList();
-    }
 
     const planType = userData.planType || 'free';
     const badge = document.getElementById('settPlanBadge');
@@ -1117,55 +1058,6 @@ function showSettingSaved() {
   setTimeout(() => { el.style.opacity = '0'; }, 2000);
 }
 
-// ── 학부모 안내데스크 설정 ────────────────────────────────────────────
-let pdFaqList = [];
-
-function renderPdFaqList() {
-  const container = document.getElementById('pdFaqList');
-  if (!container) return;
-  container.innerHTML = '';
-  pdFaqList.forEach((item, i) => {
-    const div = document.createElement('div');
-    div.className = 'pd-faq-item';
-    div.innerHTML = `
-      <button class="pd-faq-del" onclick="removeParentDeskFaq(${i})">✕ 삭제</button>
-      <div class="pd-faq-num">Q${i + 1}</div>
-      <input class="pd-faq-q" type="text" placeholder="질문을 입력하세요">
-      <textarea class="pd-faq-a" placeholder="답변을 입력하세요"></textarea>
-    `;
-    const qInput = div.querySelector('.pd-faq-q');
-    const aInput = div.querySelector('.pd-faq-a');
-    qInput.value = item.q || '';
-    aInput.value = item.a || '';
-    qInput.addEventListener('input', e => { pdFaqList[i].q = e.target.value; });
-    aInput.addEventListener('input', e => { pdFaqList[i].a = e.target.value; });
-    container.appendChild(div);
-  });
-}
-
-window.addParentDeskFaq = function() {
-  pdFaqList.push({ q: '', a: '' });
-  renderPdFaqList();
-  document.getElementById('pdFaqList').lastElementChild
-    ?.querySelector('.pd-faq-q')?.focus();
-};
-
-window.removeParentDeskFaq = function(i) {
-  pdFaqList.splice(i, 1);
-  renderPdFaqList();
-};
-
-window.saveParentDesk = async function() {
-  const data = {
-    schedule: document.getElementById('pdSchedule').value,
-    tuition:  document.getElementById('pdTuition').value,
-    carpool:  document.getElementById('pdCarpool').value,
-    faq:      pdFaqList.map(f => ({ q: f.q, a: f.a })),
-  };
-  await set(ref(db, `academies/${academyId}/settings/parentDesk`), data);
-  const el = document.getElementById('pdSavedMsg');
-  if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 2000); }
-};
 
 window.saveDay = async (isAuto = false) => {
   if (!isOnline) {
