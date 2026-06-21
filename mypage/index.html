@@ -321,9 +321,21 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 구독 현황 렌더링 ──────────────────────────────────────────────
 function renderSubBox(userData) {
+  const el = document.getElementById('subBox');
+
+  if (userData.role === 'admin') {
+    el.innerHTML = `
+      <div class="sub-row">
+        <span class="sub-plan-name">🛡️ 운영자 계정</span>
+        <span class="sub-badge pro">Admin</span>
+      </div>
+      <div class="sub-free-desc">모든 서비스를 이용할 수 있는 운영자 계정입니다.</div>
+    `;
+    return;
+  }
+
   const planType   = userData.planType   || 'free';
   const planExpiry = userData.planExpiry || null;
-  const el         = document.getElementById('subBox');
 
   if (planType === 'pro' && planExpiry) {
     const diff   = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));

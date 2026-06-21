@@ -685,7 +685,9 @@ onAuthStateChanged(auth, async (user) => {
 
     // 플랜 배지
     const badgeEl = document.getElementById('planBadge');
-    if (planType === 'pro') {
+    if (isAdmin) {
+      badgeEl.textContent = '🟢 운영자 계정';
+    } else if (planType === 'pro') {
       badgeEl.textContent = '🟢 얼리버드 구독 중';
     } else if (inTrial) {
       badgeEl.textContent = '🟡 무료 체험 중';
@@ -696,7 +698,10 @@ onAuthStateChanged(auth, async (user) => {
     // ── D-day 카운트다운 (비정상 값 방지: 음수 또는 5년 초과 시 만료 처리) ──
     const numEl   = document.getElementById('countdownNum');
     const labelEl = document.getElementById('countdownLabel');
-    if (planType === 'pro' && planExpiry) {
+    if (isAdmin) {
+      numEl.textContent   = '∞';
+      labelEl.textContent = '운영자 전용';
+    } else if (planType === 'pro' && planExpiry) {
       const diff = Math.ceil((planExpiry - Date.now()) / 86400000);
       if (diff > 0 && diff <= 1825) {          // 1일 ~ 5년 이내만 정상
         numEl.textContent   = `D-${diff}`;
