@@ -257,7 +257,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="overlay" id="apiKeyOverlay" style="display:none">
   <div class="modal">
     <h3>Anthropic API 키 설정</h3>
-    <p>리포트 생성 기능에 Claude AI API 키가 필요합니다.<br>키는 이 기기에만 저장됩니다.</p>
+    <p>리포트 생성 기능에 Claude AI API 키가 필요합니다.<br>키는 학원 설정에 저장됩니다.</p>
     <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeApiKeyModal()">취소</button>
@@ -289,6 +289,7 @@ const db    = getDatabase(fbApp);
 // ── 상태 변수 ────────────────────────────────────────────────────────
 let academyId    = null;
 let academyName  = '';
+let apiKey       = '';
 let students     = [];    // [{id, name, belt, grade, ...}]
 let selStudent   = null;  // 현재 선택된 학생
 let bodyRecords  = {};    // {pushKey: {date, height, weight}}
@@ -380,6 +381,14 @@ onAuthStateChanged(auth, async user => {
       academyName = s.academyName || s.name || '학원';
       document.getElementById('academyName').textContent = academyName;
     }
+
+    // API키 Firebase에서 불러오기
+    const apiKeySnap = await get(ref(db, `academies/${academyId}/settings/anthropicApiKey`));
+    apiKey = apiKeySnap.val() || '';
+
+    // admin만 API키 버튼 표시
+    document.getElementById('btnApiKey').style.display =
+      user.email === 'audtls2g@gmail.com' ? '' : 'none';
 
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
@@ -577,7 +586,6 @@ window._toggleTrait = async function(trait, el){
 window.generateReport = async function(){
   if (!selStudent){ alert('수련생을 선택하세요.'); return; }
 
-  const apiKey = localStorage.getItem('fillyo_anthropic_key');
   if (!apiKey){ openApiKeyModal(); return; }
 
   const monthVal = document.getElementById('rptMonth').value;
@@ -728,16 +736,17 @@ window.copyReport = function(){
 
 // ── API Key Modal ─────────────────────────────────────────────────────
 window.openApiKeyModal = function(){
-  document.getElementById('apiKeyInput').value = localStorage.getItem('fillyo_anthropic_key') || '';
+  document.getElementById('apiKeyInput').value = apiKey || '';
   document.getElementById('apiKeyOverlay').style.display = 'flex';
 };
 window.closeApiKeyModal = function(){
   document.getElementById('apiKeyOverlay').style.display = 'none';
 };
-window.saveApiKey = function(){
+window.saveApiKey = async function(){
   const key = document.getElementById('apiKeyInput').value.trim();
   if (!key){ alert('API 키를 입력하세요.'); return; }
-  localStorage.setItem('fillyo_anthropic_key', key);
+  await set(ref(db, `academies/${academyId}/settings/anthropicApiKey`), key);
+  apiKey = key;
   closeApiKeyModal();
 };
 
