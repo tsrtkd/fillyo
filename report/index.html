@@ -288,38 +288,44 @@ function beltPill(belt, grade){
 
 // ── 인증 ─────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = '/login'; return; }
+  try {
+    if (!user) { location.href = '/login'; return; }
 
-  const userSnap = await get(ref(db, `users/${user.uid}`));
-  if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
+    const userSnap = await get(ref(db, `users/${user.uid}`));
+    if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
 
-  const userData = userSnap.val();
-  academyId = userData.academyId || null;
+    const userData = userSnap.val();
+    academyId = userData.academyId || null;
 
-  if (!academyId) {
-    alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
-    location.href = '/dashboard';
-    return;
+    if (!academyId) {
+      alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
+      location.href = '/dashboard';
+      return;
+    }
+
+    // 학원명
+    const acSnap = await get(ref(db, `academies/${academyId}/settings`));
+    if (acSnap.exists()) {
+      const s = acSnap.val();
+      academyName = s.academyName || s.name || '학원';
+      document.getElementById('academyName').textContent = academyName;
+    }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+
+    // 기본 측정일 = 오늘
+    document.getElementById('fDate').value = todayStr();
+    // 기본 리포트 월 = 이번 달
+    const now = new Date();
+    document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+    loadStudents();
+  } catch(e) {
+    console.error('auth error:', e);
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
   }
-
-  // 학원명
-  const acSnap = await get(ref(db, `academies/${academyId}/settings`));
-  if (acSnap.exists()) {
-    const s = acSnap.val();
-    academyName = s.academyName || s.name || '학원';
-    document.getElementById('academyName').textContent = academyName;
-  }
-
-  document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('app').style.display = '';
-
-  // 기본 측정일 = 오늘
-  document.getElementById('fDate').value = todayStr();
-  // 기본 리포트 월 = 이번 달
-  const now = new Date();
-  document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-  loadStudents();
 });
 
 function todayStr(){
