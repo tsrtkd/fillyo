@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>헤더 로고 교체 미리보기</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --t2:#0B7B6B;--t7:#1A2332;
+  --muted:#5A6A7A;
+  --border:#DDE4EE;
+  --r8:8px;
+}
+body{font-family:'DM Sans','Noto Sans KR',sans-serif;background:#F5F7FA;-webkit-font-smoothing:antialiased}
+
+/* ── NAV (index.html 그대로) ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:300;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 6%;height:64px;
+  background:rgba(255,255,255,.92);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--border);
+  transition:background .3s,box-shadow .3s
+}
+nav.scrolled{background:rgba(255,255,255,.99);box-shadow:0 4px 32px rgba(0,0,0,.08)}
+
+/* 기존 텍스트 로고 스타일 (비교용으로 남겨둠) */
+.logo-text{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:4px;text-decoration:none;display:flex;align-items:center}
+.logo-fill{color:var(--t7)}
+.logo-yo{color:var(--t2)}
+
+/* 이미지 로고 */
+.logo-img{display:flex;align-items:center;text-decoration:none}
+.logo-img img{height:40px;width:auto;display:block}
+
+.nav-links{display:flex;gap:32px;list-style:none}
+.nav-links a{font-size:13px;font-weight:500;color:var(--muted);text-decoration:none;letter-spacing:.5px;transition:color .2s}
+.nav-links a:hover{color:var(--t2)}
+.nav-cta{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--t2);color:#fff;border:none;border-radius:var(--r8);
+  padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;
+  text-decoration:none;letter-spacing:.4px;font-family:'DM Sans',sans-serif;
+  transition:all .2s;white-space:nowrap
+}
+.nav-cta:hover{background:#085041;transform:translateY(-1px);box-shadow:0 6px 20px rgba(11,123,107,.25)}
+@media(max-width:768px){.nav-links{display:none}}
+
+/* 미리보기 레이아웃 */
+.preview-wrap{padding-top:120px;display:flex;flex-direction:column;align-items:center;gap:48px}
+.preview-label{font-size:12px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;text-align:center}
+.compare-box{background:#fff;border:1px solid var(--border);border-radius:16px;padding:28px 40px;text-align:center;min-width:320px;box-shadow:0 4px 24px rgba(0,0,0,.06)}
+.compare-nav{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:0 20px;height:64px;background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:12px}
+</style>
+</head>
+<body>
+
+<!-- 실제 헤더: 로고 이미지 버전 -->
+<nav id="nav">
+  <!-- ★ 변경: 텍스트 → 이미지 -->
+  <a href="#" class="logo-img">
+    <img src="images/fillyo_logo_horizontal.png" alt="fillyo 로고">
+  </a>
+  <ul class="nav-links">
+    <li><a href="#">서비스</a></li>
+    <li><a href="#">요금제</a></li>
+    <li><a href="#">소개</a></li>
+    <li><a href="#">문의</a></li>
+  </ul>
+  <a href="#" class="nav-cta">로그인 →</a>
+</nav>
+
+<!-- 본문: 비교 설명 -->
+<div class="preview-wrap">
+
+  <div>
+    <div class="preview-label">위 헤더 = 이미지 로고 적용 결과</div>
+  </div>
+
+  <div class="compare-box">
+    <div class="preview-label">Before — 텍스트 로고</div>
+    <div class="compare-nav">
+      <a href="#" class="logo-text"><span class="logo-fill">FILL</span><span class="logo-yo">YO</span></a>
+      <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif">서비스 &nbsp; 요금제 &nbsp; 소개 &nbsp; 문의</span>
+      <span style="background:var(--t2);color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif">로그인 →</span>
+    </div>
+  </div>
+
+  <div class="compare-box">
+    <div class="preview-label">After — 이미지 로고</div>
+    <div class="compare-nav">
+      <a href="#" class="logo-img"><img src="images/fillyo_logo_header.png" alt="fillyo 로고" style="height:40px"></a>
+      <span style="font-size:13px;color:var(--muted);font-family:'DM Sans',sans-serif">서비스 &nbsp; 요금제 &nbsp; 소개 &nbsp; 문의</span>
+      <span style="background:var(--t2);color:#fff;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif">로그인 →</span>
+    </div>
+  </div>
+
+  <p style="font-size:13px;color:var(--muted);text-align:center;max-width:400px;line-height:1.8">
+    원본 index.html은 수정되지 않았습니다.<br>
+    이미지가 마음에 들면 index.html의 .logo 태그를 위 After 코드로 교체하면 됩니다.
+  </p>
+
+</div>
+
+<script>
+const navEl = document.getElementById('nav');
+window.addEventListener('scroll', () => navEl.classList.toggle('scrolled', window.scrollY > 40));
+</script>
+</body>
+</html>

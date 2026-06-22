@@ -1183,7 +1183,17 @@ window.openStudentModal = (id) => {
   document.getElementById('fPhone').value    = s.parentPhone || '';
   document.getElementById('fJoinDate').value = s.joinDate    || todayStr();
   fillBeltSelect(s.belt || '흰띠');
-  if (isEdit && isDan(s.belt) && s.grade) document.getElementById('fGrade').value = s.grade;
+  if (isEdit && isDan(s.belt) && s.grade) {
+    const fGrade = document.getElementById('fGrade');
+    // 옵션 목록에 없으면 강제로 추가 후 선택 (gradeStep 변경으로 목록 불일치 방지)
+    if (![...fGrade.options].some(o => o.value === s.grade)) {
+      const opt = document.createElement('option');
+      opt.value = s.grade;
+      opt.textContent = s.grade;
+      fGrade.prepend(opt);
+    }
+    fGrade.value = s.grade;
+  }
   document.getElementById('fCertDate1').value = s.certDate1 || '';
   document.getElementById('fCertDate2').value = s.certDate2 || '';
   document.getElementById('fCertDate3').value = s.certDate3 || '';
