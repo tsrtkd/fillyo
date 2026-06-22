@@ -123,6 +123,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-cancel{background:var(--bg);color:var(--gray);}
 .btn-save{background:#1e3a5f;color:white;}
 
+/* ── Belt Badge ── */
+.belt-wrap       { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; flex-shrink:0; }
+.belt-strip      { position:relative; display:inline-block; width:72px; height:20px; border-radius:4px; overflow:hidden; }
+.belt-strip-text { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; height:100%; font-size:11px; font-weight:700; white-space:nowrap; overflow:hidden; }
+.belt-label      { font-size:11px; color:#374151; margin-top:3px; white-space:nowrap; font-weight:500; line-height:1.2; }
+.belt-stripe     { position:absolute; left:0; right:0; pointer-events:none; }
+
 /* ── Mobile ── */
 @media(max-width:640px){
   .layout{flex-direction:column;height:auto;}
@@ -279,26 +286,64 @@ let traitFlags   = [];    // 선택된 태그 배열
 
 const TRAITS = ['활발함','차분함','리더형','팔로워형','집중력높음','산만함','긍정적','내성적','외향적','성실함','도전적','신중함'];
 
-const BELT_COLOR = {
-  '흰띠':'#e5e7eb','흰검띠':'#d1d5db',
-  '노란띠':'#eab308','노검띠':'#d97706',
-  '주황띠':'#f97316','주황검띠':'#ea580c',
-  '초록띠':'#16a34a','초록검띠':'#15803d',
-  '파란띠':'#2563eb','파란검띠':'#1d4ed8',
-  '보라띠':'#7c3aed','보라검띠':'#6d28d9',
-  '밤띠':'#92400e','밤검띠':'#78350f',
-  '빨간띠':'#dc2626',
-  '1품단':'#b91c1c','2품단':'#991b1b','3품단':'#7f1d1d','4품단':'#450a0a',
-};
-const BELT_LIGHT = new Set(['흰띠','흰검띠']);
+function beltBadge(belt, grade) {
+  const BG = {
+    '흰띠':'#e5e7eb',  '흰검띠':'#ffffff',
+    '노란띠':'#eab308', '노검띠':'#eab308',
+    '주황띠':'#f97316', '주황검띠':'#f97316',
+    '초록띠':'#16a34a', '초록검띠':'#16a34a',
+    '파란띠':'#2563eb', '파란검띠':'#2563eb',
+    '보라띠':'#7c3aed', '보라검띠':'#7c3aed',
+    '밤띠':'#92400e',   '밤검띠':'#92400e',
+    '빨간띠':'#dc2626',
+    '1품단':'#1f2937',  '2품단':'#1f2937',  '3품단':'#1f2937',  '4품단':'#1f2937',
+  };
+  const BLACK_STRIPE = new Set(['흰검띠','노검띠','주황검띠','초록검띠','파란검띠','보라검띠','밤검띠']);
+  const DAN_LIST     = ['1품단','2품단','3품단','4품단'];
+  const DAN_POS      = {1:['50%'],2:['33%','67%'],3:['25%','50%','75%'],4:['20%','40%','60%','80%']};
+  const LIGHT        = new Set(['흰띠','흰검띠']);
+  const WHITE_BG     = new Set(['흰검띠']);
 
-function beltColor(belt){ return BELT_COLOR[belt] || '#9ca3af'; }
-function beltTextColor(belt){ return BELT_LIGHT.has(belt) ? '#374151' : '#ffffff'; }
-function beltPill(belt, grade){
-  const bg = beltColor(belt);
-  const tc = beltTextColor(belt);
-  const label = grade ? grade : belt;
-  return `<span class="belt-pill" style="background:${bg};color:${tc}">${label}</span>`;
+  const isDanGrade = grade && /^\d+단$/.test(grade);
+  const danGradeN  = isDanGrade ? parseInt(grade) : 0;
+  const isDanBelt  = DAN_LIST.includes(belt);
+
+  let bgCss;
+  if (belt === '1품단' && !isDanGrade) {
+    bgCss = 'background:linear-gradient(to bottom,#1f2937 50%,#dc2626 50%)';
+  } else {
+    bgCss = `background:${BG[belt] || '#9ca3af'}`;
+  }
+
+  let stripes = '';
+  if (BLACK_STRIPE.has(belt)) {
+    const stripeColor = WHITE_BG.has(belt) ? '#1f2937' : '#111111';
+    stripes = `<span class="belt-stripe" style="top:50%;transform:translateY(-50%);height:3px;background:${stripeColor};border-radius:0"></span>`;
+  } else if (isDanBelt && isDanGrade) {
+    const pos = DAN_POS[Math.min(danGradeN, 4)] || ['50%'];
+    stripes = pos.map(p =>
+      `<span class="belt-stripe" style="top:${p};transform:translateY(-50%);height:2px;background:#fbbf24"></span>`
+    ).join('');
+  } else if (belt === '2품단') {
+    stripes = `<span class="belt-stripe" style="top:50%;transform:translateY(-50%);height:3px;background:#dc2626"></span>`;
+  } else if (belt === '4품단') {
+    stripes = `<span style="position:absolute;right:3px;top:50%;transform:translateY(-50%);font-size:10px;line-height:1;z-index:2">⭐</span>`;
+  }
+
+  const textColor = belt === '흰검띠' ? '#1f2937' : (LIGHT.has(belt) ? '#374151' : '#ffffff');
+  const tShadow   = LIGHT.has(belt) ? 'none' : '0 1px 2px rgba(0,0,0,0.5)';
+  const shortLabel = grade || belt;
+  const fullLabel  = belt + (grade ? ' ' + grade : '');
+
+  const borderStyle = belt === '흰검띠' ? ';border:2px solid #9ca3af' : '';
+  return (
+    `<span class="belt-wrap" title="${fullLabel}">` +
+      `<span class="belt-strip" style="${bgCss}${borderStyle}">` +
+        stripes +
+        `<span class="belt-strip-text" style="color:${textColor};text-shadow:${tShadow}">${shortLabel}</span>` +
+      `</span>` +
+    `</span>`
+  );
 }
 
 // ── 인증 ─────────────────────────────────────────────────────────────
@@ -382,7 +427,7 @@ function renderStudentList(list){
     <div class="s-item ${selStudent?.id===s.id?'active':''}" data-id="${s.id}" onclick="window._selectStudent('${s.id}')">
       <div style="flex:1;min-width:0">
         <div class="s-name">${s.name||'이름없음'}</div>
-        <div style="margin-top:3px">${beltPill(s.belt||'흰띠', s.grade||'')}</div>
+        <div style="margin-top:3px">${beltBadge(s.belt||'흰띠', s.grade||'')}</div>
       </div>
     </div>
   `).join('');
@@ -398,7 +443,7 @@ window._selectStudent = function(id){
   document.getElementById('detailPanel').style.display = '';
 
   document.getElementById('selName').textContent = selStudent.name || '';
-  document.getElementById('selBeltBadge').innerHTML = beltPill(selStudent.belt||'흰띠', selStudent.grade||'');
+  document.getElementById('selBeltBadge').innerHTML = beltBadge(selStudent.belt||'흰띠', selStudent.grade||'');
 
   // 탭 초기화
   switchTab('body', document.querySelector('.tab-btn[data-tab="body"]'));
