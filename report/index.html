@@ -157,6 +157,17 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <!-- 좌측: 수련생 목록 -->
     <div class="sidebar">
       <div class="sidebar-hd">수련생 목록</div>
+      <div style="padding:8px 12px;display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #e5e7eb;">
+        <input type="text" id="searchInput" placeholder="이름 검색..." oninput="filterStudents()"
+          style="width:100%;box-sizing:border-box;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;">
+        <select id="sortSelect" onchange="filterStudents()"
+          style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;background:white;outline:none;">
+          <option value="name">이름순</option>
+          <option value="belt-high">띠 높은순</option>
+          <option value="belt-low">띠 낮은순</option>
+          <option value="age">나이순</option>
+        </select>
+      </div>
       <div id="studentList" class="student-list">
         <div class="no-record" style="grid-column:1/-1">불러오는 중...</div>
       </div>
@@ -277,7 +288,7 @@ const BELT_COLOR = {
   '보라띠':'#7c3aed','보라검띠':'#6d28d9',
   '밤띠':'#92400e','밤검띠':'#78350f',
   '빨간띠':'#dc2626',
-  '1품단':'#1f2937','2품단':'#1f2937','3품단':'#1f2937','4품단':'#1f2937',
+  '1품단':'#b91c1c','2품단':'#991b1b','3품단':'#7f1d1d','4품단':'#450a0a',
 };
 const BELT_LIGHT = new Set(['흰띠','흰검띠']);
 
@@ -343,17 +354,31 @@ function loadStudents() {
     const raw = snap.val() || {};
     students = Object.entries(raw).map(([id, s]) => ({ id, ...s }));
     students.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
-    renderStudentList();
+    filterStudents();
   });
 }
 
-function renderStudentList(){
+const BELT_ORDER = ['흰띠','흰검띠','노란띠','노검띠','주황띠','주황검띠','초록띠','초록검띠','파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠','1품단','2품단','3품단','4품단'];
+
+function filterStudents(){
+  const q = (document.getElementById('searchInput')?.value||'').trim().toLowerCase();
+  const sort = document.getElementById('sortSelect')?.value || 'name';
+  let list = [...students];
+  if(q) list = list.filter(s => (s.name||'').toLowerCase().includes(q));
+  if(sort==='name') list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
+  else if(sort==='belt-high') list.sort((a,b)=>(BELT_ORDER.indexOf(b.belt||'')-BELT_ORDER.indexOf(a.belt||'')));
+  else if(sort==='belt-low') list.sort((a,b)=>(BELT_ORDER.indexOf(a.belt||'')-BELT_ORDER.indexOf(b.belt||'')));
+  else if(sort==='age') list.sort((a,b)=>(b.age||0)-(a.age||0));
+  renderStudentList(list);
+}
+
+function renderStudentList(list){
   const el = document.getElementById('studentList');
   if (!students.length){
     el.innerHTML = '<div class="no-record" style="grid-column:1/-1;padding:20px;text-align:center;color:#888;">등록된 수련생이 없습니다</div>';
     return;
   }
-  el.innerHTML = students.map(s => `
+  el.innerHTML = (list||students).map(s => `
     <div class="s-item ${selStudent?.id===s.id?'active':''}" data-id="${s.id}" onclick="window._selectStudent('${s.id}')">
       <div style="flex:1;min-width:0">
         <div class="s-name">${s.name||'이름없음'}</div>
