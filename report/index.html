@@ -328,15 +328,11 @@ function todayStr(){
 }
 
 // ── 학생 목록 로드 ────────────────────────────────────────────────────
-function loadStudents(){
+function loadStudents() {
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
-    students = [];
-    if (snap.exists()){
-      snap.forEach(child => {
-        students.push({ id: child.key, ...child.val() });
-      });
-      students.sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ko'));
-    }
+    const raw = snap.val() || {};
+    students = Object.entries(raw).map(([id, s]) => ({ id, ...s }));
+    students.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
     renderStudentList();
   });
 }
