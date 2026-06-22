@@ -231,8 +231,6 @@ onAuthStateChanged(auth, async user => {
     const userData = userSnap.val();
 
     academyId = userData.academyId;
-    console.log('academyId:', academyId);
-    console.log('userData:', JSON.stringify(userData));
     if (!academyId) { location.href = '/setup/'; return; }
 
     const acSnap = await get(ref(db, `academies/${academyId}/settings`));
@@ -257,7 +255,7 @@ onAuthStateChanged(auth, async user => {
 
 // ── 학생 목록 ────────────────────────────────────────────────────────
 function loadStudents() {
-  get(ref(db, `academies/${academyId}/exam/students`)).then(snap => {
+  onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = [];
     if (snap.exists()) {
       snap.forEach(child => students.push({ id: child.key, ...child.val() }));
