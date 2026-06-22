@@ -35,7 +35,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .hdr-key:active{background:rgba(255,183,3,.35);}
 
 /* ── Layout ── */
-#app{display:none;}
+#app{display:flex;flex-direction:column;}
 .layout{display:flex;height:calc(100vh - 50px);overflow:hidden;}
 
 /* ── Sidebar ── */
@@ -311,7 +311,7 @@ onAuthStateChanged(auth, async user => {
   }
 
   document.getElementById('loadingScreen').style.display = 'none';
-  document.getElementById('app').style.display = '';
+  document.getElementById('app').style.display = 'flex';
 
   // 기본 측정일 = 오늘
   document.getElementById('fDate').value = todayStr();
