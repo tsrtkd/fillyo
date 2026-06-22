@@ -7,25 +7,15 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif}
 body{background:#f5f7fa;min-height:100vh}
-
-/* 로딩 */
 #loadingScreen{position:fixed;inset:0;background:#1e3a5f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:white;gap:12px}
 #loadingScreen .ld-logo{font-size:28px;font-weight:800;letter-spacing:2px}
 #loadingScreen .ld-msg{font-size:14px;opacity:0.7}
-
-/* 앱 전체 - 기본 숨김 */
 #app{display:none;flex-direction:column;min-height:100vh}
-
-/* 헤더 */
 .hdr{background:#1e3a5f;color:white;padding:0 16px;height:52px;display:flex;align-items:center;gap:12px;flex-shrink:0}
 .hdr-back{background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
 .hdr-title{flex:1;font-size:16px;font-weight:700}
 .hdr-key{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px}
-
-/* 레이아웃 */
 .layout{display:flex;flex:1;height:calc(100vh - 52px);overflow:hidden}
-
-/* 사이드바 */
 .sidebar{width:220px;flex-shrink:0;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden}
 .sidebar-hd{padding:14px 16px;font-size:13px;font-weight:700;color:#374151;background:#f8fafc;border-bottom:1px solid #e2e8f0}
 .student-list{flex:1;overflow-y:auto}
@@ -34,26 +24,18 @@ body{background:#f5f7fa;min-height:100vh}
 .s-item.active{background:#dbeafe}
 .s-name{font-size:14px;font-weight:600;color:#1e293b}
 .belt-pill{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600}
-
-/* 메인 패널 */
 .panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f5f7fa}
 .empty-msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;gap:8px}
 .empty-msg .em-icon{font-size:40px}
 .empty-msg p{font-size:14px}
-
-/* 상세 패널 */
 #detailPanel{display:none;flex-direction:column;flex:1;overflow:hidden}
 .stu-hd{background:white;padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}
 .stu-hd-name{font-size:17px;font-weight:700;color:#1e293b}
-
-/* 탭 */
 .tabs{display:flex;background:white;border-bottom:1px solid #e2e8f0;padding:0 16px}
 .tab-btn{background:none;border:none;padding:12px 16px;cursor:pointer;font-size:14px;color:#64748b;border-bottom:3px solid transparent;transition:all 0.15s}
 .tab-btn.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
 .tab-content{display:none;flex:1;overflow-y:auto;padding:20px}
 .tab-content.active{display:block}
-
-/* 성장기록 탭 */
 .body-form{background:white;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
 .bf-field{display:flex;flex-direction:column;gap:4px}
 .bf-field label{font-size:12px;font-weight:600;color:#374151}
@@ -68,27 +50,28 @@ input[type=date].body-inp{width:150px}
 .br-vals{font-size:14px;font-weight:600;color:#1e293b}
 .br-del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:4px}
 .no-record{padding:24px;text-align:center;color:#9ca3af;font-size:14px}
-
-/* 성격태그 탭 */
 .trait-grid{display:flex;flex-wrap:wrap;gap:10px;padding:4px}
 .trait-item{display:flex;align-items:center;gap:6px;background:white;border:1px solid #e2e8f0;border-radius:20px;padding:8px 14px;cursor:pointer;transition:all 0.15s}
 .trait-item input{accent-color:#2563eb;width:15px;height:15px;cursor:pointer}
 .trait-item label{font-size:14px;cursor:pointer;color:#374151}
 .trait-item:has(input:checked){background:#dbeafe;border-color:#2563eb}
 .trait-save-msg{margin-top:12px;font-size:13px;color:#16a34a;height:20px}
-
-/* 리포트 탭 */
-.rpt-row{background:white;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:10px;align-items:center}
+.rpt-row{background:white;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .rpt-month-inp{border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:14px}
 .btn-gen{background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
 .btn-gen:disabled{background:#c4b5fd;cursor:not-allowed}
 .rpt-status{font-size:13px;color:#6b7280;padding:4px 0}
+/* 데이터 요약 카드 */
+.data-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
+.data-card{background:white;border-radius:10px;padding:12px 14px;border-left:3px solid #2563eb}
+.data-card-label{font-size:11px;color:#64748b;font-weight:600;margin-bottom:4px}
+.data-card-value{font-size:14px;font-weight:700;color:#1e293b}
+.data-card.empty{border-left-color:#e2e8f0;opacity:0.5}
+.data-card.empty .data-card-value{color:#9ca3af;font-size:12px;font-weight:400}
 .rpt-result-wrap{background:white;border-radius:12px;padding:20px;display:none;margin-top:4px}
 .rpt-result-title{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px}
 .rpt-result{font-size:15px;line-height:1.8;color:#1e293b;white-space:pre-wrap;min-height:80px}
 .btn-copy{margin-top:14px;background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-
-/* API키 모달 */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center}
 .overlay.open{display:flex}
 .modal{background:white;border-radius:16px;padding:24px;width:340px;max-width:90vw}
@@ -98,7 +81,6 @@ input[type=date].body-inp{width:150px}
 .modal-btns{display:flex;gap:8px;justify-content:flex-end}
 .btn-cancel{background:#f1f5f9;border:none;color:#374151;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
 .btn-save{background:#2563eb;border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
-
 @media(max-width:600px){
   .layout{flex-direction:column;height:auto}
   .sidebar{width:100%;height:auto;max-height:200px;border-right:none;border-bottom:1px solid #e2e8f0}
@@ -122,7 +104,6 @@ input[type=date].body-inp{width:150px}
   </header>
 
   <div class="layout">
-    <!-- 좌측 사이드바 -->
     <div class="sidebar">
       <div class="sidebar-hd">수련생 목록</div>
       <div class="student-list" id="studentList">
@@ -130,7 +111,6 @@ input[type=date].body-inp{width:150px}
       </div>
     </div>
 
-    <!-- 우측 패널 -->
     <div class="panel">
       <div class="empty-msg" id="emptyState">
         <div class="em-icon">📋</div>
@@ -149,7 +129,6 @@ input[type=date].body-inp{width:150px}
           <button class="tab-btn" data-tab="report" onclick="switchTab('report',this)">✨ 리포트 생성</button>
         </div>
 
-        <!-- 탭1: 성장기록 -->
         <div class="tab-content active" id="tabBody">
           <div class="body-form">
             <div class="bf-field"><label>측정일</label><input type="date" class="body-inp" id="fDate"></div>
@@ -160,19 +139,18 @@ input[type=date].body-inp{width:150px}
           <div class="body-records" id="bodyList"></div>
         </div>
 
-        <!-- 탭2: 성격태그 -->
         <div class="tab-content" id="tabTraits">
           <div class="trait-grid" id="traitGrid"></div>
           <div class="trait-save-msg" id="traitMsg"></div>
         </div>
 
-        <!-- 탭3: 리포트 생성 -->
         <div class="tab-content" id="tabReport">
           <div class="rpt-row">
             <input type="month" class="rpt-month-inp" id="rptMonth">
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()">리포트 생성</button>
           </div>
           <div class="rpt-status" id="rptStatus"></div>
+          <div class="data-summary" id="dataSummary" style="display:none"></div>
           <div class="rpt-result-wrap" id="rptResultWrap">
             <div class="rpt-result-title">✨ AI 생성 성장 리포트</div>
             <div class="rpt-result" id="rptResult"></div>
@@ -184,7 +162,6 @@ input[type=date].body-inp{width:150px}
   </div>
 </div>
 
-<!-- API Key Modal -->
 <div class="overlay" id="apiKeyOverlay">
   <div class="modal">
     <h3>🔑 Anthropic API 키 설정</h3>
@@ -198,7 +175,6 @@ input[type=date].body-inp{width:150px}
 </div>
 
 <script type="module">
-// ── Firebase (app/index.html에서 복사) ──────────────────────────────
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getDatabase, ref, get, set, push, remove, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
@@ -217,7 +193,6 @@ const fbApp = initializeApp(FB_CONFIG);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
 
-// ── 상태 변수 ────────────────────────────────────────────────────────
 let academyId   = null;
 let academyName = '';
 let students    = [];
@@ -249,20 +224,12 @@ function todayStr() {
 // ── 인증 ──────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   if (!user) { location.href = '/login/'; return; }
-
   const userSnap = await get(ref(db, `users/${user.uid}`));
   if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
-
   const userData = userSnap.val();
   academyId = userData.academyId || null;
+  if (!academyId) { alert('학원 정보가 없습니다.'); location.href = '/dashboard/'; return; }
 
-  if (!academyId) {
-    alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
-    location.href = '/dashboard/';
-    return;
-  }
-
-  // 학원명
   const acSnap = await get(ref(db, `academies/${academyId}/settings`));
   if (acSnap.exists()) {
     const s = acSnap.val();
@@ -270,15 +237,12 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('academyName').textContent = academyName;
   }
 
-  // 기본값 설정
   document.getElementById('fDate').value = todayStr();
   const now = new Date();
   document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
-  // 앱 표시
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
-
   loadStudents();
 });
 
@@ -319,6 +283,10 @@ window._sel = function(id) {
   document.getElementById('detailPanel').style.display = 'flex';
   document.getElementById('selName').textContent = selStudent.name || '';
   document.getElementById('selBeltBadge').innerHTML = beltPill(selStudent.belt||'흰띠', selStudent.grade||'');
+  // 리포트 결과 초기화
+  document.getElementById('rptResultWrap').style.display = 'none';
+  document.getElementById('dataSummary').style.display = 'none';
+  document.getElementById('rptStatus').textContent = '';
   switchTab('body', document.querySelector('.tab-btn[data-tab="body"]'));
   loadBodyRecords();
   loadTraits();
@@ -339,19 +307,28 @@ function loadBodyRecords() {
   if (!selStudent) return;
   get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`)).then(snap => {
     const el = document.getElementById('bodyList');
-    if (!snap.exists()) { el.innerHTML = '<div class="no-record">기록이 없습니다</div>'; return; }
+    if (!snap.exists()) { el.innerHTML = '<div class="no-record">아직 기록이 없습니다. 위에서 추가해주세요.</div>'; return; }
     const recs = [];
     snap.forEach(c => recs.push({ key: c.key, ...c.val() }));
     recs.sort((a,b) => b.date.localeCompare(a.date));
-    el.innerHTML = recs.map(r => `
-      <div class="body-record-item">
-        <div class="br-info">
-          <span class="br-date">${r.date}</span>
-          <span class="br-vals">키 ${r.height}cm · 몸무게 ${r.weight}kg</span>
+    el.innerHTML = recs.map((r,i) => {
+      let diff = '';
+      if (i < recs.length - 1) {
+        const prev = recs[i+1];
+        const hd = (r.height - prev.height).toFixed(1);
+        const wd = (r.weight - prev.weight).toFixed(1);
+        diff = ` <span style="font-size:11px;color:#16a34a">(키 ${hd>=0?'+':''}${hd} / 몸무게 ${wd>=0?'+':''}${wd})</span>`;
+      }
+      return `
+        <div class="body-record-item">
+          <div class="br-info">
+            <span class="br-date">${r.date}</span>
+            <span class="br-vals">키 ${r.height}cm · 몸무게 ${r.weight}kg${diff}</span>
+          </div>
+          <button class="br-del" onclick="window._delBody('${r.key}')">🗑</button>
         </div>
-        <button class="br-del" onclick="window._delBody('${r.key}')">🗑</button>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   });
 }
 
@@ -369,8 +346,7 @@ window.addBodyRecord = async function() {
 };
 
 window._delBody = async function(key) {
-  if (!selStudent) return;
-  if (!confirm('이 기록을 삭제할까요?')) return;
+  if (!selStudent || !confirm('이 기록을 삭제할까요?')) return;
   await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords/${key}`));
   loadBodyRecords();
 };
@@ -385,8 +361,7 @@ function loadTraits() {
 }
 
 function renderTraitGrid(saved) {
-  const grid = document.getElementById('traitGrid');
-  grid.innerHTML = TRAITS.map(t => `
+  document.getElementById('traitGrid').innerHTML = TRAITS.map(t => `
     <div class="trait-item">
       <input type="checkbox" id="tr_${t}" value="${t}" ${saved.includes(t)?'checked':''}
              onchange="window._saveTraits()">
@@ -409,85 +384,138 @@ window.generateReport = async function() {
   if (!selStudent) return;
   const apiKey = localStorage.getItem('fillyo_anthropic_key');
   if (!apiKey) { openApiKeyModal(); return; }
-
-  const month = document.getElementById('rptMonth').value; // YYYY-MM
+  const month = document.getElementById('rptMonth').value;
   if (!month) { alert('월을 선택해주세요'); return; }
 
-  const btn = document.getElementById('btnGenerate');
+  const btn    = document.getElementById('btnGenerate');
   const status = document.getElementById('rptStatus');
   btn.disabled = true;
+  document.getElementById('rptResultWrap').style.display = 'none';
+  document.getElementById('dataSummary').style.display = 'none';
   status.textContent = '📊 데이터 수집 중...';
 
   try {
-    // 1. 출석 데이터 (업무일지)
+    // ── 1. 출석 데이터 ────────────────────────────────────────────
     let attendDays = 0, absentDays = 0;
     const journalSnap = await get(ref(db, `academies/${academyId}/journal/logs`));
     if (journalSnap.exists()) {
       journalSnap.forEach(daySnap => {
-        const dateKey = daySnap.key; // YYYY-MM-DD
-        if (!dateKey.startsWith(month)) return;
+        if (!daySnap.key.startsWith(month)) return;
         const val = daySnap.val();
-        const presentArr = Array.isArray(val.presentNames) ? val.presentNames : (val.presentNames ? Object.values(val.presentNames) : []);
-        const absentArr  = Array.isArray(val.absentNames)  ? val.absentNames  : (val.absentNames  ? Object.values(val.absentNames)  : []);
-        if (presentArr.some(n => n === selStudent.name)) attendDays++;
-        if (absentArr.some(n => n === selStudent.name))  absentDays++;
+        const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
+        if (toArr(val.presentNames).some(n => n === selStudent.name)) attendDays++;
+        if (toArr(val.absentNames).some(n => n === selStudent.name))  absentDays++;
       });
     }
 
-    // 2. 승급심사 현황
-    const examBelt  = selStudent.belt  || '';
-    const examGrade = selStudent.grade || '';
+    // ── 2. 승급심사 결과 (이번 달 또는 최근) ──────────────────────
+    let examResults = [];
+    const evalSnap = await get(ref(db, `academies/${academyId}/exam/evaluations`));
+    if (evalSnap.exists()) {
+      evalSnap.forEach(child => {
+        const e = child.val();
+        // 이 학생의 기록 중 선택 월 기록
+        if (e.studentId === selStudent.id && e.date && e.date.startsWith(month)) {
+          examResults.push(e);
+        }
+      });
+      // 이번 달 없으면 최근 3개월 내 기록
+      if (!examResults.length) {
+        const cutoff = month.replace('-', '') + '01';
+        evalSnap.forEach(child => {
+          const e = child.val();
+          if (e.studentId === selStudent.id && e.date) {
+            const d = e.date.replace(/-/g,'');
+            const threeMonthsAgo = new Date(month + '-01');
+            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+            const cutoffStr = `${threeMonthsAgo.getFullYear()}${String(threeMonthsAgo.getMonth()+1).padStart(2,'0')}01`;
+            if (d >= cutoffStr) examResults.push(e);
+          }
+        });
+      }
+    }
 
-    // 3. 줄넘기 현황
+    // ── 3. 줄넘기 현황 ────────────────────────────────────────────
     let jrLevel = '';
     const jrSnap = await get(ref(db, `academies/${academyId}/jumprope/students`));
     if (jrSnap.exists()) {
       jrSnap.forEach(child => {
-        const jrStu = child.val();
-        if ((jrStu.name||'') === selStudent.name) {
-          jrLevel = jrStu.level ? String(jrStu.level)+'급' : (jrStu.currentLevel || '');
+        const s = child.val();
+        if ((s.name||'').trim() === selStudent.name.trim()) {
+          const lv = s.level ?? s.currentLevel ?? '';
+          jrLevel = lv ? String(lv) + (String(lv).includes('급') ? '' : '급') : '';
         }
       });
     }
 
-    // 4. 신체기록 최근 2개
+    // ── 4. 신체기록 ───────────────────────────────────────────────
     let bodyText = '';
+    let bodyLatest = null;
     const bodySnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`));
     if (bodySnap.exists()) {
       const recs = [];
       bodySnap.forEach(c => recs.push(c.val()));
       recs.sort((a,b) => b.date.localeCompare(a.date));
+      bodyLatest = recs[0];
       if (recs.length >= 2) {
         const latest = recs[0], prev = recs[1];
-        const hDiff = (latest.height - prev.height).toFixed(1);
-        const wDiff = (latest.weight - prev.weight).toFixed(1);
-        bodyText = `최근 신체: 키 ${latest.height}cm (${hDiff>=0?'+':''}${hDiff}), 몸무게 ${latest.weight}kg (${wDiff>=0?'+':''}${wDiff})`;
+        const hd = (latest.height - prev.height).toFixed(1);
+        const wd = (latest.weight - prev.weight).toFixed(1);
+        bodyText = `신체(${latest.date}): 키 ${latest.height}cm(${hd>=0?'+':''}${hd}cm 성장), 몸무게 ${latest.weight}kg(${wd>=0?'+':''}${wd}kg)`;
       } else if (recs.length === 1) {
-        bodyText = `신체기록: 키 ${recs[0].height}cm, 몸무게 ${recs[0].weight}kg`;
+        bodyText = `신체(${recs[0].date}): 키 ${recs[0].height}cm, 몸무게 ${recs[0].weight}kg`;
       }
     }
 
-    // 5. 성격태그
-    let traitsText = '';
+    // ── 5. 성격태그 ───────────────────────────────────────────────
+    let traits = [];
     const traitSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`));
-    if (traitSnap.exists()) {
-      const arr = traitSnap.val() || [];
-      if (arr.length) traitsText = `성격 특징: ${arr.join(', ')}`;
+    if (traitSnap.exists()) traits = traitSnap.val() || [];
+
+    // ── 데이터 요약 카드 표시 ─────────────────────────────────────
+    const summaryEl = document.getElementById('dataSummary');
+    const cards = [
+      { label:'📅 출석', value: (attendDays||absentDays) ? `${attendDays}일 출석 / ${absentDays}일 결석` : null },
+      { label:'🥋 현재 급수', value: selStudent.belt ? `${selStudent.belt}${selStudent.grade?' '+selStudent.grade:''}` : null },
+      { label:'🏆 심사 결과', value: examResults.length ? examResults.map(e=>`${e.date} ${e.passed===true?'합격':'불합격'}`).join(', ') : null },
+      { label:'🪢 줄넘기', value: jrLevel || null },
+      { label:'📏 신체기록', value: bodyLatest ? `키 ${bodyLatest.height}cm / ${bodyLatest.weight}kg` : null },
+      { label:'😊 성격태그', value: traits.length ? traits.join(', ') : null },
+    ];
+    summaryEl.innerHTML = cards.map(c => `
+      <div class="data-card${c.value?'':' empty'}">
+        <div class="data-card-label">${c.label}</div>
+        <div class="data-card-value">${c.value || '데이터 없음'}</div>
+      </div>
+    `).join('');
+    summaryEl.style.display = 'grid';
+
+    // ── 데이터 라인 조합 ──────────────────────────────────────────
+    const dataLines = [`학생 이름: ${selStudent.name}`, `대상 월: ${month}`];
+    if (attendDays || absentDays) dataLines.push(`출석 현황: ${attendDays}일 출석, ${absentDays}일 결석`);
+    if (selStudent.belt) dataLines.push(`현재 띠/급수: ${selStudent.belt}${selStudent.grade?' '+selStudent.grade:''}`);
+    if (examResults.length) {
+      examResults.forEach(e => {
+        const passStr = e.passed === true ? '합격' : '불합격';
+        dataLines.push(`승급심사(${e.date}): ${passStr}`);
+        // 점수 데이터가 있으면 추가
+        if (e.scores) {
+          const sc = e.scores;
+          const parts = [];
+          if (sc.poomsae?.some(v=>v>0)) parts.push(`품새 ${sc.poomsae.filter(v=>v>0).join('/')}점`);
+          if (sc.kick?.some(v=>v>0)) parts.push(`발차기 ${sc.kick.filter(v=>v>0).join('/')}점`);
+          if (sc.extreme?.some(v=>v>0)) parts.push(`익스트림 ${sc.extreme.filter(v=>v>0).join('/')}점`);
+          if (parts.length) dataLines.push(`심사 점수: ${parts.join(', ')}`);
+        }
+      });
     }
-
-    // 데이터 조합
-    const dataLines = [];
-    dataLines.push(`학생 이름: ${selStudent.name}`);
-    dataLines.push(`대상 월: ${month}`);
-    if (attendDays || absentDays) dataLines.push(`출석: ${attendDays}일 출석, ${absentDays}일 결석`);
-    if (examBelt) dataLines.push(`현재 띠: ${examBelt}${examGrade ? ' '+examGrade : ''}`);
-    if (jrLevel) dataLines.push(`줄넘기 급수: ${jrLevel}`);
+    if (jrLevel) dataLines.push(`줄넘기 현재 급수: ${jrLevel}`);
     if (bodyText) dataLines.push(bodyText);
-    if (traitsText) dataLines.push(traitsText);
+    if (traits.length) dataLines.push(`성격 특징: ${traits.join(', ')}`);
 
-    status.textContent = '✨ AI 리포트 생성 중...';
+    status.textContent = '✨ AI 리포트 작성 중...';
 
-    // Claude API 호출
+    // ── Claude API 호출 ───────────────────────────────────────────
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -498,12 +526,17 @@ window.generateReport = async function() {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 500,
+        max_tokens: 600,
         system: `당신은 태권도장 원장님을 도와 학부모에게 보낼 학생 성장 리포트 문구를 작성하는 도우미입니다.
-주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
-따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있는 200자 내외의 문구를 작성하세요.
-[${academyName}] 으로 시작하고, 아이 이름을 자연스럽게 포함하세요.
-숫자 나열보다는 자연스러운 문장으로 작성하세요.`,
+규칙:
+1. 주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
+2. [${academyName}] 으로 시작하세요.
+3. 아이 이름을 자연스럽게 포함하세요.
+4. 따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있도록 작성하세요.
+5. 숫자 나열보다 자연스러운 문장으로 표현하세요.
+6. 신체 성장(키·몸무게)이 있으면 자연스럽게 언급하세요.
+7. 승급심사 합격이 있으면 축하 표현을 넣으세요.
+8. 200~300자 내외로 작성하세요.`,
         messages: [{ role: 'user', content: dataLines.join('\n') }]
       })
     });
@@ -512,17 +545,15 @@ window.generateReport = async function() {
       const err = await res.json().catch(() => ({}));
       throw new Error(err?.error?.message || `API 오류 ${res.status}`);
     }
-
     const data = await res.json();
     const text = data.content?.[0]?.text || '';
-
     document.getElementById('rptResult').textContent = text;
     document.getElementById('rptResultWrap').style.display = 'block';
     status.textContent = '✅ 생성 완료';
 
   } catch(e) {
     status.textContent = `❌ 오류: ${e.message}`;
-    if (e.message.includes('401') || e.message.includes('auth')) {
+    if (e.message.includes('401') || e.message.includes('authentication')) {
       localStorage.removeItem('fillyo_anthropic_key');
       openApiKeyModal();
     }
@@ -540,10 +571,8 @@ window.copyReport = function() {
   });
 };
 
-// ── API키 모달 ────────────────────────────────────────────────────────
 window.openApiKeyModal = function() {
-  const saved = localStorage.getItem('fillyo_anthropic_key') || '';
-  document.getElementById('apiKeyInput').value = saved;
+  document.getElementById('apiKeyInput').value = localStorage.getItem('fillyo_anthropic_key') || '';
   document.getElementById('apiKeyOverlay').classList.add('open');
 };
 window.closeApiKeyModal = function() {
