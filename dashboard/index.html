@@ -495,6 +495,12 @@
           <h3>AI 안내데스크</h3>
           <p>AI 자동응대 · 학원 안내</p>
         </div>
+        <div class="card teal" id="cardReport">
+          <div class="status">이용중</div>
+          <div class="emoji">📊</div>
+          <h3>성장 리포트</h3>
+          <p>키·몸무게·AI 리포트</p>
+        </div>
         <div class="card pink" id="cardSlowmo">
           <div class="status">이용중</div>
           <div class="emoji">🎬</div>
@@ -777,6 +783,10 @@ document.getElementById('cardJumprope').addEventListener('click', () => {
 
 document.getElementById('cardExam').addEventListener('click', () => {
   location.href = '/exam/index.html';
+});
+
+document.getElementById('cardReport').addEventListener('click', () => {
+  location.href = '/report/';
 });
 
 document.getElementById('quickMypage').addEventListener('click', () => {
