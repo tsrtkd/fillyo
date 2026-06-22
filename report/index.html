@@ -231,6 +231,8 @@ onAuthStateChanged(auth, async user => {
     const userData = userSnap.val();
 
     academyId = userData.academyId;
+    console.log('academyId:', academyId);
+    console.log('userData:', JSON.stringify(userData));
     if (!academyId) { location.href = '/setup/'; return; }
 
     const acSnap = await get(ref(db, `academies/${academyId}/settings`));
