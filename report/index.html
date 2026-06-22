@@ -2,159 +2,218 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>성장 리포트 · FILLYO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>성장 리포트 · fillyo</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-*{box-sizing:border-box;margin:0;padding:0;font-family:'Pretendard','Apple SD Gothic Neo',sans-serif}
-body{background:#f5f7fa;min-height:100vh}
-#loadingScreen{position:fixed;inset:0;background:#1e3a5f;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;color:white;gap:12px}
-#loadingScreen .ld-logo{font-size:28px;font-weight:800;letter-spacing:2px}
-#loadingScreen .ld-msg{font-size:14px;opacity:0.7}
-#app{display:none;flex-direction:column;min-height:100vh}
-.hdr{background:#1e3a5f;color:white;padding:0 16px;height:52px;display:flex;align-items:center;gap:12px;flex-shrink:0}
-.hdr-back{background:rgba(255,255,255,0.15);border:none;color:white;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
-.hdr-title{flex:1;font-size:16px;font-weight:700}
-.hdr-key{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.3);color:white;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px}
-.layout{display:flex;flex:1;height:calc(100vh - 52px);overflow:hidden}
-.sidebar{width:220px;flex-shrink:0;background:white;border-right:1px solid #e2e8f0;display:flex;flex-direction:column;overflow:hidden}
-.sidebar-hd{padding:14px 16px;font-size:13px;font-weight:700;color:#374151;background:#f8fafc;border-bottom:1px solid #e2e8f0}
-.student-list{flex:1;overflow-y:auto}
-.s-item{padding:12px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;gap:8px;transition:background 0.15s}
-.s-item:hover{background:#f0f9ff}
-.s-item.active{background:#dbeafe}
-.s-name{font-size:14px;font-weight:600;color:#1e293b}
-.belt-pill{font-size:11px;padding:2px 7px;border-radius:10px;font-weight:600}
-.panel{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f5f7fa}
-.empty-msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#9ca3af;gap:8px}
-.empty-msg .em-icon{font-size:40px}
-.empty-msg p{font-size:14px}
-#detailPanel{display:none;flex-direction:column;flex:1;overflow:hidden}
-.stu-hd{background:white;padding:14px 20px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:10px}
-.stu-hd-name{font-size:17px;font-weight:700;color:#1e293b}
-.tabs{display:flex;background:white;border-bottom:1px solid #e2e8f0;padding:0 16px}
-.tab-btn{background:none;border:none;padding:12px 16px;cursor:pointer;font-size:14px;color:#64748b;border-bottom:3px solid transparent;transition:all 0.15s}
-.tab-btn.active{color:#2563eb;border-bottom-color:#2563eb;font-weight:600}
-.tab-content{display:none;flex:1;overflow-y:auto;padding:20px}
-.tab-content.active{display:block}
-.body-form{background:white;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
-.bf-field{display:flex;flex-direction:column;gap:4px}
-.bf-field label{font-size:12px;font-weight:600;color:#374151}
-.body-inp{border:1px solid #d1d5db;border-radius:8px;padding:8px 10px;font-size:14px;width:120px}
-input[type=date].body-inp{width:150px}
-.btn-add{background:#2563eb;color:white;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600;height:36px;white-space:nowrap}
-.body-records{background:white;border-radius:12px;overflow:hidden}
-.body-record-item{padding:12px 16px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
-.body-record-item:last-child{border-bottom:none}
-.br-info{display:flex;gap:16px;align-items:center}
-.br-date{font-size:12px;color:#64748b}
-.br-vals{font-size:14px;font-weight:600;color:#1e293b}
-.br-del{background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;padding:4px}
-.no-record{padding:24px;text-align:center;color:#9ca3af;font-size:14px}
-.trait-grid{display:flex;flex-wrap:wrap;gap:10px;padding:4px}
-.trait-item{display:flex;align-items:center;gap:6px;background:white;border:1px solid #e2e8f0;border-radius:20px;padding:8px 14px;cursor:pointer;transition:all 0.15s}
-.trait-item input{accent-color:#2563eb;width:15px;height:15px;cursor:pointer}
-.trait-item label{font-size:14px;cursor:pointer;color:#374151}
-.trait-item:has(input:checked){background:#dbeafe;border-color:#2563eb}
-.trait-save-msg{margin-top:12px;font-size:13px;color:#16a34a;height:20px}
-.rpt-row{background:white;border-radius:12px;padding:16px;margin-bottom:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.rpt-month-inp{border:1px solid #d1d5db;border-radius:8px;padding:8px 12px;font-size:14px}
-.btn-gen{background:#7c3aed;color:white;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
-.btn-gen:disabled{background:#c4b5fd;cursor:not-allowed}
-.rpt-status{font-size:13px;color:#6b7280;padding:4px 0}
-/* 데이터 요약 카드 */
-.data-summary{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:16px}
-.data-card{background:white;border-radius:10px;padding:12px 14px;border-left:3px solid #2563eb}
-.data-card-label{font-size:11px;color:#64748b;font-weight:600;margin-bottom:4px}
-.data-card-value{font-size:14px;font-weight:700;color:#1e293b}
-.data-card.empty{border-left-color:#e2e8f0;opacity:0.5}
-.data-card.empty .data-card-value{color:#9ca3af;font-size:12px;font-weight:400}
-.rpt-result-wrap{background:white;border-radius:12px;padding:20px;display:none;margin-top:4px}
-.rpt-result-title{font-size:13px;font-weight:700;color:#374151;margin-bottom:10px}
-.rpt-result{font-size:15px;line-height:1.8;color:#1e293b;white-space:pre-wrap;min-height:80px}
-.btn-copy{margin-top:14px;background:#f1f5f9;border:1px solid #e2e8f0;color:#374151;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:none;align-items:center;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:white;border-radius:16px;padding:24px;width:340px;max-width:90vw}
-.modal h3{font-size:17px;font-weight:700;margin-bottom:8px;color:#1e293b}
-.modal p{font-size:13px;color:#64748b;margin-bottom:16px;line-height:1.6}
-.modal input{width:100%;border:1px solid #d1d5db;border-radius:8px;padding:10px;font-size:14px;margin-bottom:12px}
-.modal-btns{display:flex;gap:8px;justify-content:flex-end}
-.btn-cancel{background:#f1f5f9;border:none;color:#374151;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px}
-.btn-save{background:#2563eb;border:none;color:white;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:14px;font-weight:600}
-@media(max-width:600px){
-  .layout{flex-direction:column;height:auto}
-  .sidebar{width:100%;height:auto;max-height:200px;border-right:none;border-bottom:1px solid #e2e8f0}
-  .body-form{flex-direction:column}
-  .body-inp{width:100%!important}
+:root{
+  --navy:#0B1F3A; --blue:#1352A8; --sky:#E8F1FF; --sky2:#C8DCFF;
+  --teal:#0A7C6E; --teal-lt:#E4F5F3;
+  --red:#C62828; --red-lt:#FFEBEE;
+  --orange:#E65100; --orange-lt:#FFF3E0;
+  --yellow:#F9A825;
+  --gray:#546E7A; --border:#DDE4EE; --bg:#EEF2F8;
+  --text:#1A2332; --text2:#4A5A6A;
+  --shadow:0 2px 10px rgba(11,31,58,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;}
+
+/* ── Loading ── */
+#loadingScreen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.ld-logo{font-size:28px;font-weight:900;color:#0B7B6B;letter-spacing:-1px;animation:ldpulse 1.4s ease-in-out infinite;}
+@keyframes ldpulse{0%,100%{opacity:1}50%{opacity:.35}}
+.ld-msg{color:rgba(255,255,255,.4);font-size:12px;margin-top:10px;}
+
+/* ── Header ── */
+.hdr{background:var(--navy);position:sticky;top:0;z-index:200;display:flex;align-items:center;gap:10px;padding:10px 14px;}
+.hdr-back{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:white;padding:6px 12px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.hdr-back:active{background:rgba(255,255,255,.25);}
+.hdr-title{color:white;font-size:15px;font-weight:900;letter-spacing:-.5px;flex:1;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.hdr-title span{color:var(--yellow);}
+.hdr-key{background:rgba(255,183,3,.18);border:1px solid rgba(255,183,3,.4);color:var(--yellow);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+.hdr-key:active{background:rgba(255,183,3,.35);}
+
+/* ── Layout ── */
+#app{display:none;}
+.layout{display:flex;height:calc(100vh - 50px);overflow:hidden;}
+
+/* ── Sidebar ── */
+.sidebar{width:220px;flex-shrink:0;background:white;border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-hd{padding:12px 14px;font-size:12px;font-weight:700;color:var(--gray);border-bottom:1px solid var(--border);background:var(--bg);}
+.student-list{flex:1;overflow-y:auto;}
+.s-item{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;border-bottom:1px solid #f0f4f8;transition:.12s;}
+.s-item:hover{background:var(--sky);}
+.s-item.active{background:var(--sky2);border-left:3px solid var(--blue);}
+.s-name{font-size:13px;font-weight:700;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+.belt-pill{display:inline-block;padding:2px 7px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+
+/* ── Panel ── */
+.panel{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+.empty-msg{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--gray);gap:8px;}
+.empty-msg .em-icon{font-size:40px;opacity:.4;}
+.empty-msg p{font-size:14px;opacity:.6;}
+
+/* ── Student header in panel ── */
+.stu-hd{padding:14px 16px 0;display:flex;align-items:center;gap:10px;}
+.stu-hd-name{font-size:18px;font-weight:900;letter-spacing:-.5px;}
+
+/* ── Tabs ── */
+.tabs{display:flex;gap:0;padding:12px 16px 0;border-bottom:2px solid var(--border);margin-bottom:0;}
+.tab-btn{flex:1;padding:9px 6px;background:none;border:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--gray);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.tab-content{display:none;padding:14px 16px;flex:1;}
+.tab-content.active{display:block;}
+
+/* ── Body Records ── */
+.body-form{display:flex;flex-wrap:wrap;gap:8px;padding:12px;background:var(--sky);border-radius:12px;margin-bottom:14px;}
+.body-form label{font-size:11px;font-weight:700;color:var(--gray);display:block;margin-bottom:3px;}
+.body-inp{width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;color:var(--text);}
+.body-inp:focus{outline:none;border-color:var(--blue);}
+.bf-field{flex:1;min-width:80px;}
+.bf-date{flex:1.5;min-width:110px;}
+.btn-add{width:100%;padding:9px;background:var(--blue);color:white;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;}
+.btn-add:active{opacity:.85;}
+
+.body-records{display:flex;flex-direction:column;gap:8px;}
+.body-rec{background:white;border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
+.rec-date{font-size:12px;color:var(--gray);min-width:80px;}
+.rec-vals{flex:1;font-size:13px;font-weight:700;}
+.rec-vals span{color:var(--gray);font-weight:400;font-size:12px;}
+.btn-del{background:var(--red-lt);color:var(--red);border:none;border-radius:7px;padding:5px 9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+.btn-del:active{opacity:.75;}
+.no-record{color:var(--gray);font-size:13px;text-align:center;padding:20px 0;opacity:.6;}
+
+/* ── Traits ── */
+.trait-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+.trait-item{display:flex;align-items:center;gap:8px;padding:10px 12px;background:white;border:1.5px solid var(--border);border-radius:10px;cursor:pointer;transition:.12s;}
+.trait-item.checked{background:var(--sky);border-color:var(--blue);}
+.trait-item input[type=checkbox]{width:16px;height:16px;accent-color:var(--blue);flex-shrink:0;}
+.trait-label{font-size:13px;font-weight:600;}
+.trait-save-msg{font-size:12px;color:var(--teal);text-align:center;margin-top:10px;min-height:18px;transition:.3s;}
+
+/* ── Report Gen ── */
+.rpt-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.rpt-month-inp{flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:14px;color:var(--text);}
+.rpt-month-inp:focus{outline:none;border-color:var(--blue);}
+.btn-gen{background:var(--navy);color:white;border:none;border-radius:9px;padding:9px 18px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;}
+.btn-gen:disabled{opacity:.5;cursor:not-allowed;}
+.btn-gen:not(:disabled):active{opacity:.85;}
+
+.rpt-result-wrap{background:var(--sky);border:1px solid var(--sky2);border-radius:12px;padding:14px;position:relative;}
+.rpt-result-title{font-size:11px;font-weight:700;color:var(--blue);margin-bottom:8px;}
+.rpt-result{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-all;}
+.btn-copy{margin-top:10px;background:var(--blue);color:white;border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
+.btn-copy:active{opacity:.85;}
+.rpt-status{font-size:12px;color:var(--gray);margin-bottom:10px;min-height:18px;}
+.rpt-loading{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--blue);}
+.spinner{width:16px;height:16px;border:2px solid var(--sky2);border-top-color:var(--blue);border-radius:50%;animation:spin .6s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── API Key Modal ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:white;border-radius:18px;padding:24px;max-width:360px;width:100%;}
+.modal h3{font-size:17px;font-weight:900;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:14px;}
+.modal input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;margin-bottom:12px;}
+.modal input:focus{outline:none;border-color:var(--blue);}
+.modal-btns{display:flex;gap:8px;}
+.modal-btns button{flex:1;padding:10px;border:none;border-radius:9px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
+.btn-cancel{background:var(--bg);color:var(--gray);}
+.btn-save{background:var(--blue);color:white;}
+
+/* ── Mobile ── */
+@media(max-width:640px){
+  .layout{flex-direction:column;height:auto;}
+  .sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid var(--border);}
+  .student-list{display:grid;grid-template-columns:repeat(2,1fr);max-height:200px;overflow-y:auto;}
+  .s-item{border-bottom:1px solid #f0f4f8;border-right:1px solid #f0f4f8;}
+  .panel{overflow-y:visible;}
+  .trait-grid{grid-template-columns:repeat(2,1fr);}
 }
 </style>
 </head>
 <body>
 
+<!-- Loading -->
 <div id="loadingScreen">
-  <div class="ld-logo">FILLYO</div>
+  <div class="ld-logo">fillyo</div>
   <div class="ld-msg">성장 리포트 불러오는 중...</div>
 </div>
 
+<!-- App -->
 <div id="app">
   <header class="hdr">
-    <button class="hdr-back" onclick="location.href='/dashboard/'">← 대시보드</button>
-    <div class="hdr-title"><span id="academyName">학원</span> · 성장 리포트</div>
-    <button class="hdr-key" onclick="openApiKeyModal()">🔑 API키</button>
+    <button class="hdr-back" id="btnBack">← 대시보드</button>
+    <div class="hdr-title"><span id="academyName">학원명</span> · 성장 리포트</div>
+    <button class="hdr-key" id="btnApiKey">🔑 API키</button>
   </header>
 
   <div class="layout">
+    <!-- 좌측: 수련생 목록 -->
     <div class="sidebar">
       <div class="sidebar-hd">수련생 목록</div>
-      <div class="student-list" id="studentList">
-        <div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">불러오는 중...</div>
+      <div id="studentList" class="student-list">
+        <div class="no-record" style="grid-column:1/-1">불러오는 중...</div>
       </div>
     </div>
 
-    <div class="panel">
+    <!-- 우측: 상세 패널 -->
+    <div class="panel" id="panel">
       <div class="empty-msg" id="emptyState">
         <div class="em-icon">📋</div>
         <p>좌측에서 수련생을 선택하세요</p>
       </div>
 
-      <div id="detailPanel">
+      <div id="detailPanel" style="display:none">
         <div class="stu-hd">
           <div id="selBeltBadge"></div>
           <div class="stu-hd-name" id="selName"></div>
         </div>
 
         <div class="tabs">
-          <button class="tab-btn active" data-tab="body" onclick="switchTab('body',this)">📏 성장기록</button>
-          <button class="tab-btn" data-tab="traits" onclick="switchTab('traits',this)">🧠 성격태그</button>
-          <button class="tab-btn" data-tab="report" onclick="switchTab('report',this)">✨ 리포트 생성</button>
+          <button class="tab-btn active" data-tab="body" onclick="switchTab('body',this)">성장기록</button>
+          <button class="tab-btn" data-tab="traits" onclick="switchTab('traits',this)">성격태그</button>
+          <button class="tab-btn" data-tab="report" onclick="switchTab('report',this)">리포트 생성</button>
         </div>
 
+        <!-- Tab 1: 성장기록 -->
         <div class="tab-content active" id="tabBody">
           <div class="body-form">
-            <div class="bf-field"><label>측정일</label><input type="date" class="body-inp" id="fDate"></div>
-            <div class="bf-field"><label>키 (cm)</label><input type="number" class="body-inp" id="fHeight" placeholder="142.5" step="0.1"></div>
-            <div class="bf-field"><label>몸무게 (kg)</label><input type="number" class="body-inp" id="fWeight" placeholder="38.2" step="0.1"></div>
+            <div class="bf-date">
+              <label>측정일</label>
+              <input type="date" class="body-inp" id="fDate">
+            </div>
+            <div class="bf-field">
+              <label>키 (cm)</label>
+              <input type="number" class="body-inp" id="fHeight" placeholder="예: 142.5" step="0.1">
+            </div>
+            <div class="bf-field">
+              <label>몸무게 (kg)</label>
+              <input type="number" class="body-inp" id="fWeight" placeholder="예: 38.2" step="0.1">
+            </div>
             <button class="btn-add" onclick="addBodyRecord()">+ 기록 추가</button>
           </div>
-          <div class="body-records" id="bodyList"></div>
+          <div id="bodyList" class="body-records"></div>
         </div>
 
+        <!-- Tab 2: 성격태그 -->
         <div class="tab-content" id="tabTraits">
           <div class="trait-grid" id="traitGrid"></div>
           <div class="trait-save-msg" id="traitMsg"></div>
         </div>
 
+        <!-- Tab 3: 리포트 생성 -->
         <div class="tab-content" id="tabReport">
           <div class="rpt-row">
             <input type="month" class="rpt-month-inp" id="rptMonth">
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()">리포트 생성</button>
           </div>
           <div class="rpt-status" id="rptStatus"></div>
-          <div class="data-summary" id="dataSummary" style="display:none"></div>
-          <div class="rpt-result-wrap" id="rptResultWrap">
-            <div class="rpt-result-title">✨ AI 생성 성장 리포트</div>
+          <div id="rptResultWrap" style="display:none" class="rpt-result-wrap">
+            <div class="rpt-result-title">AI 생성 리포트</div>
             <div class="rpt-result" id="rptResult"></div>
-            <button class="btn-copy" onclick="copyReport()">📋 복사</button>
+            <button class="btn-copy" onclick="copyReport()">복사</button>
           </div>
         </div>
       </div>
@@ -162,11 +221,12 @@ input[type=date].body-inp{width:150px}
   </div>
 </div>
 
-<div class="overlay" id="apiKeyOverlay">
+<!-- API Key Modal -->
+<div class="overlay" id="apiKeyOverlay" style="display:none">
   <div class="modal">
-    <h3>🔑 Anthropic API 키 설정</h3>
-    <p>리포트 생성에 Claude AI API 키가 필요합니다.<br>키는 이 기기에만 저장됩니다.</p>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-...">
+    <h3>Anthropic API 키 설정</h3>
+    <p>리포트 생성 기능에 Claude AI API 키가 필요합니다.<br>키는 이 기기에만 저장됩니다.</p>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeApiKeyModal()">취소</button>
       <button class="btn-save" onclick="saveApiKey()">저장</button>
@@ -175,10 +235,12 @@ input[type=date].body-inp{width:150px}
 </div>
 
 <script type="module">
-import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getDatabase, ref, get, set, push, remove, onValue } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+import { initializeApp }                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get, set, push, remove, onValue }
+                                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+// ── Firebase ──────────────────────────────────────────────────────────
 const FB_CONFIG = {
   apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
   authDomain:        "fillyo-journal.firebaseapp.com",
@@ -188,92 +250,106 @@ const FB_CONFIG = {
   appId:             "1:594047356761:web:bfd402441d83eedf63c648",
   databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
 };
-
 const fbApp = initializeApp(FB_CONFIG);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
 
-let academyId   = null;
-let academyName = '';
-let students    = [];
-let selStudent  = null;
+// ── 상태 변수 ────────────────────────────────────────────────────────
+let academyId    = null;
+let academyName  = '';
+let students     = [];    // [{id, name, belt, grade, ...}]
+let selStudent   = null;  // 현재 선택된 학생
+let bodyRecords  = {};    // {pushKey: {date, height, weight}}
+let traitFlags   = [];    // 선택된 태그 배열
 
 const TRAITS = ['활발함','차분함','리더형','팔로워형','집중력높음','산만함','긍정적','내성적','외향적','성실함','도전적','신중함'];
 
 const BELT_COLOR = {
-  '흰띠':'#e5e7eb','흰검띠':'#d1d5db','노란띠':'#fef08a','노검띠':'#fde047',
-  '주황띠':'#fed7aa','주황검띠':'#fdba74','초록띠':'#bbf7d0','초록검띠':'#86efac',
-  '파란띠':'#bfdbfe','파란검띠':'#93c5fd','보라띠':'#e9d5ff','보라검띠':'#d8b4fe',
-  '밤띠':'#d6b896','밤검띠':'#c4a07a','빨간띠':'#fecaca','1품단':'#374151',
-  '2품단':'#1f2937','3품단':'#111827','4품단':'#030712'
+  '흰띠':'#e5e7eb','흰검띠':'#d1d5db',
+  '노란띠':'#eab308','노검띠':'#d97706',
+  '주황띠':'#f97316','주황검띠':'#ea580c',
+  '초록띠':'#16a34a','초록검띠':'#15803d',
+  '파란띠':'#2563eb','파란검띠':'#1d4ed8',
+  '보라띠':'#7c3aed','보라검띠':'#6d28d9',
+  '밤띠':'#92400e','밤검띠':'#78350f',
+  '빨간띠':'#dc2626',
+  '1품단':'#1f2937','2품단':'#1f2937','3품단':'#1f2937','4품단':'#1f2937',
 };
-const BELT_DARK = new Set(['빨간띠','1품단','2품단','3품단','4품단','밤띠','밤검띠']);
+const BELT_LIGHT = new Set(['흰띠','흰검띠']);
 
-function beltPill(belt, grade) {
-  const bg = BELT_COLOR[belt] || '#e5e7eb';
-  const tc = BELT_DARK.has(belt) ? '#fff' : '#374151';
-  const label = grade || belt;
+function beltColor(belt){ return BELT_COLOR[belt] || '#9ca3af'; }
+function beltTextColor(belt){ return BELT_LIGHT.has(belt) ? '#374151' : '#ffffff'; }
+function beltPill(belt, grade){
+  const bg = beltColor(belt);
+  const tc = beltTextColor(belt);
+  const label = grade ? grade : belt;
   return `<span class="belt-pill" style="background:${bg};color:${tc}">${label}</span>`;
 }
 
-function todayStr() {
+// ── 인증 ─────────────────────────────────────────────────────────────
+onAuthStateChanged(auth, async user => {
+  if (!user) { location.href = '/login'; return; }
+
+  const userSnap = await get(ref(db, `users/${user.uid}`));
+  if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
+
+  const userData = userSnap.val();
+  academyId = userData.academyId || null;
+
+  if (!academyId) {
+    alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
+    location.href = '/dashboard';
+    return;
+  }
+
+  // 학원명
+  const acSnap = await get(ref(db, `academies/${academyId}/settings`));
+  if (acSnap.exists()) {
+    const s = acSnap.val();
+    academyName = s.academyName || s.name || '학원';
+    document.getElementById('academyName').textContent = academyName;
+  }
+
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+
+  // 기본 측정일 = 오늘
+  document.getElementById('fDate').value = todayStr();
+  // 기본 리포트 월 = 이번 달
+  const now = new Date();
+  document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  loadStudents();
+});
+
+function todayStr(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-// ── 인증 ──────────────────────────────────────────────────────────────
-onAuthStateChanged(auth, async user => {
-  if (!user) { location.href = '/login/'; return; }
-
-  try {
-    const userSnap = await get(ref(db, `users/${user.uid}`));
-    if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
-    const userData = userSnap.val();
-
-    academyId = userData.academyId;
-    if (!academyId) { location.href = '/setup/'; return; }
-
-    const acSnap = await get(ref(db, `academies/${academyId}/settings`));
-    if (acSnap.exists()) {
-      const s = acSnap.val();
-      academyName = s.academyName || s.name || '학원';
-      document.getElementById('academyName').textContent = academyName;
-    }
-
-    document.getElementById('fDate').value = todayStr();
-    const now = new Date();
-    document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-    document.getElementById('loadingScreen').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    loadStudents();
-  } catch(e) {
-    console.error('인증 초기화 오류:', e);
-    document.getElementById('loadingScreen').style.display = 'none';
-  }
-});
-
-// ── 학생 목록 ────────────────────────────────────────────────────────
-function loadStudents() {
+// ── 학생 목록 로드 ────────────────────────────────────────────────────
+function loadStudents(){
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = [];
-    if (snap.exists()) {
-      snap.forEach(child => students.push({ id: child.key, ...child.val() }));
-      students.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
+    if (snap.exists()){
+      snap.forEach(child => {
+        students.push({ id: child.key, ...child.val() });
+      });
+      students.sort((a,b) => (a.name||'').localeCompare(b.name||'', 'ko'));
     }
     renderStudentList();
   });
 }
 
-function renderStudentList() {
+function renderStudentList(){
   const el = document.getElementById('studentList');
-  if (!students.length) {
-    el.innerHTML = '<div style="padding:20px;text-align:center;color:#9ca3af;font-size:13px">등록된 수련생이 없습니다</div>';
+  if (!students.length){
+    el.innerHTML = '<div class="no-record" style="grid-column:1/-1;padding:20px;text-align:center;color:#888;">등록된 수련생이 없습니다</div>';
     return;
   }
   el.innerHTML = students.map(s => `
-    <div class="s-item${selStudent?.id===s.id?' active':''}" onclick="window._sel('${s.id}')">
-      <div>
+    <div class="s-item ${selStudent?.id===s.id?'active':''}" data-id="${s.id}" onclick="window._selectStudent('${s.id}')">
+      <div style="flex:1;min-width:0">
         <div class="s-name">${s.name||'이름없음'}</div>
         <div style="margin-top:3px">${beltPill(s.belt||'흰띠', s.grade||'')}</div>
       </div>
@@ -282,315 +358,295 @@ function renderStudentList() {
 }
 
 // ── 학생 선택 ────────────────────────────────────────────────────────
-window._sel = function(id) {
+window._selectStudent = function(id){
   selStudent = students.find(s => s.id === id) || null;
   if (!selStudent) return;
+
   renderStudentList();
   document.getElementById('emptyState').style.display = 'none';
-  document.getElementById('detailPanel').style.display = 'flex';
+  document.getElementById('detailPanel').style.display = '';
+
   document.getElementById('selName').textContent = selStudent.name || '';
   document.getElementById('selBeltBadge').innerHTML = beltPill(selStudent.belt||'흰띠', selStudent.grade||'');
-  // 리포트 결과 초기화
-  document.getElementById('rptResultWrap').style.display = 'none';
-  document.getElementById('dataSummary').style.display = 'none';
-  document.getElementById('rptStatus').textContent = '';
+
+  // 탭 초기화
   switchTab('body', document.querySelector('.tab-btn[data-tab="body"]'));
+
   loadBodyRecords();
   loadTraits();
 };
 
 // ── 탭 전환 ──────────────────────────────────────────────────────────
-window.switchTab = function(name, btn) {
+window.switchTab = function(name, btn){
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
-  const tabMap = { body:'tabBody', traits:'tabTraits', report:'tabReport' };
-  const el = document.getElementById(tabMap[name]);
-  if (el) el.classList.add('active');
+  document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
 };
 
-// ── 성장기록 CRUD ────────────────────────────────────────────────────
-function loadBodyRecords() {
+// ── Tab1: 성장기록 ────────────────────────────────────────────────────
+function loadBodyRecords(){
   if (!selStudent) return;
-  get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`)).then(snap => {
-    const el = document.getElementById('bodyList');
-    if (!snap.exists()) { el.innerHTML = '<div class="no-record">아직 기록이 없습니다. 위에서 추가해주세요.</div>'; return; }
-    const recs = [];
-    snap.forEach(c => recs.push({ key: c.key, ...c.val() }));
-    recs.sort((a,b) => b.date.localeCompare(a.date));
-    el.innerHTML = recs.map((r,i) => {
-      let diff = '';
-      if (i < recs.length - 1) {
-        const prev = recs[i+1];
-        const hd = (r.height - prev.height).toFixed(1);
-        const wd = (r.weight - prev.weight).toFixed(1);
-        diff = ` <span style="font-size:11px;color:#16a34a">(키 ${hd>=0?'+':''}${hd} / 몸무게 ${wd>=0?'+':''}${wd})</span>`;
-      }
-      return `
-        <div class="body-record-item">
-          <div class="br-info">
-            <span class="br-date">${r.date}</span>
-            <span class="br-vals">키 ${r.height}cm · 몸무게 ${r.weight}kg${diff}</span>
-          </div>
-          <button class="br-del" onclick="window._delBody('${r.key}')">🗑</button>
-        </div>
-      `;
-    }).join('');
-  });
+  onValue(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`), snap => {
+    bodyRecords = {};
+    if (snap.exists()) snap.forEach(c => { bodyRecords[c.key] = c.val(); });
+    renderBodyRecords();
+  }, { onlyOnce: true });
 }
 
-window.addBodyRecord = async function() {
+function renderBodyRecords(){
+  const el = document.getElementById('bodyList');
+  const sorted = Object.entries(bodyRecords).sort((a,b) => (b[1].date||'').localeCompare(a[1].date||''));
+  if (!sorted.length){
+    el.innerHTML = '<div class="no-record">기록이 없습니다</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(([key, r]) => `
+    <div class="body-rec">
+      <div class="rec-date">${r.date||''}</div>
+      <div class="rec-vals">
+        ${r.height ? `키 ${r.height}cm ` : ''}<span>${r.height&&r.weight?'/ ':''}</span>${r.weight ? `몸무게 ${r.weight}kg` : ''}
+      </div>
+      <button class="btn-del" onclick="window._delBodyRecord('${key}')">삭제</button>
+    </div>
+  `).join('');
+}
+
+window.addBodyRecord = async function(){
   if (!selStudent) return;
   const date   = document.getElementById('fDate').value;
-  const height = parseFloat(document.getElementById('fHeight').value);
-  const weight = parseFloat(document.getElementById('fWeight').value);
-  if (!date || isNaN(height) || isNaN(weight)) { alert('측정일, 키, 몸무게를 모두 입력해주세요'); return; }
-  const key = push(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`)).key;
-  await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords/${key}`), { date, height, weight });
+  const height = document.getElementById('fHeight').value;
+  const weight = document.getElementById('fWeight').value;
+  if (!date){ alert('측정일을 입력하세요.'); return; }
+  if (!height && !weight){ alert('키 또는 몸무게를 입력하세요.'); return; }
+
+  const data = { date };
+  if (height) data.height = parseFloat(height);
+  if (weight) data.weight = parseFloat(weight);
+
+  await push(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`), data);
   document.getElementById('fHeight').value = '';
   document.getElementById('fWeight').value = '';
   loadBodyRecords();
 };
 
-window._delBody = async function(key) {
+window._delBodyRecord = async function(key){
   if (!selStudent || !confirm('이 기록을 삭제할까요?')) return;
   await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords/${key}`));
-  loadBodyRecords();
+  delete bodyRecords[key];
+  renderBodyRecords();
 };
 
-// ── 성격태그 ─────────────────────────────────────────────────────────
-function loadTraits() {
+// ── Tab2: 성격태그 ────────────────────────────────────────────────────
+function loadTraits(){
   if (!selStudent) return;
   get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`)).then(snap => {
-    const saved = snap.exists() ? (snap.val() || []) : [];
-    renderTraitGrid(saved);
+    traitFlags = snap.exists() ? (snap.val() || []) : [];
+    renderTraits();
   });
 }
 
-function renderTraitGrid(saved) {
-  document.getElementById('traitGrid').innerHTML = TRAITS.map(t => `
-    <div class="trait-item">
-      <input type="checkbox" id="tr_${t}" value="${t}" ${saved.includes(t)?'checked':''}
-             onchange="window._saveTraits()">
-      <label for="tr_${t}">${t}</label>
-    </div>
-  `).join('');
+function renderTraits(){
+  const grid = document.getElementById('traitGrid');
+  grid.innerHTML = TRAITS.map(t => {
+    const checked = traitFlags.includes(t);
+    return `
+      <label class="trait-item ${checked?'checked':''}" onclick="window._toggleTrait('${t}',this)">
+        <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation()">
+        <span class="trait-label">${t}</span>
+      </label>
+    `;
+  }).join('');
 }
 
-window._saveTraits = async function() {
+window._toggleTrait = async function(trait, el){
   if (!selStudent) return;
-  const checked = [...document.querySelectorAll('#traitGrid input:checked')].map(i => i.value);
-  await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`), checked);
+  if (traitFlags.includes(trait)){
+    traitFlags = traitFlags.filter(t => t !== trait);
+    el.classList.remove('checked');
+    el.querySelector('input').checked = false;
+  } else {
+    traitFlags.push(trait);
+    el.classList.add('checked');
+    el.querySelector('input').checked = true;
+  }
+  await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`), traitFlags);
   const msg = document.getElementById('traitMsg');
-  msg.textContent = '✅ 저장됐습니다';
-  setTimeout(() => { msg.textContent = ''; }, 2000);
+  msg.textContent = '✓ 저장됨';
+  setTimeout(() => { msg.textContent = ''; }, 1500);
 };
 
-// ── 리포트 생성 ──────────────────────────────────────────────────────
-window.generateReport = async function() {
-  if (!selStudent) return;
-  const apiKey = localStorage.getItem('fillyo_anthropic_key');
-  if (!apiKey) { openApiKeyModal(); return; }
-  const month = document.getElementById('rptMonth').value;
-  if (!month) { alert('월을 선택해주세요'); return; }
+// ── Tab3: 리포트 생성 ─────────────────────────────────────────────────
+window.generateReport = async function(){
+  if (!selStudent){ alert('수련생을 선택하세요.'); return; }
 
-  const btn    = document.getElementById('btnGenerate');
-  const status = document.getElementById('rptStatus');
+  const apiKey = localStorage.getItem('fillyo_anthropic_key');
+  if (!apiKey){ openApiKeyModal(); return; }
+
+  const monthVal = document.getElementById('rptMonth').value;
+  if (!monthVal){ alert('월을 선택하세요.'); return; }
+
+  const btn = document.getElementById('btnGenerate');
   btn.disabled = true;
-  document.getElementById('rptResultWrap').style.display = 'none';
-  document.getElementById('dataSummary').style.display = 'none';
-  status.textContent = '📊 데이터 수집 중...';
+  const statusEl = document.getElementById('rptStatus');
+  const resultWrap = document.getElementById('rptResultWrap');
+  resultWrap.style.display = 'none';
 
   try {
-    // ── 1. 출석 데이터 ────────────────────────────────────────────
-    let attendDays = 0, absentDays = 0;
-    const journalSnap = await get(ref(db, `academies/${academyId}/journal/logs`));
-    if (journalSnap.exists()) {
-      journalSnap.forEach(daySnap => {
-        if (!daySnap.key.startsWith(month)) return;
-        const val = daySnap.val();
-        const toArr = v => Array.isArray(v) ? v : (v ? Object.values(v) : []);
-        if (toArr(val.presentNames).some(n => n === selStudent.name)) attendDays++;
-        if (toArr(val.absentNames).some(n => n === selStudent.name))  absentDays++;
-      });
-    }
+    // A. 출석 데이터 수집
+    statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>출석 데이터 수집 중...</div>';
+    const [year, month] = monthVal.split('-').map(Number);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    let totalDays = 0, absentDays = 0;
 
-    // ── 2. 승급심사 결과 (이번 달 또는 최근) ──────────────────────
-    let examResults = [];
-    const evalSnap = await get(ref(db, `academies/${academyId}/exam/evaluations`));
-    if (evalSnap.exists()) {
-      evalSnap.forEach(child => {
-        const e = child.val();
-        // 이 학생의 기록 중 선택 월 기록
-        if (e.studentId === selStudent.id && e.date && e.date.startsWith(month)) {
-          examResults.push(e);
-        }
-      });
-      // 이번 달 없으면 최근 3개월 내 기록
-      if (!examResults.length) {
-        const cutoff = month.replace('-', '') + '01';
-        evalSnap.forEach(child => {
-          const e = child.val();
-          if (e.studentId === selStudent.id && e.date) {
-            const d = e.date.replace(/-/g,'');
-            const threeMonthsAgo = new Date(month + '-01');
-            threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-            const cutoffStr = `${threeMonthsAgo.getFullYear()}${String(threeMonthsAgo.getMonth()+1).padStart(2,'0')}01`;
-            if (d >= cutoffStr) examResults.push(e);
-          }
-        });
-      }
+    const dayReads = [];
+    for (let d = 1; d <= daysInMonth; d++){
+      const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      dayReads.push(get(ref(db, `academies/${academyId}/days/${key}`)));
     }
+    const daySnaps = await Promise.all(dayReads);
+    daySnaps.forEach(snap => {
+      if (!snap.exists()) return;
+      const data = snap.val();
+      if (!data.att) return; // 저장된 일지가 없으면 스킵
+      totalDays++;
+      const absList = data.absList || [];
+      const wasAbsent = absList.some(a => (a.name||'').trim() === (selStudent.name||'').trim());
+      if (wasAbsent) absentDays++;
+    });
+    const presentDays = totalDays - absentDays;
 
-    // ── 3. 줄넘기 현황 ────────────────────────────────────────────
-    let jrLevel = '';
+    // B. 승급심사 데이터
+    const belt  = selStudent.belt  || '흰띠';
+    const grade = selStudent.grade || '';
+    const certDates = [selStudent.certDate1, selStudent.certDate2, selStudent.certDate3, selStudent.certDate4].filter(Boolean);
+    const lastCert = certDates.length ? certDates[certDates.length - 1] : null;
+
+    // C. 줄넘기 데이터
+    statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>줄넘기 데이터 수집 중...</div>';
+    let jumpropeLevel = null;
     const jrSnap = await get(ref(db, `academies/${academyId}/jumprope/students`));
-    if (jrSnap.exists()) {
-      jrSnap.forEach(child => {
-        const s = child.val();
-        if ((s.name||'').trim() === selStudent.name.trim()) {
-          const lv = s.level ?? s.currentLevel ?? '';
-          jrLevel = lv ? String(lv) + (String(lv).includes('급') ? '' : '급') : '';
-        }
-      });
+    if (jrSnap.exists()){
+      const jrData = jrSnap.val();
+      const jrList = Array.isArray(jrData) ? jrData : Object.values(jrData);
+      const jrStu = jrList.find(s => s && (s.name||'').trim() === (selStudent.name||'').trim());
+      if (jrStu) jumpropeLevel = jrStu.level || null;
     }
 
-    // ── 4. 신체기록 ───────────────────────────────────────────────
-    let bodyText = '';
-    let bodyLatest = null;
-    const bodySnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`));
-    if (bodySnap.exists()) {
-      const recs = [];
-      bodySnap.forEach(c => recs.push(c.val()));
-      recs.sort((a,b) => b.date.localeCompare(a.date));
-      bodyLatest = recs[0];
-      if (recs.length >= 2) {
-        const latest = recs[0], prev = recs[1];
-        const hd = (latest.height - prev.height).toFixed(1);
-        const wd = (latest.weight - prev.weight).toFixed(1);
-        bodyText = `신체(${latest.date}): 키 ${latest.height}cm(${hd>=0?'+':''}${hd}cm 성장), 몸무게 ${latest.weight}kg(${wd>=0?'+':''}${wd}kg)`;
-      } else if (recs.length === 1) {
-        bodyText = `신체(${recs[0].date}): 키 ${recs[0].height}cm, 몸무게 ${recs[0].weight}kg`;
+    // D. 신체 기록 (최근 2개)
+    statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>신체 기록 수집 중...</div>';
+    const bSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/bodyRecords`));
+    let recentBodyRecs = [];
+    if (bSnap.exists()){
+      const all = [];
+      bSnap.forEach(c => all.push(c.val()));
+      all.sort((a,b) => (b.date||'').localeCompare(a.date||''));
+      recentBodyRecs = all.slice(0, 2);
+    }
+
+    // E. 성격 태그
+    const tSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`));
+    const traits = tSnap.exists() ? (tSnap.val() || []) : [];
+
+    // F. 데이터 조합 → Claude API 호출
+    statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>AI 리포트 생성 중...</div>';
+
+    const dataLines = [];
+    dataLines.push(`학원명: ${academyName}`);
+    dataLines.push(`수련생 이름: ${selStudent.name}`);
+    dataLines.push(`현재 띠: ${belt}${grade ? ' ' + grade : ''}`);
+    if (lastCert) dataLines.push(`최근 심사일: ${lastCert}`);
+    if (totalDays > 0) dataLines.push(`${year}년 ${month}월 출석: ${totalDays}일 중 ${presentDays}일 출석 (결석 ${absentDays}일)`);
+    if (jumpropeLevel) dataLines.push(`줄넘기 급수: ${jumpropeLevel}`);
+    if (recentBodyRecs.length >= 2){
+      const [latest, prev] = recentBodyRecs;
+      if (latest.height && prev.height){
+        const hDiff = (latest.height - prev.height).toFixed(1);
+        dataLines.push(`키: ${latest.height}cm (이전 ${prev.height}cm, ${hDiff > 0 ? '+' : ''}${hDiff}cm)`);
+      } else if (latest.height){
+        dataLines.push(`키: ${latest.height}cm`);
       }
+      if (latest.weight && prev.weight){
+        const wDiff = (latest.weight - prev.weight).toFixed(1);
+        dataLines.push(`몸무게: ${latest.weight}kg (이전 ${prev.weight}kg, ${wDiff > 0 ? '+' : ''}${wDiff}kg)`);
+      } else if (latest.weight){
+        dataLines.push(`몸무게: ${latest.weight}kg`);
+      }
+    } else if (recentBodyRecs.length === 1){
+      const r = recentBodyRecs[0];
+      if (r.height) dataLines.push(`키: ${r.height}cm`);
+      if (r.weight) dataLines.push(`몸무게: ${r.weight}kg`);
     }
+    if (traits.length) dataLines.push(`성격 특성: ${traits.join(', ')}`);
 
-    // ── 5. 성격태그 ───────────────────────────────────────────────
-    let traits = [];
-    const traitSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`));
-    if (traitSnap.exists()) traits = traitSnap.val() || [];
+    const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
 
-    // ── 데이터 요약 카드 표시 ─────────────────────────────────────
-    const summaryEl = document.getElementById('dataSummary');
-    const cards = [
-      { label:'📅 출석', value: (attendDays||absentDays) ? `${attendDays}일 출석 / ${absentDays}일 결석` : null },
-      { label:'🥋 현재 급수', value: selStudent.belt ? `${selStudent.belt}${selStudent.grade?' '+selStudent.grade:''}` : null },
-      { label:'🏆 심사 결과', value: examResults.length ? examResults.map(e=>`${e.date} ${e.passed===true?'합격':'불합격'}`).join(', ') : null },
-      { label:'🪢 줄넘기', value: jrLevel || null },
-      { label:'📏 신체기록', value: bodyLatest ? `키 ${bodyLatest.height}cm / ${bodyLatest.weight}kg` : null },
-      { label:'😊 성격태그', value: traits.length ? traits.join(', ') : null },
-    ];
-    summaryEl.innerHTML = cards.map(c => `
-      <div class="data-card${c.value?'':' empty'}">
-        <div class="data-card-label">${c.label}</div>
-        <div class="data-card-value">${c.value || '데이터 없음'}</div>
-      </div>
-    `).join('');
-    summaryEl.style.display = 'grid';
-
-    // ── 데이터 라인 조합 ──────────────────────────────────────────
-    const dataLines = [`학생 이름: ${selStudent.name}`, `대상 월: ${month}`];
-    if (attendDays || absentDays) dataLines.push(`출석 현황: ${attendDays}일 출석, ${absentDays}일 결석`);
-    if (selStudent.belt) dataLines.push(`현재 띠/급수: ${selStudent.belt}${selStudent.grade?' '+selStudent.grade:''}`);
-    if (examResults.length) {
-      examResults.forEach(e => {
-        const passStr = e.passed === true ? '합격' : '불합격';
-        dataLines.push(`승급심사(${e.date}): ${passStr}`);
-        // 점수 데이터가 있으면 추가
-        if (e.scores) {
-          const sc = e.scores;
-          const parts = [];
-          if (sc.poomsae?.some(v=>v>0)) parts.push(`품새 ${sc.poomsae.filter(v=>v>0).join('/')}점`);
-          if (sc.kick?.some(v=>v>0)) parts.push(`발차기 ${sc.kick.filter(v=>v>0).join('/')}점`);
-          if (sc.extreme?.some(v=>v>0)) parts.push(`익스트림 ${sc.extreme.filter(v=>v>0).join('/')}점`);
-          if (parts.length) dataLines.push(`심사 점수: ${parts.join(', ')}`);
-        }
-      });
-    }
-    if (jrLevel) dataLines.push(`줄넘기 현재 급수: ${jrLevel}`);
-    if (bodyText) dataLines.push(bodyText);
-    if (traits.length) dataLines.push(`성격 특징: ${traits.join(', ')}`);
-
-    status.textContent = '✨ AI 리포트 작성 중...';
-
-    // ── Claude API 호출 ───────────────────────────────────────────
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true',
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 600,
+        max_tokens: 512,
         system: `당신은 태권도장 원장님을 도와 학부모에게 보낼 학생 성장 리포트 문구를 작성하는 도우미입니다.
-규칙:
-1. 주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
-2. [${academyName}] 으로 시작하세요.
-3. 아이 이름을 자연스럽게 포함하세요.
-4. 따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있도록 작성하세요.
-5. 숫자 나열보다 자연스러운 문장으로 표현하세요.
-6. 신체 성장(키·몸무게)이 있으면 자연스럽게 언급하세요.
-7. 승급심사 합격이 있으면 축하 표현을 넣으세요.
-8. 200~300자 내외로 작성하세요.`,
-        messages: [{ role: 'user', content: dataLines.join('\n') }]
-      })
+주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
+따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있는 200자 내외의 문구를 작성하세요.
+[학원명] 태그로 시작하고, 아이 이름을 자연스럽게 포함하세요.`,
+        messages: [{ role: 'user', content: userContent }],
+      }),
     });
 
-    if (!res.ok) {
+    if (!res.ok){
       const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API 오류 ${res.status}`);
+      throw new Error(err?.error?.message || `API 오류 (${res.status})`);
     }
-    const data = await res.json();
-    const text = data.content?.[0]?.text || '';
+
+    const json = await res.json();
+    const text = json.content?.[0]?.text || '';
+
     document.getElementById('rptResult').textContent = text;
-    document.getElementById('rptResultWrap').style.display = 'block';
-    status.textContent = '✅ 생성 완료';
+    resultWrap.style.display = '';
+    statusEl.textContent = '';
 
   } catch(e) {
-    status.textContent = `❌ 오류: ${e.message}`;
-    if (e.message.includes('401') || e.message.includes('authentication')) {
-      localStorage.removeItem('fillyo_anthropic_key');
-      openApiKeyModal();
-    }
+    statusEl.textContent = `오류: ${e.message}`;
+    console.error(e);
   } finally {
     btn.disabled = false;
   }
 };
 
-window.copyReport = function() {
+window.copyReport = function(){
   const text = document.getElementById('rptResult').textContent;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.btn-copy');
-    btn.textContent = '✅ 복사됨!';
-    setTimeout(() => { btn.textContent = '📋 복사'; }, 2000);
+    btn.textContent = '복사됨 ✓';
+    setTimeout(() => { btn.textContent = '복사'; }, 1500);
   });
 };
 
-window.openApiKeyModal = function() {
+// ── API Key Modal ─────────────────────────────────────────────────────
+window.openApiKeyModal = function(){
   document.getElementById('apiKeyInput').value = localStorage.getItem('fillyo_anthropic_key') || '';
-  document.getElementById('apiKeyOverlay').classList.add('open');
+  document.getElementById('apiKeyOverlay').style.display = 'flex';
 };
-window.closeApiKeyModal = function() {
-  document.getElementById('apiKeyOverlay').classList.remove('open');
+window.closeApiKeyModal = function(){
+  document.getElementById('apiKeyOverlay').style.display = 'none';
 };
-window.saveApiKey = function() {
+window.saveApiKey = function(){
   const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key) { alert('API 키를 입력해주세요'); return; }
+  if (!key){ alert('API 키를 입력하세요.'); return; }
   localStorage.setItem('fillyo_anthropic_key', key);
   closeApiKeyModal();
 };
+
+// ── 버튼 이벤트 ──────────────────────────────────────────────────────
+document.getElementById('btnBack').addEventListener('click', () => { location.href = '/dashboard'; });
+document.getElementById('btnApiKey').addEventListener('click', () => { openApiKeyModal(); });
 </script>
 </body>
 </html>
