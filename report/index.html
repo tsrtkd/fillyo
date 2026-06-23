@@ -263,9 +263,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             </div>
           </div>
           <div class="rpt-status" id="rptStatus"></div>
-          <div id="reportCard" style="display:none;background:white;border-radius:16px;padding:24px;width:640px;font-family:'Apple SD Gothic Neo',sans-serif;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+          <div id="reportCard" style="display:none;background:#fffef9;border-radius:20px;padding:28px;width:640px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.12);">
   <!-- 헤더 -->
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1e3a5f;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #1e3a5f;">
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="background:#1e3a5f;color:white;font-weight:900;font-size:16px;padding:6px 12px;border-radius:8px;">FILLYO</div>
       <div>
@@ -280,27 +280,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 
   <!-- 데이터 요약 -->
-  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px;">
-    <div style="background:#f0f4ff;border-radius:10px;padding:10px;text-align:center;">
-      <div style="font-size:10px;color:#6b7280;margin-bottom:4px;">출석</div>
-      <div id="rc-attend" style="font-size:16px;font-weight:800;color:#1e3a5f;"></div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px;">
+    <div style="background:linear-gradient(135deg,#22c55e,#16a34a);border-radius:12px;padding:12px 8px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:4px;">📅</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-bottom:4px;">출석</div>
+      <div id="rc-attend" style="font-size:14px;font-weight:800;color:white;"></div>
     </div>
-    <div style="background:#f0fdf4;border-radius:10px;padding:10px;text-align:center;">
-      <div style="font-size:10px;color:#6b7280;margin-bottom:4px;">심사결과</div>
-      <div id="rc-exam" style="font-size:13px;font-weight:800;color:#15803d;"></div>
+    <div style="background:linear-gradient(135deg,#f97316,#ea580c);border-radius:12px;padding:12px 8px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:4px;">📋</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-bottom:4px;">심사결과</div>
+      <div id="rc-exam" style="font-size:13px;font-weight:800;color:white;"></div>
     </div>
-    <div style="background:#fff7ed;border-radius:10px;padding:10px;text-align:center;">
-      <div style="font-size:10px;color:#6b7280;margin-bottom:4px;">줄넘기</div>
-      <div id="rc-jump" style="font-size:13px;font-weight:800;color:#c2410c;"></div>
+    <div style="background:linear-gradient(135deg,#38bdf8,#0ea5e9);border-radius:12px;padding:12px 8px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:4px;">🪢</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-bottom:4px;">줄넘기</div>
+      <div id="rc-jump" style="font-size:13px;font-weight:800;color:white;"></div>
     </div>
-    <div style="background:#fdf4ff;border-radius:10px;padding:10px;text-align:center;">
-      <div style="font-size:10px;color:#6b7280;margin-bottom:4px;">신체기록</div>
-      <div id="rc-body" style="font-size:11px;font-weight:800;color:#7c3aed;"></div>
+    <div style="background:linear-gradient(135deg,#a78bfa,#7c3aed);border-radius:12px;padding:12px 8px;text-align:center;">
+      <div style="font-size:18px;margin-bottom:4px;">📏</div>
+      <div style="font-size:10px;color:rgba(255,255,255,0.85);margin-bottom:4px;">신체기록</div>
+      <div id="rc-body" style="font-size:11px;font-weight:800;color:white;"></div>
     </div>
   </div>
 
-  <!-- 리포트 텍스트 -->
-  <div id="rc-text" style="font-size:13px;line-height:1.8;color:#1f2937;white-space:pre-wrap;background:#f9fafb;border-radius:10px;padding:16px;margin-bottom:12px;"></div>
+  <!-- 리포트 텍스트 (문단별 카드) -->
+  <div id="rc-paragraphs" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
 
   <!-- 푸터 -->
   <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -967,7 +971,19 @@ window.saveReportImage = async function() {
   document.getElementById('rc-exam').textContent = document.getElementById('sumExam').textContent;
   document.getElementById('rc-jump').textContent = document.getElementById('sumJump').textContent;
   document.getElementById('rc-body').textContent = document.getElementById('sumBody').textContent;
-  document.getElementById('rc-text').textContent = resultText;
+
+  const paraColors = [
+    { bg: '#f0fdf4', border: '#22c55e' },
+    { bg: '#fff7ed', border: '#f97316' },
+    { bg: '#eff6ff', border: '#3b82f6' },
+    { bg: '#fdf4ff', border: '#a855f7' },
+  ];
+  const parasEl = document.getElementById('rc-paragraphs');
+  parasEl.innerHTML = resultText.split('\n\n').filter(Boolean).map((p, i) => {
+    const c = paraColors[i % paraColors.length];
+    const escaped = p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+    return `<div style="font-size:13px;line-height:1.8;color:#1f2937;background:${c.bg};border-radius:8px;padding:12px 14px;border-left:4px solid ${c.border};">${escaped}</div>`;
+  }).join('');
 
   // 카드 표시
   const card = document.getElementById('reportCard');
