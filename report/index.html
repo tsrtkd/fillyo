@@ -238,9 +238,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
         <!-- Tab 3: 리포트 생성 -->
         <div class="tab-content" id="tabReport">
-          <div class="rpt-row">
-            <input type="month" class="rpt-month-inp" id="rptMonth">
-            <button class="btn-gen" id="btnGenerate" onclick="generateReport()">리포트 생성</button>
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;align-items:flex-end;gap:8px;margin-bottom:10px;">
+              <div style="flex:1;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">시작월</div>
+                <input type="month" class="rpt-month-inp" id="rptStart" style="width:100%;">
+              </div>
+              <div style="color:#9ca3af;font-size:16px;padding-bottom:9px;">~</div>
+              <div style="flex:1;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">종료월</div>
+                <input type="month" class="rpt-month-inp" id="rptEnd" style="width:100%;">
+              </div>
+            </div>
+            <button class="btn-gen" id="btnGenerate" onclick="generateReport()" style="width:100%;">리포트 생성</button>
           </div>
           <div id="dataSummary" style="display:none;margin-bottom:12px;">
             <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px;">
@@ -318,6 +328,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             <div class="rpt-result" id="rptResult"></div>
             <button class="btn-copy" onclick="copyReport()">복사</button>
             <button class="btn-copy" id="btnSaveImage" onclick="window.saveReportImage()" style="background:#15803d;margin-left:8px;">📷 이미지 저장</button>
+          </div>
+          <div id="prevReportsWrap" style="display:none;margin-top:14px;">
+            <div style="font-size:12px;font-weight:700;color:#1e3a5f;margin-bottom:8px;">📁 이전 리포트</div>
+            <div id="prevReportsList" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;"></div>
           </div>
         </div>
       </div>
@@ -501,9 +515,13 @@ onAuthStateChanged(auth, async user => {
 
     // 기본 측정일 = 오늘
     document.getElementById('fDate').value = todayStr();
-    // 기본 리포트 월 = 이번 달
+    // 기본 리포트 기간 = 3개월 전 ~ 이번달
     const now = new Date();
-    document.getElementById('rptMonth').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+    const sd = new Date(now.getFullYear(), now.getMonth() - 3, 1);
+    const startMonth = `${sd.getFullYear()}-${String(sd.getMonth()+1).padStart(2,'0')}`;
+    document.getElementById('rptEnd').value = thisMonth;
+    document.getElementById('rptStart').value = startMonth;
 
     loadStudents();
   } catch(e) {
@@ -595,7 +613,7 @@ window.switchTab = function(name, btn){
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
-  if (name === 'report') loadSavedReport();
+  if (name === 'report') loadPrevReports();
 };
 
 // ── Tab1: 성장기록 ────────────────────────────────────────────────────
@@ -704,8 +722,10 @@ window.generateReport = async function(){
 
   if (!apiKey){ openApiKeyModal(); return; }
 
-  const monthVal = document.getElementById('rptMonth').value;
-  if (!monthVal){ alert('월을 선택하세요.'); return; }
+  const startVal = document.getElementById('rptStart').value;
+  const endVal = document.getElementById('rptEnd').value;
+  if (!startVal || !endVal){ alert('시작월과 종료월을 선택하세요.'); return; }
+  if (startVal > endVal){ alert('시작월이 종료월보다 늦을 수 없습니다.'); return; }
 
   const btn = document.getElementById('btnGenerate');
   btn.disabled = true;
@@ -714,18 +734,24 @@ window.generateReport = async function(){
   resultWrap.style.display = 'none';
 
   try {
-    // A. 출석 데이터 수집
+    // A. 출석 데이터 수집 (시작월~종료월 전체)
     statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>출석 데이터 수집 중...</div>';
-    const [year, month] = monthVal.split('-').map(Number);
-    const daysInMonth = new Date(year, month, 0).getDate();
     let totalDays = 0, absentDays = 0;
-
     const dayReads = [];
     const dayKeys = [];
-    for (let d = 1; d <= daysInMonth; d++) {
-      const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-      dayKeys.push(key);
-      dayReads.push(get(ref(db, `academies/${academyId}/days/${key}`)));
+    {
+      let [cy, cm] = startVal.split('-').map(Number);
+      const [ey, em] = endVal.split('-').map(Number);
+      while (cy < ey || (cy === ey && cm <= em)) {
+        const dim = new Date(cy, cm, 0).getDate();
+        for (let d = 1; d <= dim; d++) {
+          const key = `${cy}-${String(cm).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+          dayKeys.push(key);
+          dayReads.push(get(ref(db, `academies/${academyId}/days/${key}`)));
+        }
+        cm++;
+        if (cm > 12) { cm = 1; cy++; }
+      }
     }
     const daySnaps = await Promise.all(dayReads);
     daySnaps.forEach(snap => {
@@ -818,7 +844,9 @@ window.generateReport = async function(){
     // 요약카드 업데이트
     const sumDiv = document.getElementById('dataSummary');
     sumDiv.style.display = '';
-    document.getElementById('sumAttend').textContent = totalDays > 0 ? `${presentDays}일 출석` : '기록없음';
+    const startMLabel = startVal.split('-')[1] + '월';
+    const endMLabel = endVal.split('-')[1] + '월';
+    document.getElementById('sumAttend').textContent = totalDays > 0 ? `${presentDays}일 출석 (${startMLabel}~${endMLabel})` : '기록없음';
     document.getElementById('sumExam').textContent = lastEvalResult ? (lastEvalResult.passed ? '✅ 합격' : '❌ 불합격') : '기록없음';
     document.getElementById('sumJump').textContent = jumpropeLevel || '기록없음';
     document.getElementById('sumBody').textContent = recentBodyRecs.length ? `${recentBodyRecs[0].height||''}cm / ${recentBodyRecs[0].weight||''}kg` : '기록없음';
@@ -836,7 +864,12 @@ window.generateReport = async function(){
       const scoreStr = lastEvalResult.total ? ` (${lastEvalResult.total}점)` : '';
       dataLines.push(`최근 심사 결과: ${passStr}${scoreStr}`);
     }
-    if (totalDays > 0) dataLines.push(`${year}년 ${month}월 출석: ${totalDays}일 중 ${presentDays}일 출석 (결석 ${absentDays}일)`);
+    if (totalDays > 0) {
+      const periodStr = startVal === endVal
+        ? `${startVal.replace('-','년 ')}월`
+        : `${startVal.replace('-','년 ')}월~${endVal.split('-')[1]}월`;
+      dataLines.push(`${periodStr} 출석: ${totalDays}일 중 ${presentDays}일 출석 (결석 ${absentDays}일)`);
+    }
     if (jumpropeLevel) dataLines.push(`줄넘기 급수: ${jumpropeLevel}`);
     if (recentBodyRecs.length >= 2){
       const [latest, prev] = recentBodyRecs;
@@ -866,7 +899,7 @@ window.generateReport = async function(){
       });
     });
     if (traitLines.length) dataLines.push(`성격/태도 특성: ${traitLines.join(', ')}`);
-    if (memoLines.length) dataLines.push(`이번 달 특이사항:\n${memoLines.join('\n')}`);
+    if (memoLines.length) dataLines.push(`기간 내 특이사항:\n${memoLines.join('\n')}`);
 
     const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
 
@@ -951,21 +984,22 @@ window.generateReport = async function(){
     resultWrap.style.display = '';
     statusEl.textContent = '';
 
-    // Firebase 저장
-    const rptKey = monthVal.replace('-','');
+    // Firebase 저장 (최근 4개 유지)
+    const rptKey = `${startVal}_${endVal}`;
     await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${rptKey}`), {
       text,
       createdAt: new Date().toISOString().slice(0,10),
-      month: monthVal,
+      start: startVal,
+      end: endVal,
     });
-    // 최근 3개월 초과분 삭제
     const reportsSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
     if (reportsSnap.exists()) {
       const allKeys = Object.keys(reportsSnap.val()).sort();
-      for (const k of allKeys.slice(0, Math.max(0, allKeys.length - 3))) {
+      for (const k of allKeys.slice(0, Math.max(0, allKeys.length - 4))) {
         await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${k}`));
       }
     }
+    await loadPrevReports();
 
   } catch(e) {
     statusEl.textContent = `오류: ${e.message}`;
@@ -981,7 +1015,13 @@ window.saveReportImage = async function() {
 
   // 카드 데이터 채우기
   document.getElementById('rc-academy').textContent = academyName;
-  document.getElementById('rc-month').textContent = document.getElementById('rptMonth').value.replace('-','년 ') + '월 성장리포트';
+  const startV = document.getElementById('rptStart').value;
+  const endV = document.getElementById('rptEnd').value;
+  const [sY, sM] = startV.split('-');
+  const [, eM] = endV.split('-');
+  document.getElementById('rc-month').textContent = startV === endV
+    ? `${sY}년 ${sM}월 성장리포트`
+    : `${sY}년 ${sM}월~${eM}월 성장리포트`;
   document.getElementById('rc-name').textContent = selStudent.name || '';
   document.getElementById('rc-belt').textContent = (selStudent.belt || '') + (selStudent.grade ? ' ' + selStudent.grade : '');
   document.getElementById('rc-attend').textContent = document.getElementById('sumAttend').textContent;
@@ -1019,7 +1059,7 @@ window.saveReportImage = async function() {
 
     // 다운로드
     const link = document.createElement('a');
-    link.download = `${selStudent.name || '수련생'}_성장리포트_${document.getElementById('rptMonth').value}.png`;
+    link.download = `${selStudent.name || '수련생'}_성장리포트_${startV}_${endV}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   } finally {
@@ -1029,24 +1069,37 @@ window.saveReportImage = async function() {
   }
 };
 
-async function loadSavedReport() {
+async function loadPrevReports() {
   if (!selStudent || !academyId) return;
-  const monthVal = document.getElementById('rptMonth').value;
-  if (!monthVal) return;
-  const key = monthVal.replace('-','');
-  const snap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${key}`));
-  const resultWrap = document.getElementById('rptResultWrap');
-  if (!snap.exists() || !snap.val().text) {
-    resultWrap.style.display = 'none';
-    document.getElementById('rptStatus').textContent = '';
-    return;
-  }
-  const saved = snap.val();
-  document.getElementById('rptResult').textContent = saved.text;
-  resultWrap.style.display = '';
-  document.getElementById('dataSummary').style.display = 'none';
-  document.getElementById('rptStatus').textContent = `📁 저장된 리포트 (${saved.createdAt || ''}) · 새로 생성하려면 [리포트 생성] 클릭`;
+  document.getElementById('rptResultWrap').style.display = 'none';
+  document.getElementById('rptStatus').textContent = '';
+  const snap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
+  const wrap = document.getElementById('prevReportsWrap');
+  const listEl = document.getElementById('prevReportsList');
+  if (!snap.exists()) { wrap.style.display = 'none'; return; }
+  const all = Object.entries(snap.val())
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .slice(0, 4);
+  if (!all.length) { wrap.style.display = 'none'; return; }
+  window._prevReportsData = Object.fromEntries(all);
+  wrap.style.display = '';
+  listEl.innerHTML = all.map(([key, r]) => {
+    const label = r.start && r.end
+      ? `${r.start.split('-')[1]}월~${r.end.split('-')[1]}월`
+      : (r.month ? r.month.replace('-','년 ') + '월' : key);
+    const dateStr = r.createdAt ? ` (${r.createdAt})` : '';
+    return `<button onclick="window._showPrevReport('${key}')" style="padding:6px 12px;border:1.5px solid #1e3a5f;border-radius:20px;background:white;color:#1e3a5f;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">${label}${dateStr}</button>`;
+  }).join('');
 }
+
+window._showPrevReport = function(key) {
+  const r = window._prevReportsData?.[key];
+  if (!r || !r.text) return;
+  document.getElementById('rptResult').textContent = r.text;
+  document.getElementById('rptResultWrap').style.display = '';
+  document.getElementById('dataSummary').style.display = 'none';
+  document.getElementById('rptStatus').textContent = `📁 저장된 리포트 (${r.createdAt || ''}) · 새로 생성하려면 [리포트 생성] 클릭`;
+};
 
 window.copyReport = function(){
   const text = document.getElementById('rptResult').textContent;
@@ -1075,7 +1128,6 @@ window.saveApiKey = async function(){
 
 // ── 버튼 이벤트 ──────────────────────────────────────────────────────
 document.getElementById('btnApiKey').addEventListener('click', () => { openApiKeyModal(); });
-document.getElementById('rptMonth').addEventListener('change', loadSavedReport);
 
 window.doLogout = async function() {
   await signOut(auth);
