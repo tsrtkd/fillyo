@@ -231,7 +231,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
         <!-- Tab 2: 성격태그 -->
         <div class="tab-content" id="tabTraits">
-          <div class="trait-grid" id="traitGrid"></div>
+          <div id="traitGrid" style="padding:8px 0;"></div>
           <div class="trait-save-msg" id="traitMsg"></div>
         </div>
 
@@ -313,9 +313,43 @@ let apiKey       = '';
 let students     = [];    // [{id, name, belt, grade, ...}]
 let selStudent   = null;  // 현재 선택된 학생
 let bodyRecords  = {};    // {pushKey: {date, height, weight}}
-let traitFlags   = [];    // 선택된 태그 배열
+let traitFlags   = {};    // { key: 'pos'|'mid'|'neg' }
 
-const TRAITS = ['활발함','차분함','리더형','팔로워형','집중력높음','산만함','긍정적','내성적','외향적','성실함','도전적','신중함'];
+const TRAIT_CATEGORIES = [
+  {
+    label: '① 성격/기질',
+    items: [
+      { key: 'energy',    pos: '긍정적',      neg: '부정적'     },
+      { key: 'active',    pos: '활발함',      neg: '차분함'     },
+      { key: 'social',    pos: '외향적',      neg: '내성적'     },
+      { key: 'leader',    pos: '리더형',      neg: '팔로워형'   },
+    ]
+  },
+  {
+    label: '② 도전/회복력',
+    items: [
+      { key: 'diligent',  pos: '성실함',      neg: '들쑥날쑥'   },
+      { key: 'persist',   pos: '끝까지 해냄', neg: '쉽게 포기'  },
+      { key: 'recover',   pos: '실패 후 재도전', neg: '좌절 오래 감' },
+    ]
+  },
+  {
+    label: '③ 대인관계',
+    items: [
+      { key: 'care',      pos: '배려심 높음', neg: '갈등 잦음'  },
+      { key: 'teamwork',  pos: '협동 잘함',   neg: '혼자 노는 편' },
+      { key: 'rule',      pos: '규칙 잘 지킴', neg: '규칙 어기는 편' },
+    ]
+  },
+  {
+    label: '④ 집중/태도',
+    items: [
+      { key: 'focus',     pos: '집중력 높음', neg: '산만함'     },
+      { key: 'careful',   pos: '신중함',      neg: '충동적'     },
+      { key: 'self',      pos: '스스로 열심히', neg: '시키는 것만' },
+    ]
+  }
+];
 
 function beltBadge(belt, grade) {
   const BG = {
@@ -565,39 +599,43 @@ window._delBodyRecord = async function(key){
 };
 
 // ── Tab2: 성격태그 ────────────────────────────────────────────────────
-function loadTraits(){
+function loadTraits() {
   if (!selStudent || !selStudent.id) return;
   get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`)).then(snap => {
-    traitFlags = snap.exists() ? (snap.val() || []) : [];
+    traitFlags = snap.exists() ? (snap.val() || {}) : {};
     renderTraits();
   });
 }
 
-function renderTraits(){
+function renderTraits() {
   const grid = document.getElementById('traitGrid');
-  grid.innerHTML = TRAITS.map(t => {
-    const checked = traitFlags.includes(t);
-    return `
-      <label class="trait-item ${checked?'checked':''}" onclick="window._toggleTrait('${t}',this)">
-        <input type="checkbox" ${checked?'checked':''} onclick="event.stopPropagation()">
-        <span class="trait-label">${t}</span>
-      </label>
-    `;
-  }).join('');
+  grid.innerHTML = TRAIT_CATEGORIES.map(cat => `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;font-size:13px;color:#1e3a5f;margin-bottom:8px;padding-bottom:4px;border-bottom:2px solid #e5e7eb;">${cat.label}</div>
+      ${cat.items.map(item => `
+        <div style="display:flex;align-items:center;padding:8px 4px;border-bottom:1px solid #f3f4f6;gap:8px;">
+          <div style="width:90px;font-size:12px;color:#6b7280;flex-shrink:0;">${item.neg}</div>
+          <div style="display:flex;gap:6px;flex:1;justify-content:center;">
+            ${['neg','mid','pos'].map(v => `
+              <label style="display:flex;flex-direction:column;align-items:center;cursor:pointer;gap:2px;">
+                <input type="radio" name="trait_${item.key}" value="${v}"
+                  ${traitFlags[item.key]===v?'checked':''}
+                  onchange="window._saveTrait('${item.key}','${v}')"
+                  style="cursor:pointer;width:18px;height:18px;">
+                <span style="font-size:10px;color:${v==='pos'?'#15803d':v==='neg'?'#dc2626':'#6b7280'}">${v==='pos'?'◎':v==='mid'?'△':'✕'}</span>
+              </label>
+            `).join('')}
+          </div>
+          <div style="width:90px;font-size:12px;color:#6b7280;flex-shrink:0;text-align:right;">${item.pos}</div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 }
 
-window._toggleTrait = async function(trait, el){
-  if (!selStudent) return;
-  if (traitFlags.includes(trait)){
-    traitFlags = traitFlags.filter(t => t !== trait);
-    el.classList.remove('checked');
-    el.querySelector('input').checked = false;
-  } else {
-    traitFlags.push(trait);
-    el.classList.add('checked');
-    el.querySelector('input').checked = true;
-  }
-  console.log('saving trait, studentId:', selStudent.id);
+window._saveTrait = async function(key, val) {
+  if (!selStudent || !selStudent.id) return;
+  traitFlags[key] = val;
   await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`), traitFlags);
   const msg = document.getElementById('traitMsg');
   msg.textContent = '✓ 저장됨';
@@ -719,7 +757,7 @@ window.generateReport = async function(){
 
     // E. 성격 태그
     const tSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`));
-    const traits = tSnap.exists() ? (tSnap.val() || []) : [];
+    const traitsObj = tSnap.exists() ? (tSnap.val() || {}) : {};
 
     // 요약카드 업데이트
     const sumDiv = document.getElementById('dataSummary');
@@ -763,7 +801,15 @@ window.generateReport = async function(){
       if (r.height) dataLines.push(`키: ${r.height}cm`);
       if (r.weight) dataLines.push(`몸무게: ${r.weight}kg`);
     }
-    if (traits.length) dataLines.push(`성격 특성: ${traits.join(', ')}`);
+    const traitLines = [];
+    TRAIT_CATEGORIES.forEach(cat => {
+      cat.items.forEach(item => {
+        const v = traitsObj[item.key];
+        if (v === 'pos') traitLines.push(`${item.pos}`);
+        else if (v === 'neg') traitLines.push(`${item.neg} (성장 중)`);
+      });
+    });
+    if (traitLines.length) dataLines.push(`성격/태도 특성: ${traitLines.join(', ')}`);
     if (memoLines.length) dataLines.push(`이번 달 특이사항:\n${memoLines.join('\n')}`);
 
     const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
