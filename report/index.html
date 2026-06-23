@@ -416,7 +416,7 @@ function todayStr(){
 function loadStudents() {
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     const raw = snap.val() || {};
-    students = Object.entries(raw).map(([id, s]) => ({ id, ...s }));
+    students = Object.entries(raw).map(([id, s]) => { console.log('student fields:', Object.keys(s)); return { id, ...s }; });
     students.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
     filterStudents();
   });
