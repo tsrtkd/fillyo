@@ -788,6 +788,70 @@ const EXAM_ITEM_LABELS = {
 const KICK_SUBS = ['완성도','겨루기 공방능력','겨루기 기술 다양성'];
 const CHARACTER_ITEMS = ['수련 태도 및 예의','집중력 및 성실성','인성교육교재 수행'];
 
+const EXAM_ITEMS = {
+  junior: [
+    { key: 'poomsae1', label: '품새 정확도' },
+    { key: 'poomsae2', label: '품새 완성도' },
+    { key: 'kick1',    label: '기본발차기' },
+    { key: 'manner1',  label: '태도' },
+  ],
+  beginner: [
+    { key: 'poomsae1', label: '품새 정확도' },
+    { key: 'poomsae2', label: '품새 완성도' },
+    { key: 'kick1',    label: '기본발차기' },
+    { key: 'manner1',  label: '태도' },
+    { key: 'manner2',  label: '교재' },
+  ],
+  intermediate: [
+    { key: 'poomsae1', label: '품새 정확도' },
+    { key: 'poomsae2', label: '품새 완성도' },
+    { key: 'kick1',    label: '기본발차기' },
+    { key: 'kick2',    label: '공방능력' },
+    { key: 'demo1',    label: '발차기시범' },
+    { key: 'manner1',  label: '태도' },
+    { key: 'manner2',  label: '교재' },
+  ],
+  dan: [
+    { key: 'poomsae1', label: '품새 정확도' },
+    { key: 'poomsae2', label: '품새 완성도' },
+    { key: 'kick1',    label: '기본발차기' },
+    { key: 'kick2',    label: '공방능력' },
+    { key: 'demo1',    label: '발차기시범' },
+    { key: 'demo2',    label: '익스트림' },
+    { key: 'manner1',  label: '태도' },
+    { key: 'manner2',  label: '교재' },
+  ],
+};
+
+function getExamGroup(belt, age) {
+  if (age && Number(age) <= 7) return 'junior';
+  if (['1품단','2품단','3품단','4품단'].includes(belt)) return 'dan';
+  if (['초록띠','초록검띠','파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠'].includes(belt)) return 'intermediate';
+  return 'beginner';
+}
+
+function getScoreDisplay(scores) {
+  if (!scores) return { poomsae: '-', kick: '-', extreme: '-', character: '-' };
+  function ka(...keys) {
+    const vals = keys.map(k => scores[k]).filter(v => typeof v === 'number' && v > 0);
+    return vals.length ? (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1) : '-';
+  }
+  if (typeof scores.poomsae1 !== 'undefined') {
+    return {
+      poomsae:   ka('poomsae1','poomsae2'),
+      kick:      ka('kick1','kick2'),
+      extreme:   ka('demo1','demo2'),
+      character: ka('manner1','manner2'),
+    };
+  }
+  return {
+    poomsae:   avgScore(scores.poomsae),
+    kick:      avgScore(scores.kick),
+    extreme:   avgScore(scores.extreme),
+    character: avgScore(scores.character),
+  };
+}
+
 // ── 띠 색상 ──────────────────────────────────────────────────────────
 const BELT_COLORS = {
   '흰띠':     { bg:'#FFFFFF', color:'#333333', border:'#999999' },
@@ -1454,21 +1518,16 @@ window.startSubExam = () => {
   const checked = [...document.querySelectorAll('.step2-chk:checked')].map(c => c.value);
   if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
 
-  const cur = CURRICULUM['흰띠'];
   const sessionStudents = checked.map(id => {
-    const s   = students[id] || {};
-    const crr = CURRICULUM[s.belt] || cur;
+    const s     = students[id] || {};
+    const group = getExamGroup(s.belt || '흰띠', s.age);
     return {
       id,
       name:    s.name  || '',
       belt:    s.belt  || '흰띠',
       grade:   s.grade || '',
-      scores:  {
-        poomsae:   [0, 0],
-        kick:      [0, 0, 0],
-        extreme:   (crr.extreme || []).map(() => 0),
-        character: [0, 0, 0],
-      },
+      age:     s.age   || 0,
+      scores:  Object.fromEntries((EXAM_ITEMS[group] || EXAM_ITEMS.beginner).map(item => [item.key, 0])),
       passed:  null,
       comment: '',
       done:    false,
@@ -1533,25 +1592,23 @@ function renderExamTable() {
 }
 
 function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
-  const crr = CURRICULUM[belt] || CURRICULUM['흰띠'];
+  const KEY_ORDER = ['poomsae1','poomsae2','kick1','kick2','demo1','demo2','manner1','manner2'];
 
-  const examItems = (academyExamSettings.examItems) || { poomsae:true, kick:true, extreme:false, character:false };
-  const scoreRows = [
-    { key: 'poomsae',   label: '품새 정확도',   i: 0 },
-    { key: 'poomsae',   label: '품새 완성도',   i: 1 },
-    { key: 'kick',      label: '발차기 완성도', i: 0 },
-    { key: 'kick',      label: '발차기 공방',   i: 1 },
-    { key: 'kick',      label: '발차기 다양성', i: 2 },
-    ...crr.extreme.map((name, ei) => ({ key: 'extreme', label: name, i: ei })),
-    { key: 'character', label: '인성 태도',     i: 0 },
-    { key: 'character', label: '인성 집중력',   i: 1 },
-    { key: 'character', label: '인성 교재',     i: 2 },
-  ].filter(r => examItems[r.key] !== false);
+  const masterItemMap = new Map();
+  chunkStudents.forEach(ss => {
+    const group = getExamGroup(ss.belt, ss.age);
+    (EXAM_ITEMS[group] || EXAM_ITEMS.beginner).forEach(item => {
+      if (!masterItemMap.has(item.key)) masterItemMap.set(item.key, item.label);
+    });
+  });
+  const masterItems = KEY_ORDER
+    .filter(k => masterItemMap.has(k))
+    .map(k => ({ key: k, label: masterItemMap.get(k) }));
 
   const labelCol = `
     <div class="exam-col exam-col-label">
       <div class="exam-cell row-header exam-cell-label">항목</div>
-      ${scoreRows.map(r => `<div class="exam-cell row-score exam-cell-label">${r.label}</div>`).join('')}
+      ${masterItems.map(r => `<div class="exam-cell row-score exam-cell-label">${r.label}</div>`).join('')}
       <div class="exam-cell row-pf exam-cell-label">합격여부</div>
       <div class="exam-cell row-comment exam-cell-label">한줄평</div>
       <div class="exam-cell row-save exam-cell-label"></div>
@@ -1559,12 +1616,18 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
   `;
 
   const studentCols = chunkStudents.map((ss, ci) => {
-    const idx = chunkIndices[ci];
-    const scoreCells = scoreRows.map(r => {
-      const val = (ss.scores[r.key] || [])[r.i] || 0;
+    const idx    = chunkIndices[ci];
+    const group  = getExamGroup(ss.belt, ss.age);
+    const ssKeys = new Set((EXAM_ITEMS[group] || EXAM_ITEMS.beginner).map(i => i.key));
+
+    const scoreCells = masterItems.map(r => {
+      if (!ssKeys.has(r.key)) {
+        return `<div class="exam-cell row-score" style="background:#f0f0f0"></div>`;
+      }
+      const val = (ss.scores || {})[r.key] || 0;
       return `<div class="exam-cell row-score"><div class="score-btns">${
         [1,2,3,4,5].map(v =>
-          `<button class="score-btn${val === v ? ' on' : ''}" onclick="setScore(${idx},'${r.key}',${r.i},${v},this)">${v}</button>`
+          `<button class="score-btn${val === v ? ' on' : ''}" onclick="setScore(${idx},'${r.key}',${v},this)">${v}</button>`
         ).join('')
       }</div></div>`;
     }).join('');
@@ -1617,8 +1680,8 @@ function moveRowToDone(idx) {
   if (colEl) colEl.classList.add('done');
 }
 
-window.setScore = (idx, key, i, val, btn) => {
-  currentExamSession.students[idx].scores[key][i] = val;
+window.setScore = (idx, key, val, btn) => {
+  currentExamSession.students[idx].scores[key] = val;
   btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
 };
 
@@ -1660,7 +1723,7 @@ window.saveExamRow = async (idx) => {
   const ss = currentExamSession.students[idx];
   ss.comment = document.getElementById('comment-' + idx)?.value || '';
 
-  const hasAny = [...ss.scores.poomsae, ...ss.scores.kick, ...ss.scores.extreme, ...ss.scores.character].some(v => v > 0);
+  const hasAny = Object.values(ss.scores || {}).some(v => v > 0);
   if (!hasAny && !ss.comment && ss.passed === null) { showToast('⚠️ 입력된 내용이 없습니다'); return; }
   if (ss.passed === null) { showToast('합격 여부를 선택해주세요'); return; }
 
@@ -1854,10 +1917,10 @@ window.renderStatusTable = () => {
         <td>${e.date || '-'}</td>
         <td>${e.round || '-'}</td>
         <td>${beltBadge(e.belt || '', e.grade || '')}</td>
-        <td>${avgScore(e.scores?.poomsae)}</td>
-        <td>${avgScore(e.scores?.kick)}</td>
-        <td>${avgScore(e.scores?.extreme)}</td>
-        <td>${avgScore(e.scores?.character)}</td>
+        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.poomsae; })()}</td>
+        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.kick; })()}</td>
+        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.extreme; })()}</td>
+        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.character; })()}</td>
         <td>${passedBadge}</td>
         <td>${resultCell}</td>
         <td style="white-space:nowrap">
@@ -1896,22 +1959,26 @@ window.viewEvalRecord = (evalId) => {
   const name = st?.name || '-';
   const passedText  = e.passed === true ? '합격' : e.passed === false ? '불합격' : e.passed === 'pending' ? '진행중' : '-';
   const passedColor = e.passed === true ? 'var(--green)' : e.passed === false ? 'var(--red)' : e.passed === 'pending' ? '#854d0e' : 'var(--text2)';
-  const allScores   = [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])];
+  const _sd = getScoreDisplay(e.scores);
+  const _allVals = typeof e.scores?.poomsae1 !== 'undefined'
+    ? Object.values(e.scores||{}).filter(v => typeof v === 'number' && v > 0)
+    : [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])].filter(v => v > 0);
+  const _overallStr = _allVals.length ? (_allVals.reduce((a,b)=>a+b,0)/_allVals.length).toFixed(1) : '-';
   document.getElementById('evalViewContent').innerHTML = `
     <div style="background:var(--sky);border-radius:10px;padding:14px;margin-bottom:12px">
       <div style="font-size:16px;font-weight:700;margin-bottom:4px">${name}</div>
       <div style="font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;flex-wrap:wrap">${e.date||'-'} | ${e.round||'-'} | ${beltBadge(e.belt||'',e.grade||'')}</div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      ${[['품새',e.scores?.poomsae],['발차기',e.scores?.kick],['익스트림',e.scores?.extreme],['인성',e.scores?.character]].map(([lbl,sc])=>`
+      ${[['품새',_sd.poomsae],['발차기',_sd.kick],['시범',_sd.extreme],['태도',_sd.character]].map(([lbl,sc])=>`
         <div style="background:var(--bg);border-radius:8px;padding:10px;text-align:center">
           <div style="font-size:11px;color:var(--text2);margin-bottom:2px">${lbl}</div>
-          <div style="font-size:20px;font-weight:700;color:var(--blue)">${avgScore(sc)}</div>
+          <div style="font-size:20px;font-weight:700;color:var(--blue)">${sc}</div>
         </div>`).join('')}
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:8px">
       <span style="font-size:13px;color:var(--text2)">전체 평균</span>
-      <span style="font-size:16px;font-weight:700">${avgScore(allScores)}</span>
+      <span style="font-size:16px;font-weight:700">${_overallStr}</span>
     </div>
     <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--bg);border-radius:8px;margin-bottom:8px">
       <span style="font-size:13px;color:var(--text2)">합격 여부</span>
@@ -1926,28 +1993,23 @@ window.editEvalRecord = (evalId) => {
   const e = evaluations[evalId];
   if (!e) return;
   editingEvalId = evalId;
-  const crr = CURRICULUM[e.belt] || CURRICULUM['흰띠'];
-  const scoreRows = [
-    { key:'poomsae',   label:'품새 정확도',   i:0 },
-    { key:'poomsae',   label:'품새 완성도',   i:1 },
-    { key:'kick',      label:'발차기 완성도', i:0 },
-    { key:'kick',      label:'발차기 공방',   i:1 },
-    { key:'kick',      label:'발차기 다양성', i:2 },
-    ...(crr.extreme||[]).map((nm,ei) => ({ key:'extreme', label:nm, i:ei })),
-    { key:'character', label:'인성 태도',     i:0 },
-    { key:'character', label:'인성 집중력',   i:1 },
-    { key:'character', label:'인성 교재',     i:2 },
-  ];
-  _editScores = JSON.parse(JSON.stringify(e.scores || { poomsae:[0,0], kick:[0,0,0], extreme:[], character:[0,0,0] }));
+  const st    = students[e.studentId];
+  const group = getExamGroup(e.belt, st?.age);
+  const items = EXAM_ITEMS[group] || EXAM_ITEMS.beginner;
+  _editScores = {};
+  items.forEach(item => {
+    const existing = e.scores?.[item.key];
+    _editScores[item.key] = (typeof existing === 'number') ? existing : 0;
+  });
   _editPassed = e.passed;
   document.getElementById('evalEditContent').innerHTML = `
     <div style="margin-bottom:14px">
-      ${scoreRows.map(r => {
-        const val = (_editScores[r.key]||[])[r.i] || 0;
+      ${items.map(r => {
+        const val = _editScores[r.key] || 0;
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:12px;color:var(--text2);width:100px;flex-shrink:0">${r.label}</span>
           <div style="display:flex;gap:3px">
-            ${[1,2,3,4,5].map(v=>`<button type="button" class="score-btn${val===v?' on':''}" onclick="editScoreClick(this,'${r.key}',${r.i},${v})">${v}</button>`).join('')}
+            ${[1,2,3,4,5].map(v=>`<button type="button" class="score-btn${val===v?' on':''}" onclick="editScoreClick(this,'${r.key}',${v})">${v}</button>`).join('')}
           </div>
         </div>`;
       }).join('')}
@@ -1964,9 +2026,8 @@ window.editEvalRecord = (evalId) => {
   openModal('modalEvalEdit');
 };
 
-window.editScoreClick = (btn, key, i, val) => {
-  if (!_editScores[key]) _editScores[key] = [];
-  _editScores[key][i] = val;
+window.editScoreClick = (btn, key, val) => {
+  _editScores[key] = val;
   btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
 };
 
@@ -2031,10 +2092,15 @@ window.imageCard = async (evalId) => {
     return Number(arr[j]) || 0;
   }
 
-  const pAvg = flatAvg(sc.poomsae);
-  const kAvg = flatAvg(sc.kick);
-  const eAvg = flatAvg(sc.extreme);
-  const cAvg = flatAvg(sc.character);
+  function keyAvg(...keys) {
+    const vals = keys.map(k => Number(sc?.[k]||0)).filter(v => v > 0);
+    return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
+  }
+  const isNewFormat = typeof sc.poomsae1 !== 'undefined';
+  const pAvg = isNewFormat ? keyAvg('poomsae1','poomsae2') : flatAvg(sc.poomsae);
+  const kAvg = isNewFormat ? keyAvg('kick1','kick2')       : flatAvg(sc.kick);
+  const eAvg = isNewFormat ? keyAvg('demo1','demo2')       : flatAvg(sc.extreme);
+  const cAvg = isNewFormat ? keyAvg('manner1','manner2')   : flatAvg(sc.character);
   const sectAvgs = [pAvg, kAvg, eAvg, cAvg].filter(v => v > 0);
   const oAvg = sectAvgs.length ? sectAvgs.reduce((a,b)=>a+b,0)/sectAvgs.length : 0;
 
@@ -2080,54 +2146,52 @@ window.imageCard = async (evalId) => {
     </div>`
   ).join('');
 
-  // 품새 섹션 (poomsae 항목별 정확도/완성도)
+  function scoreRow(label, v) {
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
+      <span style="font-size:13px;color:#374151">${label}</span>
+      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
+    </div>`;
+  }
+
   let poomsaeRows = '';
-  (crr.poomsae||[]).forEach(item => {
-    const acc = gsv(sc.poomsae, 0);
-    const cmp = gsv(sc.poomsae, 1);
-    poomsaeRows += `<div style="background:#eff6ff;color:#1e40af;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
-      <span style="font-size:13px;color:#374151">정확도</span>
-      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(acc)}">${acc>0?scoreLabel(acc):'-'}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
-      <span style="font-size:13px;color:#374151">완성도</span>
-      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(cmp)}">${cmp>0?scoreLabel(cmp):'-'}</span>
-    </div>`;
-  });
-
-  // 발차기 섹션 (kick 항목별 KICK_SUBS 3개)
-  let kickRows = '';
-  (crr.kick||[]).forEach(item => {
-    kickRows += `<div style="background:#fff7ed;color:#9a3412;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>`;
-    KICK_SUBS.forEach((sub, j) => {
-      const v = gsv(sc.kick, j);
-      kickRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
-        <span style="font-size:13px;color:#374151">${sub}</span>
-        <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
-      </div>`;
-    });
-  });
-
-  // 익스트림 섹션
+  let kickRows    = '';
   let extremeRows = '';
-  (crr.extreme||[]).forEach((item, i) => {
-    const v = Number((sc.extreme||[])[i]) || 0;
-    extremeRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
-      <span style="font-size:13px;color:#374151">${item}</span>
-      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
-    </div>`;
-  });
+  let charRows    = '';
 
-  // 인성 섹션
-  let charRows = '';
-  CHARACTER_ITEMS.forEach((item, i) => {
-    const v = Number((sc.character||[])[i]) || 0;
-    charRows += `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
-      <span style="font-size:13px;color:#374151">${item}</span>
-      <span style="font-size:12px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?scoreLabel(v):'-'}</span>
-    </div>`;
-  });
+  if (isNewFormat) {
+    const cardGroup = getExamGroup(belt, st?.age);
+    const cardItems = EXAM_ITEMS[cardGroup] || EXAM_ITEMS.beginner;
+    cardItems.filter(i => i.key.startsWith('poomsae')).forEach(item => {
+      poomsaeRows += scoreRow(item.label, Number(sc[item.key]||0));
+    });
+    cardItems.filter(i => i.key.startsWith('kick')).forEach(item => {
+      kickRows += scoreRow(item.label, Number(sc[item.key]||0));
+    });
+    cardItems.filter(i => i.key.startsWith('demo')).forEach(item => {
+      extremeRows += scoreRow(item.label, Number(sc[item.key]||0));
+    });
+    cardItems.filter(i => i.key.startsWith('manner')).forEach(item => {
+      charRows += scoreRow(item.label, Number(sc[item.key]||0));
+    });
+  } else {
+    (crr.poomsae||[]).forEach(item => {
+      const acc = gsv(sc.poomsae, 0);
+      const cmp = gsv(sc.poomsae, 1);
+      poomsaeRows += `<div style="background:#eff6ff;color:#1e40af;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>`;
+      poomsaeRows += scoreRow('정확도', acc);
+      poomsaeRows += scoreRow('완성도', cmp);
+    });
+    (crr.kick||[]).forEach(item => {
+      kickRows += `<div style="background:#fff7ed;color:#9a3412;padding:7px 16px;font-size:12px;font-weight:600">${item}</div>`;
+      KICK_SUBS.forEach((sub, j) => { kickRows += scoreRow(sub, gsv(sc.kick, j)); });
+    });
+    (crr.extreme||[]).forEach((item, i) => {
+      extremeRows += scoreRow(item, Number((sc.extreme||[])[i])||0);
+    });
+    CHARACTER_ITEMS.forEach((item, i) => {
+      charRows += scoreRow(item, Number((sc.character||[])[i])||0);
+    });
+  }
 
   const parentMsg = e.comment || '';
   const cvId = 'rv-' + Date.now();
@@ -2255,12 +2319,13 @@ function drawRadarChart(canvas, scores) {
   const R = 70;
   const n = 4;
   const labels = ['품새','발차기','익스트림','인성'];
-  const vals = [
-    avgScoreNum(scores.poomsae),
-    avgScoreNum(scores.kick),
-    avgScoreNum(scores.extreme),
-    avgScoreNum(scores.character),
-  ];
+  function rka(...keys) {
+    const v = keys.map(k=>Number(scores?.[k]||0)).filter(v=>v>0);
+    return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
+  }
+  const vals = typeof scores?.poomsae1 !== 'undefined'
+    ? [rka('poomsae1','poomsae2'), rka('kick1','kick2'), rka('demo1','demo2'), rka('manner1','manner2')]
+    : [avgScoreNum(scores.poomsae), avgScoreNum(scores.kick), avgScoreNum(scores.extreme), avgScoreNum(scores.character)];
   const angles = Array.from({length:n}, (_,i) => -Math.PI/2 + (2*Math.PI/n)*i);
 
   ctx.clearRect(0, 0, W, H);
