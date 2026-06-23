@@ -1091,7 +1091,11 @@ async function loadPrevReports() {
       ? `${r.start.split('-')[1]}월~${r.end.split('-')[1]}월`
       : (r.month ? r.month.replace('-','년 ') + '월' : key);
     const dateStr = r.createdAt ? ` (${r.createdAt})` : '';
-    return `<button onclick="window._showPrevReport('${key}')" style="padding:6px 12px;border:1.5px solid #1e3a5f;border-radius:20px;background:white;color:#1e3a5f;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">${label}${dateStr}</button>`;
+    const safeKey = key.replace(/'/g, "\\'");
+    return `<div style="display:flex;align-items:center;gap:4px;">` +
+      `<button onclick="window._showPrevReport('${safeKey}')" style="padding:6px 12px;border:1.5px solid #1e3a5f;border-radius:20px;background:white;color:#1e3a5f;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">${label}${dateStr}</button>` +
+      `<button onclick="window._deletePrevReport('${safeKey}')" style="padding:4px 7px;border:1.5px solid #e5e7eb;border-radius:50%;background:white;color:#9ca3af;font-size:12px;cursor:pointer;line-height:1;" title="삭제">🗑️</button>` +
+      `</div>`;
   }).join('');
 }
 
@@ -1106,6 +1110,12 @@ window._showPrevReport = function(key) {
   if (r.exam !== undefined) document.getElementById('sumExam').textContent = r.exam;
   if (r.jump !== undefined) document.getElementById('sumJump').textContent = r.jump;
   if (r.body !== undefined) document.getElementById('sumBody').textContent = r.body;
+};
+
+window._deletePrevReport = async function(key) {
+  if (!confirm('이 리포트를 삭제할까요?')) return;
+  await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${key}`));
+  await loadPrevReports();
 };
 
 window.copyReport = function(){
