@@ -241,6 +241,26 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             <input type="month" class="rpt-month-inp" id="rptMonth">
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()">리포트 생성</button>
           </div>
+          <div id="dataSummary" style="display:none;margin-bottom:12px;">
+            <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:8px;">
+              <div style="background:#f0f4ff;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:2px">출석</div>
+                <div id="sumAttend" style="font-size:18px;font-weight:700;color:#1e3a5f">-</div>
+              </div>
+              <div style="background:#f0fdf4;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:2px">심사결과</div>
+                <div id="sumExam" style="font-size:14px;font-weight:700;color:#15803d">-</div>
+              </div>
+              <div style="background:#fff7ed;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:2px">줄넘기</div>
+                <div id="sumJump" style="font-size:14px;font-weight:700;color:#c2410c">-</div>
+              </div>
+              <div style="background:#fdf4ff;border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-size:11px;color:#6b7280;margin-bottom:2px">신체기록</div>
+                <div id="sumBody" style="font-size:14px;font-weight:700;color:#7c3aed">-</div>
+              </div>
+            </div>
+          </div>
           <div class="rpt-status" id="rptStatus"></div>
           <div id="rptResultWrap" style="display:none" class="rpt-result-wrap">
             <div class="rpt-result-title">AI 생성 리포트</div>
@@ -628,6 +648,27 @@ window.generateReport = async function(){
     const certDates = [selStudent.certDate1, selStudent.certDate2, selStudent.certDate3, selStudent.certDate4].filter(Boolean);
     const lastCert = certDates.length ? certDates[certDates.length - 1] : null;
 
+    // 최근 심사 결과 (evaluations 경로에서)
+    let lastEvalResult = null;
+    const evalSnap = await get(ref(db, `academies/${academyId}/exam/evaluations`));
+    if (evalSnap.exists()) {
+      const evalData = evalSnap.val();
+      const allEvals = [];
+      Object.values(evalData).forEach(round => {
+        if (round.results) {
+          Object.values(round.results).forEach(r => {
+            if ((r.name||'').trim() === (selStudent.name||'').trim()) {
+              allEvals.push({ date: round.date || '', passed: r.passed, total: r.total });
+            }
+          });
+        }
+      });
+      if (allEvals.length) {
+        allEvals.sort((a,b) => b.date.localeCompare(a.date));
+        lastEvalResult = allEvals[0];
+      }
+    }
+
     // C. 줄넘기 데이터
     statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>줄넘기 데이터 수집 중...</div>';
     let jumpropeLevel = null;
@@ -654,6 +695,14 @@ window.generateReport = async function(){
     const tSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`));
     const traits = tSnap.exists() ? (tSnap.val() || []) : [];
 
+    // 요약카드 업데이트
+    const sumDiv = document.getElementById('dataSummary');
+    sumDiv.style.display = '';
+    document.getElementById('sumAttend').textContent = totalDays > 0 ? `${presentDays}일 출석` : '기록없음';
+    document.getElementById('sumExam').textContent = lastEvalResult ? (lastEvalResult.passed ? '✅ 합격' : '❌ 불합격') : '기록없음';
+    document.getElementById('sumJump').textContent = jumpropeLevel || '기록없음';
+    document.getElementById('sumBody').textContent = recentBodyRecs.length ? `${recentBodyRecs[0].height||''}cm / ${recentBodyRecs[0].weight||''}kg` : '기록없음';
+
     // F. 데이터 조합 → Claude API 호출
     statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>AI 리포트 생성 중...</div>';
 
@@ -662,6 +711,11 @@ window.generateReport = async function(){
     dataLines.push(`수련생 이름: ${selStudent.name}`);
     dataLines.push(`현재 띠: ${belt}${grade ? ' ' + grade : ''}`);
     if (lastCert) dataLines.push(`최근 심사일: ${lastCert}`);
+    if (lastEvalResult) {
+      const passStr = lastEvalResult.passed ? '합격' : '불합격';
+      const scoreStr = lastEvalResult.total ? ` (${lastEvalResult.total}점)` : '';
+      dataLines.push(`최근 심사 결과: ${passStr}${scoreStr}`);
+    }
     if (totalDays > 0) dataLines.push(`${year}년 ${month}월 출석: ${totalDays}일 중 ${presentDays}일 출석 (결석 ${absentDays}일)`);
     if (jumpropeLevel) dataLines.push(`줄넘기 급수: ${jumpropeLevel}`);
     if (recentBodyRecs.length >= 2){
