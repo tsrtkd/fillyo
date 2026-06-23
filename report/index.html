@@ -626,8 +626,10 @@ window.generateReport = async function(){
     let totalDays = 0, absentDays = 0;
 
     const dayReads = [];
-    for (let d = 1; d <= daysInMonth; d++){
+    const dayKeys = [];
+    for (let d = 1; d <= daysInMonth; d++) {
       const key = `${year}-${String(month).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      dayKeys.push(key);
       dayReads.push(get(ref(db, `academies/${academyId}/days/${key}`)));
     }
     const daySnaps = await Promise.all(dayReads);
@@ -641,6 +643,28 @@ window.generateReport = async function(){
       if (wasAbsent) absentDays++;
     });
     const presentDays = totalDays - absentDays;
+
+    // 업무일지 특이사항/상담/결석사유 수집
+    const memoLines = [];
+    const studentName = (selStudent.name || '').trim();
+    daySnaps.forEach((snap, idx) => {
+      if (!snap.exists()) return;
+      const d = snap.val();
+      const dateKey = dayKeys[idx];
+      if (d.absList && Array.isArray(d.absList)) {
+        d.absList.forEach(a => {
+          if ((a.name||'').trim() === studentName && a.reason && a.reason.trim()) {
+            memoLines.push(`결석사유(${dateKey}): ${a.reason.trim()}`);
+          }
+        });
+      }
+      if (d.event && d.event.includes(studentName)) {
+        memoLines.push(`특이사항(${dateKey}): ${d.event.trim()}`);
+      }
+      if (d.cons && d.cons.includes(studentName)) {
+        memoLines.push(`상담(${dateKey}): ${d.cons.trim()}`);
+      }
+    });
 
     // B. 승급심사 데이터
     const belt  = selStudent.belt  || '흰띠';
@@ -738,6 +762,7 @@ window.generateReport = async function(){
       if (r.weight) dataLines.push(`몸무게: ${r.weight}kg`);
     }
     if (traits.length) dataLines.push(`성격 특성: ${traits.join(', ')}`);
+    if (memoLines.length) dataLines.push(`이번 달 특이사항:\n${memoLines.join('\n')}`);
 
     const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
 
