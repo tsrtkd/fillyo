@@ -263,18 +263,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
             </div>
           </div>
           <div class="rpt-status" id="rptStatus"></div>
-          <div id="reportCard" style="display:none;background:#fffef9;border-radius:20px;padding:28px;width:640px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.12);">
+          <div id="reportCard" style="display:none;background:#fffef9;border-radius:20px;padding:28px;width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;box-shadow:0 4px 24px rgba(0,0,0,0.12);">
   <!-- 헤더 -->
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #1e3a5f;">
     <div style="display:flex;align-items:center;gap:10px;">
       <div style="background:#1e3a5f;color:white;font-weight:900;font-size:16px;padding:6px 12px;border-radius:8px;">FILLYO</div>
       <div>
-        <div id="rc-academy" style="font-weight:700;font-size:15px;color:#1e3a5f;"></div>
+        <div id="rc-academy" style="font-weight:700;font-size:13px;color:#1e3a5f;"></div>
         <div id="rc-month" style="font-size:12px;color:#6b7280;"></div>
       </div>
     </div>
     <div style="text-align:right;">
-      <div id="rc-name" style="font-size:20px;font-weight:900;color:#1e3a5f;"></div>
+      <div id="rc-name" style="font-size:17px;font-weight:900;color:#1e3a5f;"></div>
       <div id="rc-belt" style="font-size:12px;color:#6b7280;margin-top:2px;"></div>
     </div>
   </div>
@@ -595,6 +595,7 @@ window.switchTab = function(name, btn){
   document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('tab' + name.charAt(0).toUpperCase() + name.slice(1)).classList.add('active');
+  if (name === 'report') loadSavedReport();
 };
 
 // ── Tab1: 성장기록 ────────────────────────────────────────────────────
@@ -950,6 +951,22 @@ window.generateReport = async function(){
     resultWrap.style.display = '';
     statusEl.textContent = '';
 
+    // Firebase 저장
+    const rptKey = monthVal.replace('-','');
+    await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${rptKey}`), {
+      text,
+      createdAt: new Date().toISOString().slice(0,10),
+      month: monthVal,
+    });
+    // 최근 3개월 초과분 삭제
+    const reportsSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
+    if (reportsSnap.exists()) {
+      const allKeys = Object.keys(reportsSnap.val()).sort();
+      for (const k of allKeys.slice(0, Math.max(0, allKeys.length - 3))) {
+        await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${k}`));
+      }
+    }
+
   } catch(e) {
     statusEl.textContent = `오류: ${e.message}`;
     console.error(e);
@@ -982,7 +999,7 @@ window.saveReportImage = async function() {
   parasEl.innerHTML = resultText.split('\n\n').filter(Boolean).map((p, i) => {
     const c = paraColors[i % paraColors.length];
     const escaped = p.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
-    return `<div style="font-size:13px;line-height:1.8;color:#1f2937;background:${c.bg};border-radius:8px;padding:12px 14px;border-left:4px solid ${c.border};">${escaped}</div>`;
+    return `<div style="font-size:11px;line-height:1.7;color:#1f2937;background:${c.bg};border-radius:8px;padding:12px 14px;border-left:4px solid ${c.border};">${escaped}</div>`;
   }).join('');
 
   // 카드 표시
@@ -995,7 +1012,7 @@ window.saveReportImage = async function() {
 
   try {
     const canvas = await html2canvas(card, {
-      scale: 2,
+      scale: 3,
       useCORS: true,
       backgroundColor: '#ffffff'
     });
@@ -1011,6 +1028,25 @@ window.saveReportImage = async function() {
     card.style.top = '';
   }
 };
+
+async function loadSavedReport() {
+  if (!selStudent || !academyId) return;
+  const monthVal = document.getElementById('rptMonth').value;
+  if (!monthVal) return;
+  const key = monthVal.replace('-','');
+  const snap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${key}`));
+  const resultWrap = document.getElementById('rptResultWrap');
+  if (!snap.exists() || !snap.val().text) {
+    resultWrap.style.display = 'none';
+    document.getElementById('rptStatus').textContent = '';
+    return;
+  }
+  const saved = snap.val();
+  document.getElementById('rptResult').textContent = saved.text;
+  resultWrap.style.display = '';
+  document.getElementById('dataSummary').style.display = 'none';
+  document.getElementById('rptStatus').textContent = `📁 저장된 리포트 (${saved.createdAt || ''}) · 새로 생성하려면 [리포트 생성] 클릭`;
+}
 
 window.copyReport = function(){
   const text = document.getElementById('rptResult').textContent;
@@ -1039,6 +1075,7 @@ window.saveApiKey = async function(){
 
 // ── 버튼 이벤트 ──────────────────────────────────────────────────────
 document.getElementById('btnApiKey').addEventListener('click', () => { openApiKeyModal(); });
+document.getElementById('rptMonth').addEventListener('change', loadSavedReport);
 
 window.doLogout = async function() {
   await signOut(auth);
