@@ -989,6 +989,10 @@ window.generateReport = async function(){
       createdAt: new Date().toISOString().slice(0,10),
       start: startVal,
       end: endVal,
+      attend: document.getElementById('sumAttend').textContent,
+      exam: document.getElementById('sumExam').textContent,
+      jump: document.getElementById('sumJump').textContent,
+      body: document.getElementById('sumBody').textContent,
     });
     const reportsSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
     if (reportsSnap.exists()) {
@@ -1022,10 +1026,11 @@ window.saveReportImage = async function() {
     : `${sY}년 ${sM}월~${eM}월 성장리포트`;
   document.getElementById('rc-name').textContent = selStudent.name || '';
   document.getElementById('rc-belt').textContent = (selStudent.belt || '') + (selStudent.grade ? ' ' + selStudent.grade : '');
-  document.getElementById('rc-attend').textContent = document.getElementById('sumAttend').textContent;
-  document.getElementById('rc-exam').textContent = document.getElementById('sumExam').textContent;
-  document.getElementById('rc-jump').textContent = document.getElementById('sumJump').textContent;
-  document.getElementById('rc-body').textContent = document.getElementById('sumBody').textContent;
+  const fallback = v => (!v || v === '-') ? '기록없음' : v;
+  document.getElementById('rc-attend').textContent = fallback(document.getElementById('sumAttend').textContent);
+  document.getElementById('rc-exam').textContent = fallback(document.getElementById('sumExam').textContent);
+  document.getElementById('rc-jump').textContent = fallback(document.getElementById('sumJump').textContent);
+  document.getElementById('rc-body').textContent = fallback(document.getElementById('sumBody').textContent);
 
   const paraColors = [
     { bg: '#f0fdf4', border: '#22c55e' },
@@ -1097,6 +1102,10 @@ window._showPrevReport = function(key) {
   document.getElementById('rptResultWrap').style.display = '';
   document.getElementById('dataSummary').style.display = 'none';
   document.getElementById('rptStatus').textContent = `📁 저장된 리포트 (${r.createdAt || ''}) · 새로 생성하려면 [리포트 생성] 클릭`;
+  if (r.attend !== undefined) document.getElementById('sumAttend').textContent = r.attend;
+  if (r.exam !== undefined) document.getElementById('sumExam').textContent = r.exam;
+  if (r.jump !== undefined) document.getElementById('sumJump').textContent = r.jump;
+  if (r.body !== undefined) document.getElementById('sumBody').textContent = r.body;
 };
 
 window.copyReport = function(){
