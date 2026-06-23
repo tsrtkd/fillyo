@@ -566,7 +566,7 @@ window._delBodyRecord = async function(key){
 
 // ── Tab2: 성격태그 ────────────────────────────────────────────────────
 function loadTraits(){
-  if (!selStudent) return;
+  if (!selStudent || !selStudent.id) return;
   get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`)).then(snap => {
     traitFlags = snap.exists() ? (snap.val() || []) : [];
     renderTraits();
@@ -597,6 +597,7 @@ window._toggleTrait = async function(trait, el){
     el.classList.add('checked');
     el.querySelector('input').checked = true;
   }
+  console.log('saving trait, studentId:', selStudent.id);
   await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/traits`), traitFlags);
   const msg = document.getElementById('traitMsg');
   msg.textContent = '✓ 저장됨';
@@ -650,6 +651,7 @@ window.generateReport = async function(){
     daySnaps.forEach((snap, idx) => {
       if (!snap.exists()) return;
       const d = snap.val();
+      if (!d) return;
       const dateKey = dayKeys[idx];
       if (d.absList && Array.isArray(d.absList)) {
         d.absList.forEach(a => {
