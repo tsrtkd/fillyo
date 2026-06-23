@@ -416,7 +416,7 @@ function todayStr(){
 function loadStudents() {
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     const raw = snap.val() || {};
-    students = Object.entries(raw).map(([id, s]) => { console.log('student fields:', Object.keys(s)); return { id, ...s }; });
+    students = Object.entries(raw).map(([id, s]) => ({ id, ...s }));
     students.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
     filterStudents();
   });
@@ -427,9 +427,7 @@ const BELT_ORDER = ['흰띠','흰검띠','노란띠','노검띠','주황띠','�
 function filterStudents(){
   const q = (document.getElementById('searchInput')?.value||'').trim().toLowerCase();
   const sort = document.getElementById('sortSelect')?.value || 'name';
-  console.log('filterStudents 호출됨, sort값:', sort);
   let list = [...students];
-  console.log('students 첫번째:', students[0]);
   if(q) list = list.filter(s => (s.name||'').toLowerCase().includes(q));
   if(sort==='name') list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
   else if(sort==='belt-high') list.sort((a,b)=>(BELT_ORDER.indexOf(b.belt||'')-BELT_ORDER.indexOf(a.belt||'')));
@@ -437,6 +435,7 @@ function filterStudents(){
   else if(sort==='age') list.sort((a,b)=>(b.age||0)-(a.age||0));
   renderStudentList(list);
 }
+window.filterStudents = filterStudents;
 
 function renderStudentList(list){
   const el = document.getElementById('studentList');
