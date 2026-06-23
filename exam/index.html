@@ -669,11 +669,13 @@ const DAN_GRADES = {
 function isDan(belt) { return DAN_BELTS.includes(belt); }
 
 // 나이 기반 승급표
-function getPromoMap(age) {
+function getPromoMap(age, belt) {
   const junior = age && Number(age) <= 6;
   const beltList = junior ? BELTS_JUNIOR : BELTS_GENERAL;
+  const effectiveList = (!junior && belt && !beltList.includes(belt) && BELTS_JUNIOR.includes(belt))
+    ? BELTS_JUNIOR : beltList;
   const map = {};
-  for (let i = 0; i < beltList.length - 1; i++) map[beltList[i]] = beltList[i + 1];
+  for (let i = 0; i < effectiveList.length - 1; i++) map[effectiveList[i]] = effectiveList[i + 1];
   map['빨간띠'] = '1품단';
   return map;
 }
@@ -707,7 +709,7 @@ function calcNext(ss) {
     }
     return { nextBelt: belt, nextGrade: grades[idx + 1] };
   } else {
-    const promoMap = getPromoMap(st.age);
+    const promoMap = getPromoMap(st.age, belt);
     const nextBelt = promoMap[belt];
     if (!nextBelt) return null;
     if (isDan(nextBelt)) return { nextBelt, nextGrade: getDanGradesStepped(nextBelt, gradeStep)[0] };
