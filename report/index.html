@@ -844,9 +844,7 @@ window.generateReport = async function(){
     // 요약카드 업데이트
     const sumDiv = document.getElementById('dataSummary');
     sumDiv.style.display = '';
-    const startMLabel = startVal.split('-')[1] + '월';
-    const endMLabel = endVal.split('-')[1] + '월';
-    document.getElementById('sumAttend').textContent = totalDays > 0 ? `${presentDays}일 출석 (${startMLabel}~${endMLabel})` : '기록없음';
+    document.getElementById('sumAttend').textContent = totalDays > 0 ? `${presentDays}일 출석` : '기록없음';
     document.getElementById('sumExam').textContent = lastEvalResult ? (lastEvalResult.passed ? '✅ 합격' : '❌ 불합격') : '기록없음';
     document.getElementById('sumJump').textContent = jumpropeLevel || '기록없음';
     document.getElementById('sumBody').textContent = recentBodyRecs.length ? `${recentBodyRecs[0].height||''}cm / ${recentBodyRecs[0].weight||''}kg` : '기록없음';
@@ -921,7 +919,7 @@ window.generateReport = async function(){
 - 마크다운 문법(**굵게** 등)은 절대 사용하지 마세요. 일반 텍스트로만 작성하세요.
 - 따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있도록 작성하세요.
 - 300~400자 내외로 작성하세요.
-- [학원명] 태그로 시작하고, 아이 이름을 자연스럽게 포함하세요.
+- 학원명 태그 없이 바로 인사말로 시작하세요. 아이 이름을 자연스럽게 포함하세요.
 - 문단을 3~4개로 나눠 작성하세요: ①출석/성실도 ②실력(심사/줄넘기) ③성장(신체/성격) ④지도진 다짐
 
 [줄넘기 급수 설명 - 급수 언급 시 반드시 포함]
