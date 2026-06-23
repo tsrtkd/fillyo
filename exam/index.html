@@ -793,32 +793,32 @@ const EXAM_ITEMS = {
     { key: 'poomsae1', label: '품새 정확도', desc: '동작의 정확성, 방향, 순서' },
     { key: 'poomsae2', label: '품새 완성도', desc: '힘, 균형, 속도, 전체적 완성도' },
     { key: 'kick1',    label: '기본발차기',  desc: null },
-    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력' },
+    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력, 등' },
   ],
   beginner: [
     { key: 'poomsae1', label: '품새 정확도', desc: '동작의 정확성, 방향, 순서' },
     { key: 'poomsae2', label: '품새 완성도', desc: '힘, 균형, 속도, 전체적 완성도' },
     { key: 'kick1',    label: '기본발차기',  desc: null },
-    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력' },
+    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력, 등' },
     { key: 'manner2',  label: '인성교재',    desc: '인성교육워크북' },
   ],
   intermediate: [
     { key: 'poomsae1', label: '품새 정확도', desc: '동작의 정확성, 방향, 순서' },
     { key: 'poomsae2', label: '품새 완성도', desc: '힘, 균형, 속도, 전체적 완성도' },
     { key: 'kick1',    label: '기본발차기',  desc: null },
-    { key: 'kick2',    label: '공방능력',    desc: '공격 다양성, 방어 반응' },
-    { key: 'demo1',    label: '발차기시범',  desc: null },
-    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력' },
+    { key: 'kick2',    label: '겨루기',      desc: '공격의 다양성, 공방능력' },
+    { key: 'demo1',    label: '시범발차기',  desc: null },
+    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력, 등' },
     { key: 'manner2',  label: '인성교재',    desc: '인성교육워크북' },
   ],
   dan: [
     { key: 'poomsae1', label: '품새 정확도', desc: '동작의 정확성, 방향, 순서' },
     { key: 'poomsae2', label: '품새 완성도', desc: '힘, 균형, 속도, 전체적 완성도' },
     { key: 'kick1',    label: '기본발차기',  desc: null },
-    { key: 'kick2',    label: '공방능력',    desc: '공격 다양성, 방어 반응' },
-    { key: 'demo1',    label: '발차기시범',  desc: null },
+    { key: 'kick2',    label: '겨루기',      desc: '공격의 다양성, 공방능력' },
+    { key: 'demo1',    label: '시범발차기',  desc: null },
     { key: 'demo2',    label: '익스트림',    desc: null },
-    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력' },
+    { key: 'manner1',  label: '인성태도',    desc: '수련 태도, 예절, 집중력, 등' },
     { key: 'manner2',  label: '인성교재',    desc: '인성교육워크북' },
   ],
 };
@@ -837,10 +837,10 @@ function getItemDesc(key, belt) {
     case 'poomsae1': return '동작의 정확성, 방향, 순서';
     case 'poomsae2': return '힘, 균형, 속도, 전체적 완성도';
     case 'kick1':    return kickName + ' - 높이, 정확성, 힘';
-    case 'kick2':    return '공격 다양성, 방어 반응';
+    case 'kick2':    return '공격의 다양성, 공방능력';
     case 'demo1':    return kickName + ' 시범 - 높이, 파워, 정확성';
     case 'demo2':    return (crr.extreme || []).join(' · ');
-    case 'manner1':  return '수련 태도, 예절, 집중력';
+    case 'manner1':  return '수련 태도, 예절, 집중력, 등';
     case 'manner2':  return '인성교육워크북';
     default:         return '';
   }
