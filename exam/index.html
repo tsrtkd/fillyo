@@ -213,7 +213,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .exam-cell.row-header { height: 64px; background: var(--sky); flex-direction: column; justify-content: center; align-items: center; gap: 4px; }
 .exam-cell.row-header.exam-cell-label { align-items: flex-start; font-size: 12px; font-weight: 700; }
 .exam-cell.row-score { height: 46px; justify-content: center; }
-.exam-cell.row-pf { height: 96px; justify-content: center; }
+.exam-cell.row-pf { min-height: 96px; justify-content: center; }
 .exam-cell.row-comment { height: 82px; padding: 6px; align-items: stretch; }
 .exam-cell.row-save { height: 50px; justify-content: center; }
 .exam-chunk-table .score-btn { width: 30px; height: 30px; font-size: 11px; }
@@ -233,6 +233,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .pass-badge.pass { background: #DCFCE7; color: var(--green); }
 .pass-badge.fail { background: #FEE2E2; color: var(--red); }
 .pass-badge.none { background: var(--bg); color: var(--text2); }
+.pass-badge.pending { background: #FEF9C3; color: #854D0E; }
 
 /* ── PROMO MODAL ── */
 .promo-item { background: var(--sky); border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; }
@@ -762,6 +763,28 @@ const BELT_CURRICULUM = {
   '3품단':    {poomsae:['태백'],kick:['뛰어 옆차기'],extreme:['외발턴 540도','하우스턴']},
   '4품단':    {poomsae:['평원'],kick:['가위 차기'],extreme:['720도 이상','뒤공중 앞공중']},
 };
+const EXAM_ITEM_LABELS = {
+  '흰띠':     { poomsae: '기본동작',         kick: '-' },
+  '흰검띠':   { poomsae: '기본동작',         kick: '-' },
+  '노란띠':   { poomsae: '태극 1장',         kick: '앞차기' },
+  '노검띠':   { poomsae: '태극 2장',         kick: '돌려차기' },
+  '주황띠':   { poomsae: '태극 3장',         kick: '내려차기' },
+  '주황검띠': { poomsae: '태극 4장',         kick: '옆차기' },
+  '초록띠':   { poomsae: '태극 5장',         kick: '옆차기(발날)' },
+  '초록검띠': { poomsae: '태극 6장',         kick: '옆후려차기' },
+  '파란띠':   { poomsae: '태극 7장',         kick: '뒤차기' },
+  '파란검띠': { poomsae: '태극 8장',         kick: '뛰어뒤차기' },
+  '보라띠':   { poomsae: '태극 1~4장 복합',  kick: '돌개차기' },
+  '보라검띠': { poomsae: '태극 1~6장 복합',  kick: '뛰어돌개차기' },
+  '밤띠':     { poomsae: '태극 1~7장 복합',  kick: '뒤후려차기' },
+  '밤검띠':   { poomsae: '태극 1~8장 복합',  kick: '앞후려차기' },
+  '빨간띠':   { poomsae: '태극 1~8장 종합',  kick: '약속겨루기' },
+  '1품단':    { poomsae: '고려',             kick: '뒤차기' },
+  '2품단':    { poomsae: '금강',             kick: '뛰어뒤차기' },
+  '3품단':    { poomsae: '태백',             kick: '뛰어옆차기' },
+  '4품단':    { poomsae: '평원',             kick: '가위차기' },
+};
+
 const KICK_SUBS = ['완성도','겨루기 공방능력','겨루기 기술 다양성'];
 const CHARACTER_ITEMS = ['수련 태도 및 예의','집중력 및 성실성','인성교육교재 수행'];
 
@@ -1330,7 +1353,14 @@ function sortList(list, sort) { return applySort(list, sort); }
 function isStudentDoneInSession(studentId) {
   if (!currentSession) return false;
   return Object.values(evaluations).some(
-    e => e.studentId === studentId && e.date === currentSession.date && e.round === currentSession.round
+    e => e.studentId === studentId && e.date === currentSession.date && e.round === currentSession.round && e.passed !== 'pending'
+  );
+}
+
+function isStudentPendingInSession(studentId) {
+  if (!currentSession) return false;
+  return Object.values(evaluations).some(
+    e => e.studentId === studentId && e.date === currentSession.date && e.round === currentSession.round && e.passed === 'pending'
   );
 }
 
@@ -1361,7 +1391,7 @@ window.renderStep2List = () => {
       ${pending.map(s => `
         <div class="check-item">
           <input type="checkbox" class="step2-chk" id="step2chk-${s.id}" value="${s.id}">
-          <label for="step2chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
+          <label for="step2chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}${isStudentPendingInSession(s.id) ? ' <span class="pass-badge pending">진행중</span>' : ''}</label>
         </div>
       `).join('')}
       ${!pending.length ? '<div class="empty-msg" style="padding:20px">모든 수련생 심사 완료</div>' : ''}
@@ -1544,6 +1574,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
         <div class="exam-cell row-header exam-cell-header">
           <div style="font-size:14px;font-weight:700">${ss.name}</div>
           ${beltBadge(ss.belt, ss.grade)}
+          <div style="font-size:11px;color:#6b7280">품새: ${EXAM_ITEM_LABELS[ss.belt]?.poomsae || '-'} | 발차기: ${EXAM_ITEM_LABELS[ss.belt]?.kick || '-'}</div>
           ${ss.done ? '<span style="font-size:12px;color:var(--green)">✅ 완료</span>' : ''}
         </div>
         ${scoreCells}
@@ -1551,6 +1582,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
           <div style="display:flex;flex-direction:column;gap:6px;width:100%">
             <button class="pf-btn pass${ss.passed === true  ? ' on' : ''}" onclick="setPassed(${idx},true)">✅ 합격</button>
             <button class="pf-btn fail${ss.passed === false ? ' on' : ''}" onclick="setPassed(${idx},false)">❌ 불합격</button>
+            <button style="flex:1;padding:8px;border-radius:10px;border:2px solid #d1d5db;font-size:13px;font-weight:700;background:#f3f4f6;color:#6b7280;cursor:pointer;font-family:inherit" onclick="savePending(${idx})">⏸ 오늘 여기까지</button>
           </div>
         </div>
         <div class="exam-cell row-comment">
@@ -1596,6 +1628,32 @@ window.setPassed = (idx, val) => {
   const row = document.getElementById('erow-' + idx);
   row.querySelectorAll('.pf-btn.pass').forEach(b => b.classList.toggle('on', val === true));
   row.querySelectorAll('.pf-btn.fail').forEach(b => b.classList.toggle('on', val === false));
+};
+
+window.savePending = async (idx) => {
+  const ss = currentExamSession.students[idx];
+  ss.comment = document.getElementById('comment-' + idx)?.value || '';
+  const evalData = {
+    studentId: ss.id,
+    date:      currentExamSession.date,
+    round:     currentExamSession.round,
+    belt:      ss.belt,
+    grade:     ss.grade || '',
+    passed:    'pending',
+    scores:    ss.scores,
+    comment:   ss.comment,
+  };
+  const existingEntry = Object.entries(evaluations).find(
+    ([, e]) => e.studentId === ss.id && e.date === currentExamSession.date && e.round === currentExamSession.round
+  );
+  const evalId = existingEntry ? existingEntry[0] : push(ref(db, `academies/${academyId}/exam/evaluations`)).key;
+  await set(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), evalData);
+  ss.done   = true;
+  ss.passed = 'pending';
+  const rowEl = document.getElementById('erow-' + idx);
+  if (rowEl) rowEl.classList.add('done');
+  showToast('⏸ 진행 중으로 저장했습니다');
+  backToStep2List();
 };
 
 window.saveExamRow = async (idx) => {
@@ -1775,7 +1833,9 @@ window.renderStatusTable = () => {
       ? '<span class="pass-badge pass">합격</span>'
       : e.passed === false
         ? '<span class="pass-badge fail">불합격</span>'
-        : '<span class="pass-badge none">-</span>';
+        : e.passed === 'pending'
+          ? '<span class="pass-badge pending">진행중</span>'
+          : '<span class="pass-badge none">-</span>';
     const tempSs = { id: e.studentId, belt: e.belt, grade: e.grade || '', scores: e.scores, passed: e.passed };
     let resultCell = '-';
     if (e.passed === true) {
@@ -1785,6 +1845,8 @@ window.renderStatusTable = () => {
         : beltBadge(e.belt || '', e.grade || '');
     } else if (e.passed === false) {
       resultCell = `${beltBadge(e.belt || '', e.grade || '')} <span style="font-size:11px;color:var(--text2)">(유지)</span>`;
+    } else if (e.passed === 'pending') {
+      resultCell = `${beltBadge(e.belt || '', e.grade || '')} <span style="font-size:11px;color:#854d0e">(진행중)</span>`;
     }
     return `
       <tr>
@@ -1832,8 +1894,8 @@ window.viewEvalRecord = (evalId) => {
   if (!e) return;
   const st = students[e.studentId];
   const name = st?.name || '-';
-  const passedText  = e.passed === true ? '합격' : e.passed === false ? '불합격' : '-';
-  const passedColor = e.passed === true ? 'var(--green)' : e.passed === false ? 'var(--red)' : 'var(--text2)';
+  const passedText  = e.passed === true ? '합격' : e.passed === false ? '불합격' : e.passed === 'pending' ? '진행중' : '-';
+  const passedColor = e.passed === true ? 'var(--green)' : e.passed === false ? 'var(--red)' : e.passed === 'pending' ? '#854d0e' : 'var(--text2)';
   const allScores   = [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])];
   document.getElementById('evalViewContent').innerHTML = `
     <div style="background:var(--sky);border-radius:10px;padding:14px;margin-bottom:12px">
