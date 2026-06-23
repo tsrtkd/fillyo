@@ -1642,7 +1642,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
       }
       const val = (ss.scores || {})[r.key] || 0;
       return `<div class="exam-cell row-score"><div class="score-btns">${
-        [1,2,3,4,5].map(v =>
+        [5,4,3,2,1].map(v =>
           `<button class="score-btn${val === v ? ' on' : ''}" onclick="setScore(${idx},'${r.key}',${v},this)">${v}</button>`
         ).join('')
       }</div></div>`;
@@ -1698,7 +1698,7 @@ function moveRowToDone(idx) {
 
 window.setScore = (idx, key, val, btn) => {
   currentExamSession.students[idx].scores[key] = val;
-  btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
+  btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.toggle('on', Number(b.textContent) === val));
 };
 
 window.setPassed = (idx, val) => {
@@ -2025,7 +2025,7 @@ window.editEvalRecord = (evalId) => {
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:12px;color:var(--text2);width:100px;flex-shrink:0">${r.label}</span>
           <div style="display:flex;gap:3px">
-            ${[1,2,3,4,5].map(v=>`<button type="button" class="score-btn${val===v?' on':''}" onclick="editScoreClick(this,'${r.key}',${v})">${v}</button>`).join('')}
+            ${[5,4,3,2,1].map(v=>`<button type="button" class="score-btn${val===v?' on':''}" onclick="editScoreClick(this,'${r.key}',${v})">${v}</button>`).join('')}
           </div>
         </div>`;
       }).join('')}
@@ -2044,7 +2044,7 @@ window.editEvalRecord = (evalId) => {
 
 window.editScoreClick = (btn, key, val) => {
   _editScores[key] = val;
-  btn.parentElement.querySelectorAll('.score-btn').forEach((b, bi) => b.classList.toggle('on', bi + 1 === val));
+  btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.toggle('on', Number(b.textContent) === val));
 };
 
 window.editSetPassed = (val) => {
