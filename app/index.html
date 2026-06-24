@@ -735,6 +735,8 @@ let unreadCount    = 0;
 let seenNotifKeys  = new Set();
 let isDirty        = false;
 let _confirmResolve = null;
+let vehicleNoteTimer = null;
+let _vnLastDateKey   = null;
 let outAddCount    = 0;
 let absCount       = 0;
 let vehicleSchedule = {};
@@ -990,8 +992,11 @@ window.checkAbsDuplicate = () => {
 
 // ── 로드 / 저장 ───────────────────────────────────────────────────
 function loadCurrentDay() {
+  const key = dateKey(currentDate);
+  if (key !== _vnLastDateKey) { clearTimeout(vehicleNoteTimer); vehicleNoteTimer = null; }
+  _vnLastDateKey = key;
   userInteracting = false;
-  const key = dateKey(currentDate), d = allData[key] || {};
+  const d = allData[key] || {};
   for (let i = 0; i < BU_LABELS.length; i++) {
     const el = document.getElementById('att_' + i);
     if (el) el.value = (d.att && d.att[i] !== undefined) ? d.att[i] : 0;
@@ -1902,14 +1907,15 @@ window.selectVehicleDay = (dk) => {
 function loadVehicleNote() {
   const el = document.getElementById('taVehicleNote');
   if (!el) return;
+  if (vehicleNoteTimer !== null) return; // 타이핑 중 — onValue 재로드로 덮어쓰지 않음
   const d = allData[dateKey(currentDate)] || {};
   el.value = d.vehicleNote || '';
 }
 
-let vehicleNoteTimer = null;
 window.triggerVehicleNoteAutoSave = function() {
   clearTimeout(vehicleNoteTimer);
   vehicleNoteTimer = setTimeout(async () => {
+    vehicleNoteTimer = null; // 발동됐으므로 즉시 null — loadVehicleNote 가드 해제
     if (!isOnline) return;
     const key = dateKey(currentDate);
     const val = document.getElementById('taVehicleNote')?.value || '';
@@ -1923,7 +1929,7 @@ window.triggerVehicleNoteAutoSave = function() {
         indicator.style.opacity = '1';
         setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
       }
-    } catch(e) { /* 자동저장 실패는 조용히 무시, 버튼 저장으로 재시도 가능 */ }
+    } catch(e) { showToast('변경사항 저장 오류: ' + e.message); }
   }, 2000);
 };
 
