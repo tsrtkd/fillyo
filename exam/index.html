@@ -426,6 +426,17 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
       </div>
 
       <div class="sett-row">
+        <div class="sett-label">유치부 기준</div>
+        <div class="sett-ctrl">
+          <select id="juniorMaxAgeSelect" onchange="saveExamSettings()">
+            <option value="6">6세 이하 (검띠 승급 경로)</option>
+            <option value="7">7세 이하 (검띠 승급 경로)</option>
+          </select>
+          <div class="sett-hint">선택한 나이 이하 수련생은 검띠 단계를 포함한 승급 경로를 적용합니다. 평가 항목은 4~7세 모두 동일(4항목)합니다.</div>
+        </div>
+      </div>
+
+      <div class="sett-row">
         <label class="sett-label">심사 항목</label>
         <div class="sett-ctrl">
           <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px">초등부 이상 유급자 적용</div>
@@ -688,7 +699,7 @@ function isDan(belt) { return DAN_BELTS.includes(belt); }
 
 // 나이 기반 승급표
 function getPromoMap(age, belt) {
-  const junior = age && Number(age) <= 6;
+  const junior = age && Number(age) <= (academyExamSettings.juniorMaxAge || 6);
   const beltList = junior ? BELTS_JUNIOR : BELTS_GENERAL;
   const effectiveList = (!junior && belt && !beltList.includes(belt) && BELTS_JUNIOR.includes(belt))
     ? BELTS_JUNIOR : beltList;
@@ -859,7 +870,7 @@ function getActiveExamItems(group) {
 }
 
 function getExamGroup(belt, age) {
-  if (age && Number(age) <= 6) return 'junior';
+  if (age && Number(age) <= 7) return 'junior';
   if (['1품단','2품단','3품단','4품단'].includes(belt)) return 'dan';
   if (['초록띠','초록검띠','파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠'].includes(belt)) return 'intermediate';
   return 'beginner';
@@ -867,14 +878,16 @@ function getExamGroup(belt, age) {
 
 function getItemDesc(key, belt) {
   const crr = BELT_CURRICULUM[belt] || {};
-  const kickName = (crr.kick || [])[0] || '';
+  const kickName  = (crr.kick    || [])[0] || '';
+  const demo1Name = (crr.extreme || [])[0] || kickName;
+  const demo2Name = (crr.extreme || [])[1] || '';
   switch (key) {
     case 'poomsae1': return '동작의 정확성, 방향, 순서';
     case 'poomsae2': return '힘, 균형, 속도, 전체적 완성도';
-    case 'kick1':    return kickName + ' - 높이, 정확성, 힘';
+    case 'kick1':    return kickName  + ' - 높이, 정확성, 힘';
     case 'kick2':    return '공격의 다양성, 공방능력';
-    case 'demo1':    return (crr.extreme||[])[0] ? (crr.extreme[0] + ' - 높이, 파워, 정확성') : (kickName + ' 시범 - 높이, 파워, 정확성');
-    case 'demo2':    return (crr.extreme||[])[1] ? crr.extreme[1] : ((crr.extreme||[]).join(' · '));
+    case 'demo1':    return demo1Name + ' - 높이, 파워, 정확성';
+    case 'demo2':    return demo2Name;
     case 'manner1':  return '수련 태도, 예절, 집중력, 등';
     case 'manner2':  return '인성교육워크북';
     default:         return '';
@@ -1123,7 +1136,8 @@ document.getElementById('tab-students').classList.add('active');
 // ── 심사 설정 저장/로드 ───────────────────────────────────────────────
 window.saveExamSettings = async function() {
   const settings = {
-    gradeStep: parseInt(document.getElementById('gradeStepSelect').value),
+    gradeStep:    parseInt(document.getElementById('gradeStepSelect').value),
+    juniorMaxAge: parseInt(document.getElementById('juniorMaxAgeSelect').value) || 6,
     examItems: {
       poomsae: true,
       kick:    true,
@@ -1147,6 +1161,9 @@ async function loadExamSettings() {
   const step = s.gradeStep || 2;
   const sel = document.getElementById('gradeStepSelect');
   if (sel) sel.value = String(step);
+  const juniorMaxAge = s.juniorMaxAge || 6;
+  const juniorSel = document.getElementById('juniorMaxAgeSelect');
+  if (juniorSel) juniorSel.value = String(juniorMaxAge);
   const items = s.examItems || {};
   document.getElementById('chkKick2').checked   = items.kick2 !== false;
   document.getElementById('chkDemo1').checked   = !!items.demo1;
