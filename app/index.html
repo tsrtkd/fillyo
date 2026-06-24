@@ -1411,12 +1411,10 @@ function renderMonthlyLists() {
       h += `<div style="display:grid;grid-template-columns:34px 1fr 1.5fr;gap:6px;align-items:center;padding:7px 13px;border-bottom:1px solid #f4f6f8;">
         <span style="font-size:10px;color:var(--gray);">${lbl}</span>
         <span style="font-size:13px;font-weight:700;color:var(--navy);">${name}</span>
-        <div style="display:flex;gap:4px;align-items:center;">
-          <input type="text" value="${reason}" placeholder="사유 입력" id="reason_${safeKey}" data-key="${key2}"
-            style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;color:var(--text);"
-            onblur="saveOutReason(this)">
-          <button onclick="saveOutReason(this.previousElementSibling)" style="background:var(--blue);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">저장</button>
-        </div></div>`;
+        <input type="text" value="${reason}" placeholder="사유 입력" id="reason_${safeKey}" data-key="${key2}"
+          style="border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;color:var(--text);"
+          onblur="saveOutReason(this)">
+        </div>`;
     }));
     outEl.innerHTML = h;
   }
@@ -1432,9 +1430,8 @@ window.saveOutReason = async (input) => {
   if (isOnline) {
     try {
       await set(ref(db, `academies/${academyId}/months/${mk2}/outReasons/${safeKey}`), input.value);
-      input.style.borderColor = 'var(--teal)'; input.style.background = 'var(--teal-lt)';
-      showToast('✅ 사유 저장 완료!');
-      setTimeout(() => { input.style.borderColor = ''; input.style.background = ''; }, 2000);
+      input.style.borderColor = '#22c55e'; input.style.background = '#f0fdf4';
+      setTimeout(() => { input.style.borderColor = ''; input.style.background = ''; }, 1500);
     } catch(e) { showToast('저장 오류: ' + e.message); }
   }
 };
