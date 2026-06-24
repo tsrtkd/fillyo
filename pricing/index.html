@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>요금제 — FILLYO</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f5f7fa;color:#1A2332;line-height:1.8}
+
+/* HEADER */
+header{background:#1A2332}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:900px;margin:0 auto;padding:0 6%}
+.logo{font-size:22px;font-weight:900;letter-spacing:3px;text-decoration:none}
+.logo-fill{color:#ffffff}
+.logo-yo{color:#0B7B6B}
+.hdr-home{color:rgba(255,255,255,0.7);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
+.hdr-home:hover{color:#ffffff}
+
+/* EARLY BIRD BANNER */
+.banner{background:#0B7B6B;color:#ffffff;text-align:center;padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.3px}
+
+/* MAIN */
+main{max-width:800px;margin:40px auto;padding:0 16px 60px}
+@media(max-width:640px){main{margin:24px auto}}
+
+/* SECTION TITLE */
+.section-title{font-size:13px;font-weight:700;color:#0B7B6B;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+
+/* MAIN PLAN CARD */
+.plan-card{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden}
+.plan-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:#0B7B6B}
+.plan-name{font-size:22px;font-weight:900;color:#1A2332;margin-bottom:16px}
+.price-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+.price-regular{font-size:15px;color:#9ca3af;text-decoration:line-through}
+.price-early{font-size:32px;font-weight:900;color:#0B7B6B}
+.price-unit{font-size:14px;color:#6b7280;font-weight:500}
+.price-note{font-size:13px;color:#6b7280;margin-top:4px}
+
+/* ADDON CARDS */
+.addon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
+@media(max-width:560px){.addon-grid{grid-template-columns:1fr}}
+.addon-card{background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 20px 18px;text-align:center}
+.addon-name{font-size:14px;font-weight:700;color:#1A2332;margin-bottom:8px}
+.addon-price{font-size:22px;font-weight:900;color:#1A2332}
+.addon-unit{font-size:12px;color:#9ca3af;font-weight:400}
+.addon-note{font-size:11px;color:#9ca3af;margin-top:4px}
+.addon-notice{font-size:12px;color:#9ca3af;background:#f9fafb;border-radius:8px;padding:10px 14px;line-height:1.6;margin-top:4px}
+
+/* PACKAGE TABLE */
+.pkg-card{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);overflow:hidden;margin-bottom:24px}
+.pkg-row{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;border-bottom:1px solid #f3f4f6}
+.pkg-row:last-child{border-bottom:none}
+.pkg-row.header{background:#f9fafb;padding:10px 28px}
+.pkg-label-head{font-size:12px;font-weight:700;color:#9ca3af;letter-spacing:.5px}
+.pkg-label{font-size:14px;font-weight:600;color:#374151}
+.pkg-price{font-size:16px;font-weight:900;color:#0B7B6B}
+
+/* BOTTOM NOTES */
+.notes{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);padding:28px 36px;margin-bottom:28px}
+.note-item{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#374151;margin-bottom:10px}
+.note-item:last-child{margin-bottom:0}
+.note-item::before{content:'✓';color:#0B7B6B;font-weight:700;flex-shrink:0;margin-top:2px}
+.note-link{color:#0B7B6B;text-decoration:none;font-weight:600}
+.note-link:hover{text-decoration:underline}
+
+/* CTA */
+.cta-wrap{text-align:center}
+.cta-btn{display:inline-block;background:#0B7B6B;color:#ffffff;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;letter-spacing:.3px;transition:background .2s,transform .15s}
+.cta-btn:hover{background:#085041;transform:translateY(-2px)}
+
+/* FOOTER */
+footer{background:#1A2332;text-align:center;padding:28px 6%;color:rgba(255,255,255,0.5);font-size:13px;line-height:2}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-inner">
+    <a class="logo" href="https://fillyo.kr"><span class="logo-fill">FILL</span><span class="logo-yo">YO</span></a>
+    <a class="hdr-home" href="https://fillyo.kr">← 홈으로</a>
+  </div>
+</header>
+
+<div class="banner">🎉 얼리버드 특가 — 2026년 8월 31일 마감</div>
+
+<main>
+
+  <!-- 메인 구독 -->
+  <div style="margin-top:40px;margin-bottom:8px" class="section-title">메인 구독</div>
+  <div class="plan-card">
+    <div class="plan-name">업무일지</div>
+    <div class="price-row">
+      <span class="price-regular">₩19,800/월</span>
+      <span class="price-early">₩9,900</span>
+      <span class="price-unit">/월</span>
+    </div>
+    <div class="price-note">얼리버드 가격 — 가입일로부터 1년간 고정, 이후 정가(₩19,800/월) 자동 전환</div>
+  </div>
+
+  <!-- 애드온 -->
+  <div class="section-title">애드온 <span style="font-size:11px;font-weight:500;color:#9ca3af;letter-spacing:0;text-transform:none">— 선택 추가</span></div>
+  <div class="addon-grid">
+    <div class="addon-card">
+      <div class="addon-name">승급심사</div>
+      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
+    </div>
+    <div class="addon-card">
+      <div class="addon-name">줄넘기</div>
+      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
+    </div>
+    <div class="addon-card">
+      <div class="addon-name">AI 성장리포트</div>
+      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
+      <div class="addon-note">학생 100명 이하 기준</div>
+    </div>
+  </div>
+  <div class="addon-notice">애드온은 이미 최저가로 책정된 가격으로 얼리버드 할인이 적용되지 않습니다.</div>
+
+  <!-- 패키지 예시 -->
+  <div style="margin-top:32px;margin-bottom:8px" class="section-title">패키지 예시</div>
+  <div class="pkg-card">
+    <div class="pkg-row header">
+      <span class="pkg-label-head">구성</span>
+      <span class="pkg-label-head">얼리버드 월 요금</span>
+    </div>
+    <div class="pkg-row">
+      <span class="pkg-label">업무일지만</span>
+      <span class="pkg-price">₩9,900</span>
+    </div>
+    <div class="pkg-row">
+      <span class="pkg-label">업무일지 + 승급심사</span>
+      <span class="pkg-price">₩14,800</span>
+    </div>
+    <div class="pkg-row">
+      <span class="pkg-label">풀패키지 (전체)</span>
+      <span class="pkg-price">₩24,600</span>
+    </div>
+  </div>
+
+  <!-- 하단 안내 -->
+  <div class="notes">
+    <div class="note-item">7일 무료체험 후 직접 결제 전환 — 체험 중 카드 등록 불필요</div>
+    <div class="note-item">구독 취소는 마이페이지에서 언제든 가능</div>
+    <div class="note-item">
+      <a class="note-link" href="/terms/">이용약관</a>&nbsp;·&nbsp;<a class="note-link" href="/refund/">환불정책</a> 확인하기
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <a class="cta-btn" href="/login/">무료로 시작하기</a>
+  </div>
+
+</main>
+
+<footer>
+  © 2026 필요(FILLYO)
+</footer>
+
+</body>
+</html>
