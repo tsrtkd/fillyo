@@ -443,6 +443,7 @@
     <!-- HEADER -->
     <div class="header">
       <div class="logo">FILLYO</div>
+      <a href="https://fillyo.kr" target="_blank" style="font-size:12px;font-weight:700;color:#0B7B6B;text-decoration:none;padding:5px 13px;border:1.5px solid #0B7B6B;border-radius:16px;white-space:nowrap;">서비스 소개 →</a>
       <div class="header-icons">
         <a href="/guide/" target="_blank" class="icon-btn" title="사용설명서">📖</a>
         <div class="icon-btn" id="btnAlarm"><span class="bell-wrap">🔔<span id="bellDot"></span></span></div>
@@ -490,7 +491,7 @@
           <h3>줄넘기</h3>
           <p>급수 · 기록</p>
         </div>
-        <div class="card purple">
+        <div class="card purple" id="cardAIDesk">
           <div class="status">준비중</div>
           <div class="emoji">🔔</div>
           <h3>AI 안내데스크</h3>
@@ -776,19 +777,23 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 클릭 이벤트 ───────────────────────────────────────────────────
 document.getElementById('cardApp').addEventListener('click', () => {
-  location.href = '/app';
+  window.open('https://fillyo.kr/#services', '_blank');
 });
 
 document.getElementById('cardJumprope').addEventListener('click', () => {
-  location.href = '/jumprope/';
+  window.open('https://fillyo.kr/#services', '_blank');
 });
 
 document.getElementById('cardExam').addEventListener('click', () => {
-  location.href = '/exam/index.html';
+  window.open('https://fillyo.kr/#services', '_blank');
 });
 
 document.getElementById('cardReport').addEventListener('click', () => {
-  location.href = '/report/';
+  window.open('https://fillyo.kr/#services', '_blank');
+});
+
+document.getElementById('cardAIDesk').addEventListener('click', () => {
+  window.open('https://fillyo.kr/#services', '_blank');
 });
 
 document.getElementById('quickMypage').addEventListener('click', () => {
