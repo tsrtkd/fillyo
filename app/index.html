@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>fillyo 업무일지</title>
+<title>FILLYO 업무일지</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 :root {
@@ -609,7 +609,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <input type="email" class="invite-inp" id="inviteEmail" placeholder="강사 이메일 주소">
           <button class="invite-btn" onclick="inviteTeacher()">초대</button>
         </div>
-        <div class="invite-hint">초대된 강사는 같은 학원 데이터를 실시간 공유합니다.<br>강사가 fillyo에 가입 후 초대 코드를 입력하면 연결됩니다.</div>
+        <div class="invite-hint">초대된 강사는 같은 학원 데이터를 실시간 공유합니다.<br>강사가 FILLYO에 가입 후 초대 코드를 입력하면 연결됩니다.</div>
         <div style="margin-top:12px;font-size:11px;font-weight:700;color:var(--gray);">학원 코드 (강사에게 공유)</div>
         <div id="academyCodeDisplay" style="margin-top:4px;background:var(--bg);border-radius:8px;padding:10px 12px;font-size:13px;font-weight:700;color:var(--navy);letter-spacing:1px;"></div>
       </div>
@@ -622,7 +622,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="guide-step"><div class="step-num">2</div><div><div class="step-title">매일 업무일지 작성 후 저장</div><div class="step-desc">부별 출석 입력 → 결석 자동계산. 저장 시 팀원에게 알림 전송.</div></div></div>
         <div class="guide-step"><div class="step-num">3</div><div><div class="step-title">캘린더로 날짜 이동</div><div class="step-desc">헤더 📅 버튼 → 달력에서 날짜 선택. 데이터 있는 날은 파란색 표시.</div></div></div>
         <div class="guide-step"><div class="step-num">4</div><div><div class="step-title">홈 화면에 앱처럼 추가</div><div class="step-desc">아이폰: Safari → 공유(□↑) → 홈 화면에 추가<br>안드로이드: Chrome → ⋮ → 홈 화면에 추가</div></div></div>
-        <div class="guide-ok">✅ fillyo.kr — 학원 업무일지 서비스</div>
+        <div class="guide-ok">✅ FILLYO — 학원 업무일지 서비스</div>
       </div>
     </div>
 
@@ -792,7 +792,7 @@ onAuthStateChanged(auth, async (user) => {
     // 헤더 학원명 표시
     const name = academySettings.academyName || academySettings.name || '업무일지';
     document.getElementById('brandName').textContent = name;
-    document.title = `${name} 업무일지 — fillyo`;
+    document.title = `${name} 업무일지 — FILLYO`;
 
     // 설정 탭 정보
     document.getElementById('settAcademyName').textContent = name;

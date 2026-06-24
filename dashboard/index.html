@@ -219,7 +219,8 @@
     .card.blue{background:#dcecff;}
     .card.purple{background:#efe3ff;}
     .card.pink{background:#fde4f0;}
-    .card.teal{background:#d8f5f0;}
+    .card.teal{background:#d0f0ea;}
+    .card.olive{background:#e8f5e0;}
 
     .emoji{
       font-size:34px;
@@ -486,7 +487,7 @@
         <div class="card blue" id="cardJumprope">
           <div class="status">이용중</div>
           <div class="emoji">🏅</div>
-          <h3>줄넘기관리</h3>
+          <h3>줄넘기</h3>
           <p>급수 · 기록</p>
         </div>
         <div class="card purple">
@@ -498,7 +499,7 @@
         <div class="card teal" id="cardReport">
           <div class="status">이용중</div>
           <div class="emoji">📊</div>
-          <h3>성장 리포트</h3>
+          <h3>AI 성장리포트</h3>
           <p>키·몸무게·AI 리포트</p>
         </div>
         <div class="card pink" id="cardSlowmo">
@@ -507,7 +508,7 @@
           <h3>슬로우모션</h3>
           <p>동작분석 · 영상촬영</p>
         </div>
-        <div class="card teal" id="cardPolicy">
+        <div class="card olive" id="cardPolicy">
           <div class="status">무료</div>
           <div class="emoji">📋</div>
           <h3>지원정책</h3>
@@ -755,6 +756,7 @@ onAuthStateChanged(auth, async (user) => {
     setCardStatus('cardApp',      'app');
     setCardStatus('cardExam',     'exam');
     setCardStatus('cardJumprope', 'jumprope');
+    setCardStatus('cardReport',   'report');
     setCardStatus('cardSlowmo',   'slowmo');
 
   } catch (e) {

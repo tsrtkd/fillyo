@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>태권도 심사 - FILLYO</title>
+<title>승급심사 - FILLYO</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
 :root {
@@ -996,7 +996,7 @@ function todayStr() { return new Date().toISOString().slice(0, 10); }
 
 // ── 인증 / 초기화 ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = '../login/index.html'; return; }
+  if (!user) { location.href = '/login/'; return; }
 
   // ── 권한 체크 (admin / 체험 / 구독) ─────────────────────────────
   try {
@@ -1068,7 +1068,7 @@ onAuthStateChanged(auth, async (user) => {
 
 window.doLogout = async () => {
   await signOut(auth);
-  location.href = '../login/index.html';
+  location.href = '/login/';
 };
 
 // ── 탭 전환 ──────────────────────────────────────────────────────────
