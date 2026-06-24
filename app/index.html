@@ -637,7 +637,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <span id="vtdNoteHdTitle">🔔 변경사항</span>
         <span class="vehicle-note-badge" id="vtdNoteBadge">오늘만 적용</span>
       </div>
-      <textarea id="taVehicleNote" placeholder="오늘 하루만 적용되는 운행 변경사항을 입력하세요...&#10;예) 1호차 결항 · 운행 시간 변경 · 임시 노선 추가 등" style="width:100%;border:none;resize:none;font-family:inherit;font-size:13px;line-height:1.75;padding:12px 13px;min-height:80px;color:var(--text);background:#FFFDF0;"></textarea>
+      <textarea id="taVehicleNote" placeholder="오늘 하루만 적용되는 운행 변경사항을 입력하세요...&#10;예) 1호차 결항 · 운행 시간 변경 · 임시 노선 추가 등" style="width:100%;border:none;resize:none;font-family:inherit;font-size:13px;line-height:1.75;padding:12px 13px;min-height:80px;color:var(--text);background:#FFFDF0;" oninput="triggerVehicleNoteAutoSave()"></textarea>
       <div style="padding:6px 13px 12px;display:flex;align-items:center;justify-content:space-between;gap:8px;">
         <span style="font-size:11px;color:#B8860B;">📅 다음날 자동으로 초기화됩니다</span>
         <button onclick="saveVehicleNote()" style="background:var(--yellow);color:var(--navy);border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">저장</button>
@@ -1082,7 +1082,7 @@ window.saveDay = async (isAuto = false) => {
     edu:   document.getElementById('taEdu').value,
     cons:  document.getElementById('taCons').value,
     mgrIn: mgrInVal, mgrRe: mgrReVal, mgrOut: mgrOutVal,
-    vehicleNote: (allData[key] || {}).vehicleNote || '',
+    vehicleNote: document.getElementById('taVehicleNote')?.value ?? (allData[key] || {}).vehicleNote ?? '',
     savedBy: MY_ID, savedAt: new Date().toISOString(),
   };
   allData[key] = data;
@@ -1905,6 +1905,27 @@ function loadVehicleNote() {
   const d = allData[dateKey(currentDate)] || {};
   el.value = d.vehicleNote || '';
 }
+
+let vehicleNoteTimer = null;
+window.triggerVehicleNoteAutoSave = function() {
+  clearTimeout(vehicleNoteTimer);
+  vehicleNoteTimer = setTimeout(async () => {
+    if (!isOnline) return;
+    const key = dateKey(currentDate);
+    const val = document.getElementById('taVehicleNote')?.value || '';
+    try {
+      await set(ref(db, `academies/${academyId}/days/${key}/vehicleNote`), val);
+      if (!allData[key]) allData[key] = {};
+      allData[key].vehicleNote = val;
+      const indicator = document.getElementById('autoSaveIndicator');
+      if (indicator) {
+        indicator.textContent = '✓ 저장됨';
+        indicator.style.opacity = '1';
+        setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
+      }
+    } catch(e) { /* 자동저장 실패는 조용히 무시, 버튼 저장으로 재시도 가능 */ }
+  }, 2000);
+};
 
 window.saveVehicleNote = async () => {
   if (!isOnline) { showToast('오프라인 상태입니다.'); return; }
