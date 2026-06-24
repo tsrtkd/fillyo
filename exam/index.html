@@ -295,7 +295,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="top-tab active" onclick="switchTab('students')">🥋 수련생</button>
   <button class="top-tab" onclick="switchTab('exam')">📋 심사</button>
   <button class="top-tab" onclick="switchTab('status')">📊 현황</button>
-  <button class="top-tab" onclick="switchTab('grade')">📜 급수표</button>
+  <button class="top-tab" onclick="switchTab('grade')">📜 교육과정</button>
   <button class="top-tab" onclick="switchTab('settings')">⚙️ 설정</button>
 </div>
 
@@ -384,6 +384,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
             <option value="age">나이순</option>
           </select>
         </div>
+        <div style="padding:0 16px 8px">
+          <input class="search-input" id="step2SearchInput" type="text" placeholder="이름 검색..." oninput="renderStep2List()">
+        </div>
         <div id="step2StudentList" style="padding:0 16px"></div>
         <div style="padding:8px 16px 16px">
           <button class="modal-btn primary" style="width:100%" onclick="startSubExam()">심사 시작</button>
@@ -425,21 +428,31 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
       <div class="sett-row">
         <label class="sett-label">심사 항목</label>
         <div class="sett-ctrl">
+          <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:6px">초등부 이상 유급자 적용</div>
           <div style="display:flex;flex-direction:column;gap:8px;">
-            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
-              <input type="checkbox" id="chkPoomsae" checked onchange="saveExamSettings()"> 품새
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;opacity:0.5">
+              <input type="checkbox" checked disabled> 품새 (고정)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;opacity:0.5">
+              <input type="checkbox" checked disabled> 기본발차기 (고정)
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
-              <input type="checkbox" id="chkKick" checked onchange="saveExamSettings()"> 발차기
+              <input type="checkbox" id="chkKick2" onchange="saveExamSettings()"> 겨루기 <span style="font-size:11px;color:#999">(초록띠 이상)</span>
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
-              <input type="checkbox" id="chkExtreme" onchange="saveExamSettings()"> 익스트림
+              <input type="checkbox" id="chkDemo1" onchange="saveExamSettings()"> 시범발차기
             </label>
             <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
-              <input type="checkbox" id="chkCharacter" onchange="saveExamSettings()"> 인성교육
+              <input type="checkbox" id="chkDemo2" onchange="saveExamSettings()"> 익스트림
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;opacity:0.5">
+              <input type="checkbox" checked disabled> 인성태도 (고정)
+            </label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:14px;">
+              <input type="checkbox" id="chkManner2" onchange="saveExamSettings()"> 인성교재
             </label>
           </div>
-          <span class="sett-hint">체크한 항목만 심사 평가 화면에 표시됩니다. 품새는 필수입니다.</span>
+          <span class="sett-hint">유치부(7세 이하)는 4개 항목 고정. 체크한 항목만 심사 평가 화면에 표시됩니다.</span>
         </div>
       </div>
 
@@ -449,7 +462,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
   <!-- 현황 탭 -->
   <div id="tab-status" class="tab-content">
-    <div style="display:flex;gap:8px;align-items:center;padding:12px 16px">
+    <div style="padding:12px 16px 0">
+      <input class="search-input" id="statusSearchInput" type="text" placeholder="이름 검색..." oninput="renderStatusTable()">
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;padding:8px 16px">
       <select id="statusFilter" onchange="renderStatusTable();toggleDeleteRoundBtn()" style="flex:1;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit">
         <option value="">전체 회차</option>
       </select>
@@ -460,6 +476,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <option value="age">나이순</option>
       </select>
       <button id="deleteRoundBtn" style="display:none;width:90px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0" onclick="deleteRound()">🗑️ 회차 삭제</button>
+      <button id="rollbackRoundBtn" style="display:none;background:#fff7ed;color:#c2410c;border:1px solid #fdba74;border-radius:8px;padding:8px 12px;font-size:12px;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0" onclick="rollbackRound()">🔄 롤백</button>
     </div>
     <div class="status-table-wrap">
       <table class="status-table">
@@ -491,8 +508,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     <span class="tab-label">현황</span>
   </button>
   <button class="tab-btn" data-tab="grade" onclick="switchTab('grade')">
-    <span class="tab-icon">📋</span>
-    <span class="tab-label">급수표</span>
+    <span class="tab-icon">📜</span>
+    <span class="tab-label">교육과정</span>
   </button>
   <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
     <span class="tab-icon">⚙️</span>
@@ -767,17 +784,17 @@ const EXAM_ITEM_LABELS = {
   '흰띠':     { poomsae: '기본동작',         kick: '-' },
   '흰검띠':   { poomsae: '기본동작',         kick: '-' },
   '노란띠':   { poomsae: '태극 1장',         kick: '앞차기' },
-  '노검띠':   { poomsae: '태극 2장',         kick: '돌려차기' },
-  '주황띠':   { poomsae: '태극 3장',         kick: '내려차기' },
-  '주황검띠': { poomsae: '태극 4장',         kick: '옆차기' },
-  '초록띠':   { poomsae: '태극 5장',         kick: '옆차기(발날)' },
-  '초록검띠': { poomsae: '태극 6장',         kick: '옆후려차기' },
-  '파란띠':   { poomsae: '태극 7장',         kick: '뒤차기' },
-  '파란검띠': { poomsae: '태극 8장',         kick: '뛰어뒤차기' },
-  '보라띠':   { poomsae: '태극 1~4장 복합',  kick: '돌개차기' },
-  '보라검띠': { poomsae: '태극 1~6장 복합',  kick: '뛰어돌개차기' },
-  '밤띠':     { poomsae: '태극 1~7장 복합',  kick: '뒤후려차기' },
-  '밤검띠':   { poomsae: '태극 1~8장 복합',  kick: '앞후려차기' },
+  '노검띠':   { poomsae: '태극 1장',         kick: '앞차기' },
+  '주황띠':   { poomsae: '태극 2장',         kick: '돌려차기' },
+  '주황검띠': { poomsae: '태극 2장',         kick: '돌려차기' },
+  '초록띠':   { poomsae: '태극 3장',         kick: '내려차기' },
+  '초록검띠': { poomsae: '태극 3장',         kick: '내려차기' },
+  '파란띠':   { poomsae: '태극 4장',         kick: '옆차기' },
+  '파란검띠': { poomsae: '태극 4장',         kick: '옆차기' },
+  '보라띠':   { poomsae: '태극 5장',         kick: '옆차기(발날)' },
+  '보라검띠': { poomsae: '태극 5장',         kick: '옆차기(발날)' },
+  '밤띠':     { poomsae: '태극 6장',         kick: '옆후려차기' },
+  '밤검띠':   { poomsae: '태극 6장',         kick: '옆후려차기' },
   '빨간띠':   { poomsae: '태극 1~8장 종합',  kick: '약속겨루기' },
   '1품단':    { poomsae: '고려',             kick: '뒤차기' },
   '2품단':    { poomsae: '금강',             kick: '뛰어뒤차기' },
@@ -823,8 +840,26 @@ const EXAM_ITEMS = {
   ],
 };
 
+function getActiveExamItems(group) {
+  if (group === 'junior' || group === 'dan') return EXAM_ITEMS[group];
+  const s = academyExamSettings.examItems || {};
+  const items = [
+    { key: 'poomsae1', label: '품새 정확도', desc: '동작의 정확성, 방향, 순서' },
+    { key: 'poomsae2', label: '품새 완성도', desc: '힘, 균형, 속도, 전체적 완성도' },
+    { key: 'kick1',    label: '기본발차기',  desc: null },
+  ];
+  if (group === 'intermediate' && s.kick2 !== false) {
+    items.push({ key: 'kick2', label: '겨루기', desc: '공격의 다양성, 공방능력' });
+  }
+  if (s.demo1) items.push({ key: 'demo1', label: '시범발차기', desc: null });
+  if (s.demo2) items.push({ key: 'demo2', label: '익스트림',   desc: null });
+  items.push({ key: 'manner1', label: '인성태도', desc: '수련 태도, 예절, 집중력, 등' });
+  if (s.manner2 !== false) items.push({ key: 'manner2', label: '인성교재', desc: '인성교육워크북' });
+  return items;
+}
+
 function getExamGroup(belt, age) {
-  if (age && Number(age) <= 7) return 'junior';
+  if (age && Number(age) <= 6) return 'junior';
   if (['1품단','2품단','3품단','4품단'].includes(belt)) return 'dan';
   if (['초록띠','초록검띠','파란띠','파란검띠','보라띠','보라검띠','밤띠','밤검띠','빨간띠'].includes(belt)) return 'intermediate';
   return 'beginner';
@@ -1087,14 +1122,16 @@ document.getElementById('tab-students').classList.add('active');
 
 // ── 심사 설정 저장/로드 ───────────────────────────────────────────────
 window.saveExamSettings = async function() {
-  document.getElementById('chkPoomsae').checked = true;
   const settings = {
     gradeStep: parseInt(document.getElementById('gradeStepSelect').value),
     examItems: {
-      poomsae:   true,
-      kick:      document.getElementById('chkKick').checked,
-      extreme:   document.getElementById('chkExtreme').checked,
-      character: document.getElementById('chkCharacter').checked,
+      poomsae: true,
+      kick:    true,
+      kick2:   document.getElementById('chkKick2').checked,
+      demo1:   document.getElementById('chkDemo1').checked,
+      demo2:   document.getElementById('chkDemo2').checked,
+      manner1: true,
+      manner2: document.getElementById('chkManner2').checked,
     },
   };
   await set(ref(db, `academies/${academyId}/settings/exam`), settings);
@@ -1110,11 +1147,11 @@ async function loadExamSettings() {
   const step = s.gradeStep || 2;
   const sel = document.getElementById('gradeStepSelect');
   if (sel) sel.value = String(step);
-  const items = s.examItems || { poomsae:true, kick:true, extreme:false, character:false };
-  document.getElementById('chkPoomsae').checked  = true;
-  document.getElementById('chkKick').checked     = items.kick !== false;
-  document.getElementById('chkExtreme').checked  = !!items.extreme;
-  document.getElementById('chkCharacter').checked = !!items.character;
+  const items = s.examItems || {};
+  document.getElementById('chkKick2').checked   = items.kick2 !== false;
+  document.getElementById('chkDemo1').checked   = !!items.demo1;
+  document.getElementById('chkDemo2').checked   = !!items.demo2;
+  document.getElementById('chkManner2').checked = items.manner2 !== false;
 }
 
 // ── 급수표 탭 ─────────────────────────────────────────────────────────
@@ -1173,7 +1210,7 @@ const BELT_HEADER_STYLE = {
           <div class="grade-row-content">${k}</div>
         </div>
         <div class="grade-card-row">
-          <div class="grade-row-label">🔥 익스트림</div>
+          <div class="grade-row-label">🔥 시범/익스트림</div>
           <div class="grade-row-content">${ex}</div>
         </div>
         <div class="grade-card-row">
@@ -1447,6 +1484,7 @@ function isStudentPendingInSession(studentId) {
 window.renderStep2List = () => {
   if (!currentSession) return;
   const sort   = document.getElementById('step2SortSelect')?.value || 'belt';
+  const search = (document.getElementById('step2SearchInput')?.value || '').trim().toLowerCase();
   const allIds = currentSession.studentIds || [];
   const sortedStudents = [...allIds].sort((a, b) => {
     const aDone = isStudentDoneInSession(a) ? 1 : 0;
@@ -1462,26 +1500,29 @@ window.renderStep2List = () => {
   sortList(pending, sort);
   sortList(done, sort);
 
+  const dispPending = search ? pending.filter(s => (s.name || '').toLowerCase().includes(search)) : pending;
+  const dispDone    = search ? done.filter(s => (s.name || '').toLowerCase().includes(search)) : done;
+
   let html = `
     <div class="student-check-list" style="margin-bottom:12px">
       <div class="check-all-row">
         <input type="checkbox" id="chkAllStep2" onchange="toggleCheckAllStep2(this)">
-        <label for="chkAllStep2">전체 선택 (${pending.length}명)</label>
+        <label for="chkAllStep2">전체 선택 (${dispPending.length}명)</label>
       </div>
-      ${pending.map(s => `
+      ${dispPending.map(s => `
         <div class="check-item">
           <input type="checkbox" class="step2-chk" id="step2chk-${s.id}" value="${s.id}">
           <label for="step2chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}${isStudentPendingInSession(s.id) ? ' <span class="pass-badge pending">진행중</span>' : ''}</label>
         </div>
       `).join('')}
-      ${!pending.length ? '<div class="empty-msg" style="padding:20px">모든 수련생 심사 완료</div>' : ''}
+      ${!dispPending.length ? '<div class="empty-msg" style="padding:20px">모든 수련생 심사 완료</div>' : ''}
     </div>
   `;
-  if (done.length) {
+  if (dispDone.length) {
     html += `
-      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;padding-left:2px">완료 (${done.length}명)</div>
+      <div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;padding-left:2px">완료 (${dispDone.length}명)</div>
       <div class="student-check-list">
-        ${done.map(s => `
+        ${dispDone.map(s => `
           <div class="check-item" style="background:#f0f0f0;opacity:0.65;pointer-events:none">
             <span style="font-size:14px">✅</span>
             <span style="flex:1;font-size:14px;display:flex;align-items:center;gap:6px">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</span>
@@ -1524,6 +1565,12 @@ window.registerSession = async () => {
   const sessionKey  = push(ref(db, `academies/${academyId}/exam/sessions`)).key;
   await set(ref(db, `academies/${academyId}/exam/sessions/${sessionKey}`), sessionData);
 
+  const studentSnapshot = {};
+  Object.entries(students).forEach(([id, s]) => { studentSnapshot[id] = { ...s }; });
+  await set(ref(db, `academies/${academyId}/exam/backups/${sessionKey}`), {
+    sessionKey, date, round, studentSnapshot, createdAt: Date.now(),
+  });
+
   currentSession = { key: sessionKey, ...sessionData };
   showStep2();
   showToast('✅ 회차 등록 완료');
@@ -1543,7 +1590,7 @@ window.startSubExam = () => {
       belt:    s.belt  || '흰띠',
       grade:   s.grade || '',
       age:     s.age   || 0,
-      scores:  Object.fromEntries((EXAM_ITEMS[group] || EXAM_ITEMS.beginner).map(item => [item.key, 0])),
+      scores:  Object.fromEntries(getActiveExamItems(group).map(item => [item.key, 0])),
       passed:  null,
       comment: '',
       done:    false,
@@ -1613,7 +1660,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
   const masterItemMap = new Map();
   chunkStudents.forEach(ss => {
     const group = getExamGroup(ss.belt, ss.age);
-    (EXAM_ITEMS[group] || EXAM_ITEMS.beginner).forEach(item => {
+    getActiveExamItems(group).forEach(item => {
       if (!masterItemMap.has(item.key)) masterItemMap.set(item.key, item.label);
     });
   });
@@ -1634,7 +1681,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
   const studentCols = chunkStudents.map((ss, ci) => {
     const idx    = chunkIndices[ci];
     const group  = getExamGroup(ss.belt, ss.age);
-    const ssKeys = new Set((EXAM_ITEMS[group] || EXAM_ITEMS.beginner).map(i => i.key));
+    const ssKeys = new Set(getActiveExamItems(group).map(i => i.key));
 
     const scoreCells = masterItems.map(r => {
       if (!ssKeys.has(r.key)) {
@@ -1765,16 +1812,14 @@ window.saveExamRow = async (idx) => {
   moveRowToDone(idx);
   showToast('✅ 저장 완료!');
 
-  // 합격이면 승급 팝업 먼저 표시
   if (ss.passed === true) {
     const next = calcNext(ss);
     if (next) {
       pendingPromotion = { ss, stId: ss.id, nextBelt: next.nextBelt, nextGrade: next.nextGrade };
       showPromotionModal(pendingPromotion);
+      return;
     }
   }
-
-  // 저장 후 목록으로 이동 (승급 팝업이 열려 있으면 팝업 위로 목록이 보임)
   backToStep2List();
 };
 
@@ -1863,6 +1908,7 @@ window.bulkPassGroup = async (belt) => {
   await bulkPassStudents(indices);
   const remaining = currentExamSession.students.filter(ss => !ss.done).length;
   showToast(remaining === 0 ? '🎉 이번 심사 완료!' : `✅ ${belt} 전체 합격 처리 완료`);
+  backToStep2List();
 };
 
 window.bulkPassAll = async () => {
@@ -1889,10 +1935,12 @@ function updateStatusFilter() {
 }
 
 window.renderStatusTable = () => {
-  const filter = document.getElementById('statusFilter').value;
-  const sort   = document.getElementById('statusSort').value;
+  const filter     = document.getElementById('statusFilter').value;
+  const sort       = document.getElementById('statusSort').value;
+  const nameSearch = (document.getElementById('statusSearchInput')?.value || '').trim().toLowerCase();
   let entries = Object.entries(evaluations);
-  if (filter) entries = entries.filter(([, e]) => e.round === filter);
+  if (filter)     entries = entries.filter(([, e]) => e.round === filter);
+  if (nameSearch) entries = entries.filter(([, e]) => (students[e.studentId]?.name || '').toLowerCase().includes(nameSearch));
   if (sort === 'belt-high')    entries.sort(([, a], [, b]) => beltOrder(b.belt) - beltOrder(a.belt) || (gradeNum(a.grade)||999) - (gradeNum(b.grade)||999));
   else if (sort === 'belt-low') entries.sort(([, a], [, b]) => beltOrder(a.belt) - beltOrder(b.belt) || gradeNum(b.grade) - gradeNum(a.grade));
   else if (sort === 'name')    entries.sort(([, a], [, b]) => (students[a.studentId]?.name||'').localeCompare(students[b.studentId]?.name||''));
@@ -1952,8 +2000,10 @@ window.renderStatusTable = () => {
 
 window.toggleDeleteRoundBtn = () => {
   const round = document.getElementById('statusFilter').value;
-  const btn = document.getElementById('deleteRoundBtn');
-  if (btn) btn.style.display = round ? 'block' : 'none';
+  const btn  = document.getElementById('deleteRoundBtn');
+  const rbtn = document.getElementById('rollbackRoundBtn');
+  if (btn)  btn.style.display  = round ? 'block' : 'none';
+  if (rbtn) rbtn.style.display = round ? 'block' : 'none';
 };
 
 window.deleteRound = async () => {
@@ -1966,6 +2016,45 @@ window.deleteRound = async () => {
   }
   showToast('✅ 회차 기록이 삭제되었습니다');
 };
+
+async function rollbackRound() {
+  const roundStr = document.getElementById('statusFilter').value;
+  if (!roundStr) return;
+  const evalEntry = Object.values(evaluations).find(e => e.round === roundStr);
+  const dateStr   = evalEntry?.date || '';
+  if (!confirm(`⚠️ [${roundStr}] 심사 이전 상태로 롤백합니다. 해당 회차의 평가 기록과 승급 데이터가 모두 초기화됩니다. 계속하시겠습니까?`)) return;
+
+  const backupsSnap = await get(ref(db, `academies/${academyId}/exam/backups`));
+  if (!backupsSnap.exists()) {
+    alert('백업 데이터가 없습니다. 수동으로 수정해주세요.');
+    return;
+  }
+  const backups = backupsSnap.val();
+  const backup  = Object.values(backups).find(b => b.round === roundStr && (!dateStr || b.date === dateStr));
+  if (!backup) {
+    alert('백업 데이터가 없습니다. 수동으로 수정해주세요.');
+    return;
+  }
+
+  await set(ref(db, `academies/${academyId}/exam/students`), backup.studentSnapshot);
+
+  const toDelete = Object.entries(evaluations).filter(([, e]) => e.round === roundStr && e.date === dateStr);
+  for (const [evalId] of toDelete) {
+    await remove(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`));
+  }
+
+  const sessSnap = await get(ref(db, `academies/${academyId}/exam/sessions`));
+  if (sessSnap.exists()) {
+    for (const [key, s] of Object.entries(sessSnap.val())) {
+      if (s.round === roundStr && s.date === dateStr) {
+        await remove(ref(db, `academies/${academyId}/exam/sessions/${key}`));
+      }
+    }
+  }
+
+  showToast('✅ 롤백 완료! 심사 이전 상태로 복원되었습니다');
+}
+window.rollbackRound = rollbackRound;
 
 // ── 현황 탭 관리 기능 ─────────────────────────────────────────────────
 window.viewEvalRecord = (evalId) => {
@@ -2011,7 +2100,7 @@ window.editEvalRecord = (evalId) => {
   editingEvalId = evalId;
   const st    = students[e.studentId];
   const group = getExamGroup(e.belt, st?.age);
-  const items = EXAM_ITEMS[group] || EXAM_ITEMS.beginner;
+  const items = getActiveExamItems(group);
   _editScores = {};
   items.forEach(item => {
     const existing = e.scores?.[item.key];
@@ -2176,7 +2265,7 @@ window.imageCard = async (evalId) => {
 
   if (isNewFormat) {
     const cardGroup = getExamGroup(belt, st?.age);
-    const cardItems = EXAM_ITEMS[cardGroup] || EXAM_ITEMS.beginner;
+    const cardItems = getActiveExamItems(cardGroup);
     cardItems.filter(i => i.key.startsWith('poomsae')).forEach(item => {
       poomsaeRows += scoreRow(item.label, Number(sc[item.key]||0));
     });
