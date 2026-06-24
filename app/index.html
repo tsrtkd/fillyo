@@ -1009,11 +1009,14 @@ function loadCurrentDay() {
   updateTotals();
   isDirty = false;
   userInteracting = true;
-  // 자동저장 이벤트 리스너 등록
+  // 자동저장 이벤트 리스너 등록 (날짜 전환 시 중복 방지)
   const autoSaveFields = ['taEvent','taMtg','taEdu','taCons','mgrIn','mgrRe','mgrOut'];
   autoSaveFields.forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.addEventListener('input', () => { if (userInteracting) triggerAutoSave(); });
+    if (!el) return;
+    if (el._autoSaveHandler) el.removeEventListener('input', el._autoSaveHandler);
+    el._autoSaveHandler = () => { if (userInteracting) triggerAutoSave(); };
+    el.addEventListener('input', el._autoSaveHandler);
   });
 }
 
@@ -1079,6 +1082,7 @@ window.saveDay = async (isAuto = false) => {
     edu:   document.getElementById('taEdu').value,
     cons:  document.getElementById('taCons').value,
     mgrIn: mgrInVal, mgrRe: mgrReVal, mgrOut: mgrOutVal,
+    vehicleNote: (allData[key] || {}).vehicleNote || '',
     savedBy: MY_ID, savedAt: new Date().toISOString(),
   };
   allData[key] = data;
@@ -1409,7 +1413,8 @@ function renderMonthlyLists() {
         <span style="font-size:13px;font-weight:700;color:var(--navy);">${name}</span>
         <div style="display:flex;gap:4px;align-items:center;">
           <input type="text" value="${reason}" placeholder="사유 입력" id="reason_${safeKey}" data-key="${key2}"
-            style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;color:var(--text);">
+            style="flex:1;border:1px solid var(--border);border-radius:6px;padding:5px 7px;font-size:12px;font-family:inherit;color:var(--text);"
+            onblur="saveOutReason(this)">
           <button onclick="saveOutReason(this.previousElementSibling)" style="background:var(--blue);color:white;border:none;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">저장</button>
         </div></div>`;
     }));
