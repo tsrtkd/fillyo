@@ -1409,11 +1409,11 @@ window.openExcelModal = () => {
 
 window.downloadExcelTemplate = () => {
   if (typeof XLSX === 'undefined') { showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요'); return; }
-  const headers  = ['이름', '띠', '급수', '나이', '학교', '메모'];
-  const example1 = ['홍길동', '초록띠', 8, 10, '○○초등학교', ''];
-  const example2 = ['김태권', '파란띠', 6, 12, '○○중학교', ''];
+  const headers  = ['이름', '현재띠', '급수', '나이', '학교/학년', '부모님연락처', '등록일', '1품취득일', '2품취득일', '3품취득일', '4품취득일', '메모'];
+  const example1 = ['홍길동', '초록띠', 8, 10, '○○초등학교', '', '', '', '', '', '', ''];
+  const example2 = ['김태권', '파란띠', 6, 12, '○○중학교',   '', '', '', '', '', '', ''];
   const ws = XLSX.utils.aoa_to_sheet([headers, example1, example2]);
-  ws['!cols'] = [{wch:10},{wch:12},{wch:8},{wch:8},{wch:16},{wch:16}];
+  ws['!cols'] = [{wch:10},{wch:12},{wch:8},{wch:8},{wch:16},{wch:16},{wch:12},{wch:12},{wch:12},{wch:12},{wch:12},{wch:16}];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '수련생');
   XLSX.writeFile(wb, '수련생_등록_양식.xlsx');
