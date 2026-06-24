@@ -318,7 +318,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <option value="age">나이순</option>
       </select>
     </div>
-    <div style="padding:0 16px 8px;display:flex;justify-content:flex-end">
+    <div style="padding:0 16px 8px;display:flex;justify-content:flex-end;gap:8px">
+      <button style="background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit" onclick="downloadStudentExcel()">📤 엑셀 다운로드</button>
       <button style="background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;font-family:inherit" onclick="openExcelModal()">📥 엑셀 등록</button>
     </div>
     <div id="studentList"></div>
@@ -1418,6 +1419,28 @@ window.downloadExcelTemplate = () => {
   XLSX.writeFile(wb, '수련생_등록_양식.xlsx');
 };
 
+window.downloadStudentExcel = () => {
+  if (typeof XLSX === 'undefined') { showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요'); return; }
+  const rows = Object.values(students).map(s => ({
+    '이름':         s.name        || '',
+    '나이':         s.age         || '',
+    '현재띠':       s.belt        || '흰띠',
+    '급수':         s.grade       || '',
+    '학교/학년':    s.school      || '',
+    '부모님연락처': s.parentPhone || '',
+    '등록일':       s.joinDate    || '',
+    '1품취득일':    s.certDate1   || '',
+    '2품취득일':    s.certDate2   || '',
+    '3품취득일':    s.certDate3   || '',
+    '4품취득일':    s.certDate4   || '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '수련생');
+  XLSX.writeFile(wb, '수련생목록_' + todayStr() + '.xlsx');
+  showToast('✅ 엑셀 다운로드 완료');
+};
+
 window.importExcelStudents = async () => {
   if (typeof XLSX === 'undefined') { showToast('⚠️ 라이브러리 로딩 중, 잠시 후 다시 시도해주세요'); return; }
   const file = document.getElementById('excelFileInput').files[0];
@@ -1428,31 +1451,46 @@ window.importExcelStudents = async () => {
     try {
       const wb   = XLSX.read(ev.target.result, { type: 'array' });
       const ws   = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
       let added = 0, skipped = 0;
-      for (let i = 1; i < rows.length; i++) {
-        const [rName, rBelt, rGrade, rAge, rSchool, rMemo] = rows[i];
-        const nameStr = String(rName||'').trim();
-        const beltStr = String(rBelt||'').trim();
+      for (const row of rows) {
+        const nameStr = String(row['이름'] || '').trim();
+        const beltStr = String(row['현재띠'] || row['띠'] || '').trim();
         if (!nameStr || !beltStr || !validBelts.has(beltStr)) { skipped++; continue; }
-        const isDuplicate = Object.values(students).some(
-          s => String(s.name||'').trim() === nameStr && String(s.belt||'').trim() === beltStr
-        );
-        if (isDuplicate) { skipped++; continue; }
-        const newKey = push(ref(db, `academies/${academyId}/exam/students`)).key;
-        await set(ref(db, `academies/${academyId}/exam/students/${newKey}`), {
-          name:      nameStr,
-          belt:      beltStr,
-          grade:     (() => { const s = String(rGrade??'').trim(); if (!s) return 0; const n = Number(s); if (!isNaN(n)) return n; const m = s.match(/\d+/); return m ? Number(m[0]) : s; })(),
-          age:       Number(rAge)||0,
-          school:    String(rSchool||'').trim(),
-          memo:      String(rMemo||'').trim(),
-          createdAt: Date.now(),
+        const gradeStr = String(row['급수'] ?? '').trim();
+        const studentData = {
+          name:        nameStr,
+          belt:        beltStr,
+          grade:       (() => { if (!gradeStr) return 0; const n = Number(gradeStr); if (!isNaN(n)) return n; const m = gradeStr.match(/\d+/); return m ? Number(m[0]) : gradeStr; })(),
+          age:         Number(row['나이']) || 0,
+          school:      String(row['학교/학년'] || row['학교'] || '').trim(),
+          parentPhone: String(row['부모님연락처'] || '').trim(),
+          joinDate:    String(row['등록일'] || '').trim(),
+          certDate1:   String(row['1품취득일'] || '').trim(),
+          certDate2:   String(row['2품취득일'] || '').trim(),
+          certDate3:   String(row['3품취득일'] || '').trim(),
+          certDate4:   String(row['4품취득일'] || '').trim(),
+          memo:        String(row['메모'] || '').trim(),
+        };
+        // 이름으로 기존 학생 매칭
+        const existingKey = Object.keys(students).find(k => students[k].name === studentData.name);
+        const existingStudent = existingKey ? students[existingKey] : null;
+        // 취득일 비어있으면 기존 값 유지
+        ['certDate1','certDate2','certDate3','certDate4'].forEach(key => {
+          if (!studentData[key] && existingStudent?.[key]) {
+            studentData[key] = existingStudent[key];
+          }
         });
+        // 기존 학생이면 update, 신규면 push
+        if (existingKey) {
+          await update(ref(db, `academies/${academyId}/exam/students/${existingKey}`), studentData);
+        } else {
+          await set(push(ref(db, `academies/${academyId}/exam/students`)), studentData);
+        }
         added++;
       }
       closeModal('modalExcel');
-      showToast(`✅ ${added}명 등록 완료, ${skipped}명 건너뜀`);
+      showToast(`✅ ${added}명 처리 완료, ${skipped}명 건너뜀`);
     } catch (err) {
       console.error(err);
       showToast('⚠️ 파일 처리 중 오류가 발생했습니다');
