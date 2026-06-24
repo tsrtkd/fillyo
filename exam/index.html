@@ -2117,17 +2117,25 @@ window.editEvalRecord = (evalId) => {
   editingEvalId = evalId;
   const st    = students[e.studentId];
   const group = getExamGroup(e.belt, st?.age);
-  const items = getActiveExamItems(group);
+  const items = (typeof getActiveExamItems === 'function')
+    ? getActiveExamItems(group)
+    : (EXAM_ITEMS[group] || EXAM_ITEMS.beginner);
   _editScores = {};
+  if (e.scores && typeof e.scores === 'object') {
+    Object.entries(e.scores).forEach(([k, v]) => {
+      if (typeof v === 'number') _editScores[k] = v;
+    });
+  }
   items.forEach(item => {
-    const existing = e.scores?.[item.key];
-    _editScores[item.key] = (typeof existing === 'number') ? existing : 0;
+    if (!(_editScores[item.key] >= 1)) {
+      _editScores[item.key] = 0;
+    }
   });
   _editPassed = e.passed;
   document.getElementById('evalEditContent').innerHTML = `
     <div style="margin-bottom:14px">
       ${items.map(r => {
-        const val = _editScores[r.key] || 0;
+        const val = typeof _editScores[r.key] === 'number' ? _editScores[r.key] : 0;
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:12px;color:var(--text2);width:100px;flex-shrink:0">${r.label}</span>
           <div style="display:flex;gap:3px">
