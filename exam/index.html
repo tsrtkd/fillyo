@@ -739,7 +739,7 @@ function calcNext(ss) {
     const promoMap = getPromoMap(st.age, belt);
     const nextBelt = promoMap[belt];
     if (!nextBelt) return null;
-    if (isDan(nextBelt)) return { nextBelt, nextGrade: getDanGradesStepped(nextBelt, gradeStep)[0] };
+    if (isDan(nextBelt)) return null;  // 빨간띠→1품단 자동 승급 없음 (수동 처리)
     return { nextBelt, nextGrade: '' };
   }
 }
