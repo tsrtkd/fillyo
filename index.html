@@ -303,9 +303,9 @@ footer a:hover{color:rgba(255,255,255,.8)}
 
 /* ── PRICING ── */
 .pricing-sec{background:var(--bg4)}
-.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:48px;align-items:start}
-.pricing-addon-stack{display:flex;flex-direction:column;gap:16px}
-.pricing-card-addon{background:#fff;border:1.5px solid #e2e8f0;border-radius:20px;padding:24px 28px;transition:border-color .2s,transform .2s,box-shadow .2s}
+.pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:48px;align-items:stretch}
+.pricing-addon-stack{display:flex;flex-direction:column;gap:16px;height:100%}
+.pricing-card-addon{background:#fff;border:1.5px solid #e2e8f0;border-radius:20px;padding:24px 28px;transition:border-color .2s,transform .2s,box-shadow .2s;display:flex;flex-direction:column;flex:1}
 .pricing-card-addon:hover{border-color:rgba(11,123,107,.4);transform:translateY(-3px);box-shadow:0 12px 30px rgba(0,0,0,.08)}
 .pricing-card-addon .plan-name{font-size:17px;font-weight:700;color:var(--t2);margin-bottom:4px}
 .pricing-card-addon .plan-desc{font-size:12px;color:var(--muted);margin-bottom:12px}
@@ -560,37 +560,6 @@ footer a:hover{color:rgba(255,255,255,.8)}
         </div>
       </div>
 
-      <!-- AI 성장리포트 -->
-      <div class="svc-card live reveal">
-        <div class="svc-thumb"><img src="/images/thumb_report.png" alt="AI 성장리포트 화면"></div>
-        <div class="svc-header">
-          <div class="svc-icon">📊</div>
-          <span class="badge-live">LIVE</span>
-        </div>
-        <div class="svc-name">AI 성장리포트</div>
-        <div class="svc-desc">업무일지·승급심사·줄넘기 데이터가 자동 연동. AI가 학생 한 명 한 명의 성장 스토리를 담은 학부모용 리포트를 생성합니다. 카카오톡으로 바로 공유 가능.</div>
-        <ul class="svc-features">
-          <li>업무일지 데이터 자동 연동</li>
-          <li>출석·심사·줄넘기 데이터 자동 연동</li>
-          <li>AI 개인별 성장 리포트 자동 생성</li>
-          <li>학부모 카카오 발송용 문구 제공</li>
-          <li>이미지 저장 및 공유 기능</li>
-          <li>성격 태그 기반 맞춤 표현</li>
-          <li>이전 리포트 4개까지 저장</li>
-          <li>키·몸무게 성장 기록 관리</li>
-        </ul>
-        <img src="/images/report_sample.png" alt="AI 성장리포트 예시" style="width:100%;max-width:100%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.10);margin-top:12px;display:block;">
-        <div class="svc-footer">
-          <div>
-            <div class="price-display">
-              <span class="price-now">+ ₩4,900</span><span class="price-unit">/월 추가</span>
-            </div>
-            <div class="price-note" style="margin-top:4px">업무일지 구독 시 추가 가능</div>
-          </div>
-          <a href="/report/" class="svc-btn">지금 시작하기 →</a>
-        </div>
-      </div>
-
       <!-- 학부모 AI 안내데스크 -->
       <div class="svc-card reveal">
         <div class="svc-header">
@@ -641,6 +610,37 @@ footer a:hover{color:rgba(255,255,255,.8)}
             <div class="price-note">구독 고객 전원 무료 제공</div>
           </div>
           <a href="/login/" class="svc-btn">바로 확인하기 →</a>
+        </div>
+      </div>
+
+      <!-- AI 성장리포트 (전체 너비) -->
+      <div class="svc-card live reveal" style="grid-column:1/-1">
+        <div class="svc-thumb"><img src="/images/thumb_report.png" alt="AI 성장리포트 화면"></div>
+        <div class="svc-header">
+          <div class="svc-icon">📊</div>
+          <span class="badge-live">LIVE</span>
+        </div>
+        <div class="svc-name">AI 성장리포트</div>
+        <div class="svc-desc">업무일지·승급심사·줄넘기 데이터가 자동 연동. AI가 학생 한 명 한 명의 성장 스토리를 담은 학부모용 리포트를 생성합니다. 카카오톡으로 바로 공유 가능.</div>
+        <ul class="svc-features">
+          <li>업무일지 데이터 자동 연동</li>
+          <li>출석·심사·줄넘기 데이터 자동 연동</li>
+          <li>AI 개인별 성장 리포트 자동 생성</li>
+          <li>학부모 카카오 발송용 문구 제공</li>
+          <li>이미지 저장 및 공유 기능</li>
+          <li>성격 태그 기반 맞춤 표현</li>
+          <li>이전 리포트 4개까지 저장</li>
+          <li>키·몸무게 성장 기록 관리</li>
+        </ul>
+        <img src="/images/report_sample.png" alt="AI 성장리포트 예시" style="width:100%;max-width:100%;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,0.10);margin-top:12px;display:block;">
+        <div class="svc-footer">
+          <div>
+            <div class="price-display">
+              <span class="price-now">+ ₩4,900</span><span class="price-unit">/월 추가</span>
+            </div>
+            <div class="price-note" style="margin-top:4px">업무일지 구독 시 추가 가능</div>
+          </div>
+          <a href="/report/" class="svc-btn">지금 시작하기 →</a>
         </div>
       </div>
 
@@ -736,10 +736,10 @@ footer a:hover{color:rgba(255,255,255,.8)}
 <!-- WHY FILLYO -->
 <section class="sec why-sec" id="why">
   <div class="sec-inner">
-    <div class="reveal">
-      <p class="sec-eyebrow">Why fillyo</p>
+    <div class="reveal" style="text-align:center">
+      <p class="sec-eyebrow" style="justify-content:center">Why fillyo</p>
       <h2 class="sec-title">현장에서 만들었습니다</h2>
-      <p class="sec-body">현직 태권도 관장이 직접 겪은 불편함을 해결하기 위해 만든 도구입니다.</p>
+      <p class="sec-body" style="margin:0 auto">현직 태권도 관장이 직접 겪은 불편함을 해결하기 위해 만든 도구입니다.</p>
     </div>
     <div class="why-grid">
       <div class="why-card reveal">
