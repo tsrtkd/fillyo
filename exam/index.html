@@ -730,11 +730,12 @@ function calcNext(ss) {
     const grades   = getDanGradesStepped(belt, gradeStep);
     const curGrade = ss.grade || st.grade || grades[0];
     const idx      = grades.indexOf(curGrade);
-    const atTop    = idx === -1 || idx >= grades.length - 1;
-    if (atTop) {
-      return null;
-    }
-    return { nextBelt: belt, nextGrade: grades[idx + 1] };
+    if (idx === -1) return null;
+    const nextGrade = grades[idx + 1];
+    if (!nextGrade) return null;
+    // N단(예: 1단, 2단)은 자동 승급 없음
+    if (/^\d+단$/.test(nextGrade)) return null;
+    return { nextBelt: belt, nextGrade: nextGrade };
   } else {
     const promoMap = getPromoMap(st.age, belt);
     const nextBelt = promoMap[belt];
