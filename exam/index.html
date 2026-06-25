@@ -717,7 +717,6 @@ function getDanGradesStepped(belt, step) {
   const min = step === 1 ? 1 : 2;
   const arr = [];
   for (let g = max; g >= min; g -= step) arr.push(g + '급');
-  arr.push(d + '단');
   return arr;
 }
 
