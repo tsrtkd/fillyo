@@ -732,10 +732,7 @@ function calcNext(ss) {
     const idx      = grades.indexOf(curGrade);
     const atTop    = idx === -1 || idx >= grades.length - 1;
     if (atTop) {
-      const nextDanIdx = DAN_BELTS.indexOf(belt) + 1;
-      if (nextDanIdx >= DAN_BELTS.length) return null;
-      const nextBelt = DAN_BELTS[nextDanIdx];
-      return { nextBelt, nextGrade: getDanGradesStepped(nextBelt, gradeStep)[0] };
+      return null;
     }
     return { nextBelt: belt, nextGrade: grades[idx + 1] };
   } else {
