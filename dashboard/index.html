@@ -779,11 +779,11 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 클릭 이벤트 ───────────────────────────────────────────────────
 document.getElementById('cardApp').addEventListener('click', () => {
-  window.open('https://fillyo.kr/#services', '_blank');
+  location.href = '/app/';
 });
 
 document.getElementById('cardJumprope').addEventListener('click', () => {
-  window.open('https://fillyo.kr/#services', '_blank');
+  location.href = '/jumprope/';
 });
 
 document.getElementById('cardExam').addEventListener('click', () => {
@@ -791,11 +791,11 @@ document.getElementById('cardExam').addEventListener('click', () => {
 });
 
 document.getElementById('cardReport').addEventListener('click', () => {
-  window.open('https://fillyo.kr/#services', '_blank');
+  location.href = '/report/';
 });
 
 document.getElementById('cardAIDesk').addEventListener('click', () => {
-  window.open('https://fillyo.kr/#services', '_blank');
+  showToast('🚧 AI 안내데스크는 준비 중입니다');
 });
 
 document.getElementById('quickMypage').addEventListener('click', () => {
