@@ -158,6 +158,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">업무일지</div>
           <div class="price-row">
+            <span class="price-regular" id="regularPriceRegular" style="display:none">₩237,600/년</span>
             <span class="price-now" id="regularPriceNow">₩19,800</span>
             <span class="price-unit" id="regularPriceUnit">/월</span>
           </div>
@@ -292,7 +293,12 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 });
 
 // ── 메인 플랜 선택 ──
-const PLAN_PRICES = { early: 9900, regular: 19800 };
+const PLAN_PRICES = {
+  early_monthly:   9900,
+  early_yearly:    118800,
+  regular_monthly: 19800,
+  regular_yearly:  198000,
+};
 let selectedPlan  = 'early';
 
 window.selectPlan = function(plan) {
@@ -318,14 +324,21 @@ window.setBilling = function(cycle) {
 function updateCardPrices() {
   const y = billingCycle === 'yearly';
   // 얼리버드 카드
-  document.getElementById('earlyPriceRegular').textContent = y ? '₩237,600/년' : '₩19,800/월';
-  document.getElementById('earlyPriceNow').textContent     = y ? '₩99,000'     : '₩9,900';
-  document.getElementById('earlyPriceUnit').textContent    = y ? '/년'          : '/월';
-  document.getElementById('earlyPriceNote').textContent    = y ? '8/31까지 가입 · 월 ₩8,250 · 연 ₩138,600 절약' : '8/31까지 가입 시 1년간 고정';
+  const earlyReg = document.getElementById('earlyPriceRegular');
+  earlyReg.textContent  = '₩19,800/월';
+  earlyReg.style.display = y ? 'none' : '';
+  document.getElementById('earlyPriceNow').textContent  = y ? '₩118,800' : '₩9,900';
+  document.getElementById('earlyPriceUnit').textContent = y ? '/년'       : '/월';
+  document.getElementById('earlyPriceNote').textContent = y
+    ? '₩118,800/년 · 얼리버드 1년 약정'
+    : '₩9,900/월 · 1년 약정 필수 · 8/31까지';
   // 정상가 카드
-  document.getElementById('regularPriceNow').textContent   = y ? '₩198,000'    : '₩19,800';
-  document.getElementById('regularPriceUnit').textContent  = y ? '/년'          : '/월';
-  document.getElementById('regularPriceNote').textContent  = y ? '가입 즉시 정상가 적용 · 월 ₩16,500' : '가입 즉시 정상가 적용';
+  const regReg = document.getElementById('regularPriceRegular');
+  regReg.textContent    = '₩237,600/년';
+  regReg.style.display  = y ? '' : 'none';
+  document.getElementById('regularPriceNow').textContent  = y ? '₩198,000' : '₩19,800';
+  document.getElementById('regularPriceUnit').textContent = y ? '/년'       : '/월';
+  document.getElementById('regularPriceNote').textContent = y ? '2개월 무료' : '가입 즉시 정상가 적용';
   // 애드온 카드
   ['Exam','Jump','Report'].forEach(k => {
     document.getElementById('price' + k).textContent = y ? '₩49,000' : '₩4,900';
@@ -357,16 +370,18 @@ const PRICES = { main: 9900, exam: 4900, jumprope: 4900, report: 4900 };
 const NAMES  = { main: '업무일지', exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
 
 function renderTotal() {
-  const y          = billingCycle === 'yearly';
-  const mul        = y ? 10 : 1;
-  const unit       = y ? '/년' : '/월';
-  const mainPrice  = PLAN_PRICES[selectedPlan] * mul;
-  const mainName   = selectedPlan === 'early' ? `업무일지 (얼리버드${y ? ', 연결제' : ''})` : `업무일지${y ? ' (연결제)' : ''}`;
-  const items      = [{ name: mainName, price: mainPrice }];
-  let total        = mainPrice;
+  const y         = billingCycle === 'yearly';
+  const unit      = y ? '/년' : '/월';
+  const addonMul  = y ? 10 : 1;
+  const mainPrice = PLAN_PRICES[selectedPlan + '_' + billingCycle];
+  const mainName  = selectedPlan === 'early'
+    ? (y ? '업무일지 (얼리버드, 연결제)' : '업무일지 (얼리버드)')
+    : (y ? '업무일지 (연결제)'           : '업무일지');
+  const items = [{ name: mainName, price: mainPrice }];
+  let total   = mainPrice;
   Object.keys(addons).forEach(k => {
     if (addons[k]) {
-      const p = PRICES[k] * mul;
+      const p = PRICES[k] * addonMul;
       items.push({ name: NAMES[k], price: p });
       total += p;
     }
@@ -387,8 +402,9 @@ window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
 
-  const mul   = billingCycle === 'yearly' ? 10 : 1;
-  const total = PLAN_PRICES[selectedPlan] * mul + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] * mul : 0), 0);
+  const addonMul = billingCycle === 'yearly' ? 10 : 1;
+  const total    = PLAN_PRICES[selectedPlan + '_' + billingCycle]
+                 + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] * addonMul : 0), 0);
   const parts = ['업무일지'];
   if (addons.exam)     parts.push('승급심사');
   if (addons.jumprope) parts.push('줄넘기');
