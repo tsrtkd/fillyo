@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>구독 플랜 선택 — FILLYO</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.iamport.kr/v2/iamport.js"></script>
+<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#EEF2F8;color:#1A2332;min-height:100vh;-webkit-font-smoothing:antialiased}
@@ -422,7 +422,7 @@ window.startPayment = async function() {
     paymentId:    'fillyo_' + Date.now(),
     orderName:    planName,
     totalAmount:  total,
-    currency:     'KRW',
+    currency:     'CURRENCY_KRW',
     payMethod:    'CARD',
     customer: {
       email:       user.email || '',
@@ -430,7 +430,7 @@ window.startPayment = async function() {
       phoneNumber: userData.phone || '010-0000-0000',
     },
   }).then(async (rsp) => {
-    if (rsp.code === null) {
+    if (rsp.code === undefined) {
       try {
         await update(ref(db, 'users/' + user.uid), {
           planType:     'pro',
