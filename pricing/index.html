@@ -404,7 +404,7 @@ window.startPayment = async function() {
 
   IMP.init('imp04058244');
   IMP.request_pay({
-    channelKey:  'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+    pg:          'html5_inicis.INIBillTst',
     pay_method:  'card',
     merchant_uid: 'fillyo_' + Date.now(),
     name:         planName,
