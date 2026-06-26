@@ -2,161 +2,368 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>요금제 — FILLYO</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>구독 플랜 선택 — FILLYO</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#f5f7fa;color:#1A2332;line-height:1.8}
+body{font-family:'Noto Sans KR',sans-serif;background:#EEF2F8;color:#1A2332;min-height:100vh;-webkit-font-smoothing:antialiased}
 
-/* HEADER */
-header{background:#1A2332}
-.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:900px;margin:0 auto;padding:0 6%}
-.logo{font-size:22px;font-weight:900;letter-spacing:3px;text-decoration:none}
+/* ── HEADER ── */
+.hdr{background:#1A2332;position:sticky;top:0;z-index:100}
+.hdr-inner{display:flex;align-items:center;justify-content:space-between;height:60px;max-width:640px;margin:0 auto;padding:0 20px}
+.logo{font-size:22px;font-weight:900;letter-spacing:3px;text-decoration:none;display:flex;align-items:center}
 .logo-fill{color:#ffffff}
 .logo-yo{color:#0B7B6B}
-.hdr-home{color:rgba(255,255,255,0.7);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
-.hdr-home:hover{color:#ffffff}
+.logout-btn{background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .2s}
+.logout-btn:hover{background:rgba(255,255,255,0.18);color:#fff}
 
-/* EARLY BIRD BANNER */
-.banner{background:#0B7B6B;color:#ffffff;text-align:center;padding:14px 16px;font-size:15px;font-weight:700;letter-spacing:.3px}
+/* ── LOADING ── */
+#loadingWrap{display:flex;align-items:center;justify-content:center;min-height:60vh}
+.spinner{width:36px;height:36px;border:3px solid rgba(11,123,107,.2);border-top-color:#0B7B6B;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 
-/* MAIN */
-main{max-width:800px;margin:40px auto;padding:0 16px 60px}
-@media(max-width:640px){main{margin:24px auto}}
+/* ── MAIN ── */
+#pageWrap{display:none}
+main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 
-/* SECTION TITLE */
-.section-title{font-size:13px;font-weight:700;color:#0B7B6B;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px}
+/* ── PAGE TITLE ── */
+.page-title{font-size:22px;font-weight:900;color:#1A2332;margin-bottom:6px}
+.page-sub{font-size:14px;color:#5A6A7A;line-height:1.6;margin-bottom:28px}
 
-/* MAIN PLAN CARD */
-.plan-card{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);padding:32px 36px;margin-bottom:24px;position:relative;overflow:hidden}
-.plan-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:#0B7B6B}
-.plan-name{font-size:22px;font-weight:900;color:#1A2332;margin-bottom:16px}
-.price-row{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px}
-.price-regular{font-size:15px;color:#9ca3af;text-decoration:line-through}
-.price-early{font-size:32px;font-weight:900;color:#0B7B6B}
-.price-unit{font-size:14px;color:#6b7280;font-weight:500}
-.price-note{font-size:13px;color:#6b7280;margin-top:4px}
+/* ── PLAN CARDS ── */
+.plan-card{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(11,31,58,.08);padding:22px 24px;margin-bottom:14px;position:relative;overflow:hidden;cursor:pointer;transition:box-shadow .2s,transform .15s;border:2px solid transparent}
+.plan-card:active{transform:scale(0.99)}
+.plan-card.required{border-color:#0B7B6B;cursor:default}
+.plan-card.required:active{transform:none}
+.plan-card.selected{border-color:#0B7B6B;box-shadow:0 4px 20px rgba(11,123,107,.15)}
+.card-top-bar{position:absolute;top:0;left:0;right:0;height:3px;background:#0B7B6B}
 
-/* ADDON CARDS */
-.addon-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px}
-@media(max-width:560px){.addon-grid{grid-template-columns:1fr}}
-.addon-card{background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:20px 20px 18px;text-align:center}
-.addon-name{font-size:14px;font-weight:700;color:#1A2332;margin-bottom:8px}
-.addon-price{font-size:22px;font-weight:900;color:#1A2332}
-.addon-unit{font-size:12px;color:#9ca3af;font-weight:400}
-.addon-note{font-size:11px;color:#9ca3af;margin-top:4px}
-.addon-notice{font-size:12px;color:#9ca3af;background:#f9fafb;border-radius:8px;padding:10px 14px;line-height:1.6;margin-top:4px}
+.card-row{display:flex;align-items:center;gap:14px}
+.checkbox-wrap{flex-shrink:0}
+.cb{width:22px;height:22px;border-radius:6px;border:2px solid #DDE4EE;background:#fff;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.cb.checked{background:#0B7B6B;border-color:#0B7B6B}
+.cb.disabled{background:#f3f4f6;border-color:#DDE4EE;cursor:default}
+.cb svg{display:none}
+.cb.checked svg{display:block}
 
-/* PACKAGE TABLE */
-.pkg-card{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);overflow:hidden;margin-bottom:24px}
-.pkg-row{display:flex;justify-content:space-between;align-items:center;padding:14px 28px;border-bottom:1px solid #f3f4f6}
-.pkg-row:last-child{border-bottom:none}
-.pkg-row.header{background:#f9fafb;padding:10px 28px}
-.pkg-label-head{font-size:12px;font-weight:700;color:#9ca3af;letter-spacing:.5px}
-.pkg-label{font-size:14px;font-weight:600;color:#374151}
-.pkg-price{font-size:16px;font-weight:900;color:#0B7B6B}
+.card-body{flex:1;min-width:0}
+.card-name{font-size:16px;font-weight:900;color:#1A2332;margin-bottom:4px}
+.card-badge{display:inline-block;background:#0B7B6B;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;letter-spacing:.5px;margin-left:8px;vertical-align:middle}
+.price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price-regular{font-size:13px;color:#9ca3af;text-decoration:line-through}
+.price-now{font-size:22px;font-weight:900;color:#0B7B6B}
+.price-unit{font-size:13px;color:#6b7280}
+.price-note{font-size:12px;color:#9ca3af;margin-top:4px}
 
-/* BOTTOM NOTES */
-.notes{background:#ffffff;border-radius:14px;box-shadow:0 2px 20px rgba(0,0,0,0.07);padding:28px 36px;margin-bottom:28px}
-.note-item{display:flex;align-items:flex-start;gap:10px;font-size:14px;color:#374151;margin-bottom:10px}
-.note-item:last-child{margin-bottom:0}
-.note-item::before{content:'✓';color:#0B7B6B;font-weight:700;flex-shrink:0;margin-top:2px}
-.note-link{color:#0B7B6B;text-decoration:none;font-weight:600}
-.note-link:hover{text-decoration:underline}
+/* ── SECTION LABEL ── */
+.section-label{font-size:12px;font-weight:700;color:#0B7B6B;letter-spacing:1.2px;text-transform:uppercase;margin:24px 0 10px}
 
-/* CTA */
-.cta-wrap{text-align:center}
-.cta-btn{display:inline-block;background:#0B7B6B;color:#ffffff;font-size:16px;font-weight:700;padding:16px 48px;border-radius:12px;text-decoration:none;letter-spacing:.3px;transition:background .2s,transform .15s}
-.cta-btn:hover{background:#085041;transform:translateY(-2px)}
+/* ── TOTAL BOX ── */
+.total-box{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(11,31,58,.08);padding:20px 24px;margin-top:24px;margin-bottom:20px}
+.total-label{font-size:13px;color:#5A6A7A;margin-bottom:12px}
+.total-items{margin-bottom:14px}
+.total-item{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid #f3f4f6;font-size:14px;color:#374151}
+.total-item:last-child{border-bottom:none}
+.total-item-name{color:#374151}
+.total-item-price{font-weight:700;color:#1A2332}
+.total-divider{height:1px;background:#DDE4EE;margin:4px 0 14px}
+.total-final-row{display:flex;justify-content:space-between;align-items:center}
+.total-final-label{font-size:15px;font-weight:700;color:#1A2332}
+.total-final-price{font-size:26px;font-weight:900;color:#0B7B6B}
+.total-final-unit{font-size:13px;font-weight:400;color:#6b7280}
 
-/* FOOTER */
-footer{background:#1A2332;text-align:center;padding:28px 6%;color:rgba(255,255,255,0.5);font-size:13px;line-height:2}
+/* ── PAY BUTTON ── */
+.pay-btn{width:100%;background:#0B7B6B;color:#fff;border:none;border-radius:14px;padding:17px;font-size:17px;font-weight:900;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:all .2s;position:relative}
+.pay-btn:hover{background:#085041;transform:translateY(-1px);box-shadow:0 6px 20px rgba(11,123,107,.3)}
+.pay-btn:active{transform:translateY(0)}
+.pay-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none;box-shadow:none}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A2332;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:9999;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:#C62828}
+.toast.success{background:#0B7B6B}
+
+/* ── FOOTER ── */
+footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,255,0.5);font-size:12px;line-height:2}
+
+@media(max-width:480px){
+  .plan-card{padding:18px}
+  main{padding:20px 12px 80px}
+}
 </style>
 </head>
 <body>
 
-<header>
+<header class="hdr">
   <div class="hdr-inner">
-    <a class="logo" href="https://fillyo.kr"><span class="logo-fill">FILL</span><span class="logo-yo">YO</span></a>
-    <a class="hdr-home" href="https://fillyo.kr">← 홈으로</a>
+    <a class="logo" href="/"><span class="logo-fill">FILL</span><span class="logo-yo">YO</span></a>
+    <button class="logout-btn" id="logoutBtn">로그아웃</button>
   </div>
 </header>
 
-<div class="banner">🎉 얼리버드 특가 — 2026년 8월 31일 마감</div>
+<div id="loadingWrap"><div class="spinner"></div></div>
 
-<main>
+<div id="pageWrap">
+  <main>
+    <h1 class="page-title">구독 플랜 선택</h1>
+    <p class="page-sub">업무일지를 중심으로 필요한 서비스를 추가하세요</p>
 
-  <!-- 메인 구독 -->
-  <div style="margin-top:40px;margin-bottom:8px" class="section-title">메인 구독</div>
-  <div class="plan-card">
-    <div class="plan-name">업무일지</div>
-    <div class="price-row">
-      <span class="price-regular">₩19,800/월</span>
-      <span class="price-early">₩9,900</span>
-      <span class="price-unit">/월</span>
-    </div>
-    <div class="price-note">얼리버드 가격 — 가입일로부터 1년간 고정, 이후 정가(₩19,800/월) 자동 전환</div>
-  </div>
+    <div class="section-label">메인 플랜</div>
 
-  <!-- 애드온 -->
-  <div class="section-title">애드온 <span style="font-size:11px;font-weight:500;color:#9ca3af;letter-spacing:0;text-transform:none">— 선택 추가</span></div>
-  <div class="addon-grid">
-    <div class="addon-card">
-      <div class="addon-name">승급심사</div>
-      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
+    <!-- 업무일지 (필수) -->
+    <div class="plan-card required" id="cardMain">
+      <div class="card-top-bar"></div>
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="cb checked disabled">
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">업무일지<span class="card-badge">필수</span></div>
+          <div class="price-row">
+            <span class="price-regular">₩19,800/월</span>
+            <span class="price-now">₩9,900</span>
+            <span class="price-unit">/월</span>
+          </div>
+          <div class="price-note">얼리버드 특가 · 가입일로부터 1년간 고정</div>
+        </div>
+      </div>
     </div>
-    <div class="addon-card">
-      <div class="addon-name">줄넘기</div>
-      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
-    </div>
-    <div class="addon-card">
-      <div class="addon-name">AI 성장리포트</div>
-      <div class="addon-price">₩4,900<span class="addon-unit">/월</span></div>
-      <div class="addon-note">학생 100명 이하 기준</div>
-    </div>
-  </div>
-  <div class="addon-notice">애드온은 이미 최저가로 책정된 가격으로 얼리버드 할인이 적용되지 않습니다.</div>
 
-  <!-- 패키지 예시 -->
-  <div style="margin-top:32px;margin-bottom:8px" class="section-title">패키지 예시</div>
-  <div class="pkg-card">
-    <div class="pkg-row header">
-      <span class="pkg-label-head">구성</span>
-      <span class="pkg-label-head">얼리버드 월 요금</span>
-    </div>
-    <div class="pkg-row">
-      <span class="pkg-label">업무일지만</span>
-      <span class="pkg-price">₩9,900</span>
-    </div>
-    <div class="pkg-row">
-      <span class="pkg-label">업무일지 + 승급심사</span>
-      <span class="pkg-price">₩14,800</span>
-    </div>
-    <div class="pkg-row">
-      <span class="pkg-label">풀패키지 (전체)</span>
-      <span class="pkg-price">₩24,600</span>
-    </div>
-  </div>
+    <div class="section-label" style="margin-top:20px">애드온 <span style="font-size:11px;font-weight:400;color:#9ca3af;letter-spacing:0;text-transform:none">— 선택 추가</span></div>
 
-  <!-- 하단 안내 -->
-  <div class="notes">
-    <div class="note-item">7일 무료체험 후 직접 결제 전환 — 체험 중 카드 등록 불필요</div>
-    <div class="note-item">구독 취소는 마이페이지에서 언제든 가능</div>
-    <div class="note-item">
-      <a class="note-link" href="/terms/">이용약관</a>&nbsp;·&nbsp;<a class="note-link" href="/refund/">환불정책</a> 확인하기
+    <!-- 승급심사 -->
+    <div class="plan-card" id="cardExam" onclick="toggleAddon('exam')">
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="cb" id="cbExam">
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">승급심사</div>
+          <div class="price-row">
+            <span class="price-now" style="font-size:18px">₩4,900</span>
+            <span class="price-unit">/월</span>
+          </div>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <!-- CTA -->
-  <div class="cta-wrap">
-    <a class="cta-btn" href="/login/">무료로 시작하기</a>
-  </div>
+    <!-- 줄넘기 -->
+    <div class="plan-card" id="cardJump" onclick="toggleAddon('jumprope')">
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="cb" id="cbJumprope">
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">줄넘기</div>
+          <div class="price-row">
+            <span class="price-now" style="font-size:18px">₩4,900</span>
+            <span class="price-unit">/월</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-</main>
+    <!-- AI 성장리포트 -->
+    <div class="plan-card" id="cardReport" onclick="toggleAddon('report')">
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="cb" id="cbReport">
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
+              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">AI 성장리포트</div>
+          <div class="price-row">
+            <span class="price-now" style="font-size:18px">₩4,900</span>
+            <span class="price-unit">/월</span>
+          </div>
+          <div class="price-note">학생 100명 이하 기준</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 합계 -->
+    <div class="total-box">
+      <div class="total-label">선택 항목</div>
+      <div class="total-items" id="totalItems"></div>
+      <div class="total-divider"></div>
+      <div class="total-final-row">
+        <span class="total-final-label">월 결제 금액</span>
+        <span class="total-final-price" id="totalPrice">₩9,900<span class="total-final-unit">/월</span></span>
+      </div>
+    </div>
+
+    <button class="pay-btn" id="payBtn" onclick="startPayment()">결제하기</button>
+  </main>
+</div>
 
 <footer>
-  © 2026 필요(FILLYO)
+  <a href="/terms/" style="color:rgba(255,255,255,.45);text-decoration:none">이용약관</a> &nbsp;·&nbsp;
+  <a href="/privacy/" style="color:rgba(255,255,255,.45);text-decoration:none">개인정보처리방침</a> &nbsp;·&nbsp;
+  <a href="/refund/" style="color:rgba(255,255,255,.45);text-decoration:none">환불정책</a><br>
+  © 2026 FILLYO · fillyo.kr
 </footer>
 
+<div class="toast" id="toast"></div>
+
+<!-- PortOne V1 SDK -->
+<script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, update }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const app  = initializeApp(FB_CONFIG);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+let currentUser = null;
+
+onAuthStateChanged(auth, user => {
+  if (!user) {
+    location.href = '/login/';
+    return;
+  }
+  currentUser = user;
+  document.getElementById('loadingWrap').style.display = 'none';
+  document.getElementById('pageWrap').style.display = 'block';
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  signOut(auth).then(() => { location.href = '/login/'; });
+});
+
+// ── 애드온 상태 ──
+const addons = { exam: false, jumprope: false, report: false };
+
+window.toggleAddon = function(key) {
+  addons[key] = !addons[key];
+  const cb    = document.getElementById('cb' + key.charAt(0).toUpperCase() + key.slice(1));
+  const card  = { exam: 'cardExam', jumprope: 'cardJump', report: 'cardReport' }[key];
+  if (addons[key]) {
+    cb.classList.add('checked');
+    document.getElementById(card).classList.add('selected');
+  } else {
+    cb.classList.remove('checked');
+    document.getElementById(card).classList.remove('selected');
+  }
+  renderTotal();
+};
+
+// ── 합계 렌더링 ──
+const PRICES = { main: 9900, exam: 4900, jumprope: 4900, report: 4900 };
+const NAMES  = { main: '업무일지', exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
+
+function renderTotal() {
+  const items   = [{ key: 'main', name: '업무일지', price: 9900 }];
+  let total     = 9900;
+  Object.keys(addons).forEach(k => {
+    if (addons[k]) { items.push({ key: k, name: NAMES[k], price: PRICES[k] }); total += PRICES[k]; }
+  });
+
+  const el = document.getElementById('totalItems');
+  el.innerHTML = items.map(i =>
+    `<div class="total-item"><span class="total-item-name">${i.name}</span><span class="total-item-price">₩${i.price.toLocaleString()}</span></div>`
+  ).join('');
+
+  document.getElementById('totalPrice').innerHTML =
+    `₩${total.toLocaleString()}<span class="total-final-unit">/월</span>`;
+}
+renderTotal();
+
+// ── 결제 ──
+window.startPayment = function() {
+  if (!currentUser) { showToast('로그인이 필요합니다.', 'error'); return; }
+
+  const total = 9900 + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] : 0), 0);
+  const parts = ['업무일지'];
+  if (addons.exam)     parts.push('승급심사');
+  if (addons.jumprope) parts.push('줄넘기');
+  if (addons.report)   parts.push('AI 성장리포트');
+  const planName = 'FILLYO ' + parts.join('+');
+
+  const btn = document.getElementById('payBtn');
+  btn.disabled = true;
+  btn.textContent = '결제창 열기...';
+
+  IMP.init('store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c');
+  IMP.request_pay({
+    pg:          'html5_inicis.INIpayTest',
+    pay_method:  'card',
+    merchant_uid: 'fillyo_' + Date.now(),
+    name:         planName,
+    amount:       total,
+    buyer_email:  currentUser.email  || '',
+    buyer_name:   currentUser.displayName || '',
+    buyer_tel:    currentUser.phoneNumber || '',
+  }, async rsp => {
+    if (rsp.success) {
+      try {
+        await update(ref(db, 'users/' + currentUser.uid), {
+          planType:   'pro',
+          planExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          subscribedAddons: {
+            exam:      !!addons.exam,
+            jumprope:  !!addons.jumprope,
+            report:    !!addons.report,
+          },
+          lastPayment: {
+            amount:       total,
+            date:         Date.now(),
+            merchant_uid: rsp.merchant_uid,
+          },
+        });
+        location.href = '/dashboard';
+      } catch(e) {
+        showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
+        btn.disabled = false;
+        btn.textContent = '결제하기';
+      }
+    } else {
+      showToast('결제 실패: ' + (rsp.error_msg || '알 수 없는 오류'), 'error');
+      btn.disabled = false;
+      btn.textContent = '결제하기';
+    }
+  });
+};
+
+// ── 토스트 ──
+window.showToast = function(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast' + (type ? ' ' + type : '');
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3500);
+};
+</script>
 </body>
 </html>
