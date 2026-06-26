@@ -60,6 +60,13 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 .price-unit{font-size:13px;color:#6b7280}
 .price-note{font-size:12px;color:#9ca3af;margin-top:4px}
 
+/* ── BILLING TOGGLE ── */
+.billing-toggle{display:flex;background:#fff;border-radius:12px;padding:4px;gap:4px;margin-bottom:24px;box-shadow:0 2px 8px rgba(11,31,58,.06)}
+.billing-tab{flex:1;padding:10px 8px;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;color:#5A6A7A;background:transparent;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:7px}
+.billing-tab.active{background:#0B7B6B;color:#fff;box-shadow:0 2px 8px rgba(11,123,107,.25)}
+.billing-badge{background:#F9A825;color:#1A2332;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px;letter-spacing:.3px;white-space:nowrap}
+.billing-tab.active .billing-badge{background:#FFD54F}
+
 /* ── SECTION LABEL ── */
 .section-label{font-size:12px;font-weight:700;color:#0B7B6B;letter-spacing:1.2px;text-transform:uppercase;margin:24px 0 10px}
 
@@ -114,6 +121,12 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
     <h1 class="page-title">구독 플랜 선택</h1>
     <p class="page-sub">업무일지를 중심으로 필요한 서비스를 추가하세요</p>
 
+    <!-- 월결제/연결제 토글 -->
+    <div class="billing-toggle">
+      <button class="billing-tab active" id="tabMonthly" onclick="setBilling('monthly')">월결제</button>
+      <button class="billing-tab" id="tabYearly" onclick="setBilling('yearly')">연결제 <span class="billing-badge">2개월 무료</span></button>
+    </div>
+
     <div class="section-label">메인 플랜</div>
 
     <!-- 업무일지 얼리버드 -->
@@ -126,11 +139,11 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">업무일지<span class="card-badge">얼리버드</span></div>
           <div class="price-row">
-            <span class="price-regular">₩19,800/월</span>
-            <span class="price-now">₩9,900</span>
-            <span class="price-unit">/월</span>
+            <span class="price-regular" id="earlyPriceRegular">₩19,800/월</span>
+            <span class="price-now" id="earlyPriceNow">₩9,900</span>
+            <span class="price-unit" id="earlyPriceUnit">/월</span>
           </div>
-          <div class="price-note">8/31까지 가입 시 1년간 고정</div>
+          <div class="price-note" id="earlyPriceNote">8/31까지 가입 시 1년간 고정</div>
         </div>
       </div>
     </div>
@@ -144,10 +157,10 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">업무일지</div>
           <div class="price-row">
-            <span class="price-now">₩19,800</span>
-            <span class="price-unit">/월</span>
+            <span class="price-now" id="regularPriceNow">₩19,800</span>
+            <span class="price-unit" id="regularPriceUnit">/월</span>
           </div>
-          <div class="price-note">가입 즉시 정상가 적용</div>
+          <div class="price-note" id="regularPriceNote">가입 즉시 정상가 적용</div>
         </div>
       </div>
     </div>
@@ -167,8 +180,8 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">승급심사</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px">₩4,900</span>
-            <span class="price-unit">/월</span>
+            <span class="price-now" style="font-size:18px" id="priceExam">₩4,900</span>
+            <span class="price-unit" id="unitExam">/월</span>
           </div>
         </div>
       </div>
@@ -187,8 +200,8 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">줄넘기</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px">₩4,900</span>
-            <span class="price-unit">/월</span>
+            <span class="price-now" style="font-size:18px" id="priceJump">₩4,900</span>
+            <span class="price-unit" id="unitJump">/월</span>
           </div>
         </div>
       </div>
@@ -207,8 +220,8 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">AI 성장리포트</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px">₩4,900</span>
-            <span class="price-unit">/월</span>
+            <span class="price-now" style="font-size:18px" id="priceReport">₩4,900</span>
+            <span class="price-unit" id="unitReport">/월</span>
           </div>
           <div class="price-note">학생 100명 이하 기준</div>
         </div>
@@ -221,7 +234,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       <div class="total-items" id="totalItems"></div>
       <div class="total-divider"></div>
       <div class="total-final-row">
-        <span class="total-final-label">월 결제 금액</span>
+        <span class="total-final-label" id="totalFinalLabel">월 결제 금액</span>
         <span class="total-final-price" id="totalPrice">₩9,900<span class="total-final-unit">/월</span></span>
       </div>
     </div>
@@ -292,6 +305,37 @@ window.selectPlan = function(plan) {
   renderTotal();
 };
 
+// ── 결제 주기 ──
+let billingCycle = 'monthly';
+
+window.setBilling = function(cycle) {
+  billingCycle = cycle;
+  document.getElementById('tabMonthly').classList.toggle('active', cycle === 'monthly');
+  document.getElementById('tabYearly').classList.toggle('active', cycle === 'yearly');
+  updateCardPrices();
+  renderTotal();
+};
+
+function updateCardPrices() {
+  const y = billingCycle === 'yearly';
+  // 얼리버드 카드
+  document.getElementById('earlyPriceRegular').textContent = y ? '₩237,600/년' : '₩19,800/월';
+  document.getElementById('earlyPriceNow').textContent     = y ? '₩99,000'     : '₩9,900';
+  document.getElementById('earlyPriceUnit').textContent    = y ? '/년'          : '/월';
+  document.getElementById('earlyPriceNote').textContent    = y ? '8/31까지 가입 · 월 ₩8,250 · 연 ₩138,600 절약' : '8/31까지 가입 시 1년간 고정';
+  // 정상가 카드
+  document.getElementById('regularPriceNow').textContent   = y ? '₩198,000'    : '₩19,800';
+  document.getElementById('regularPriceUnit').textContent  = y ? '/년'          : '/월';
+  document.getElementById('regularPriceNote').textContent  = y ? '가입 즉시 정상가 적용 · 월 ₩16,500' : '가입 즉시 정상가 적용';
+  // 애드온 카드
+  ['Exam','Jump','Report'].forEach(k => {
+    document.getElementById('price' + k).textContent = y ? '₩49,000' : '₩4,900';
+    document.getElementById('unit'  + k).textContent = y ? '/년'      : '/월';
+  });
+  // 합계 레이블
+  document.getElementById('totalFinalLabel').textContent = y ? '연 결제 금액' : '월 결제 금액';
+}
+
 // ── 애드온 상태 ──
 const addons = { exam: false, jumprope: false, report: false };
 
@@ -314,12 +358,19 @@ const PRICES = { main: 9900, exam: 4900, jumprope: 4900, report: 4900 };
 const NAMES  = { main: '업무일지', exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
 
 function renderTotal() {
-  const mainPrice = PLAN_PRICES[selectedPlan];
-  const mainName  = selectedPlan === 'early' ? '업무일지 (얼리버드)' : '업무일지';
-  const items     = [{ name: mainName, price: mainPrice }];
-  let total       = mainPrice;
+  const y          = billingCycle === 'yearly';
+  const mul        = y ? 10 : 1;
+  const unit       = y ? '/년' : '/월';
+  const mainPrice  = PLAN_PRICES[selectedPlan] * mul;
+  const mainName   = selectedPlan === 'early' ? `업무일지 (얼리버드${y ? ', 연결제' : ''})` : `업무일지${y ? ' (연결제)' : ''}`;
+  const items      = [{ name: mainName, price: mainPrice }];
+  let total        = mainPrice;
   Object.keys(addons).forEach(k => {
-    if (addons[k]) { items.push({ key: k, name: NAMES[k], price: PRICES[k] }); total += PRICES[k]; }
+    if (addons[k]) {
+      const p = PRICES[k] * mul;
+      items.push({ name: NAMES[k], price: p });
+      total += p;
+    }
   });
 
   const el = document.getElementById('totalItems');
@@ -328,7 +379,7 @@ function renderTotal() {
   ).join('');
 
   document.getElementById('totalPrice').innerHTML =
-    `₩${total.toLocaleString()}<span class="total-final-unit">/월</span>`;
+    `₩${total.toLocaleString()}<span class="total-final-unit">${unit}</span>`;
 }
 renderTotal();
 
@@ -337,7 +388,8 @@ window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
 
-  const total = PLAN_PRICES[selectedPlan] + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] : 0), 0);
+  const mul   = billingCycle === 'yearly' ? 10 : 1;
+  const total = PLAN_PRICES[selectedPlan] * mul + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] * mul : 0), 0);
   const parts = ['업무일지'];
   if (addons.exam)     parts.push('승급심사');
   if (addons.jumprope) parts.push('줄넘기');
@@ -359,14 +411,15 @@ window.startPayment = async function() {
     name:         planName,
     amount:       total,
     buyer_email:  user.email || '',
-    buyer_name:   userData.name || userData.email || user.email || 'FILLYO 사용자',
+    buyer_name:   userData.name || user.email || 'FILLYO 사용자',
     buyer_tel:    userData.phone || '010-0000-0000',
   }, async rsp => {
     if (rsp.success) {
       try {
         await update(ref(db, 'users/' + user.uid), {
-          planType:   'pro',
-          planExpiry: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          planType:      'pro',
+          billingCycle:  billingCycle,
+          planExpiry:    Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000,
           subscribedAddons: {
             exam:      !!addons.exam,
             jumprope:  !!addons.jumprope,
