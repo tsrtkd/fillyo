@@ -225,7 +225,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
             <span class="price-now" style="font-size:18px" id="priceReport">₩4,900</span>
             <span class="price-unit" id="unitReport">/월</span>
           </div>
-          <div class="price-note">학생 100명 이하 기준</div>
+          <div class="price-note">100명 이하 기준 · 100명 초과 시 별도 문의</div>
         </div>
       </div>
     </div>
@@ -366,24 +366,23 @@ window.toggleAddon = function(key) {
 };
 
 // ── 합계 렌더링 ──
-const PRICES = { main: 9900, exam: 4900, jumprope: 4900, report: 4900 };
-const NAMES  = { main: '업무일지', exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
+const ADDON_PRICES = { monthly: 4900, yearly: 49000 };
+const NAMES        = { exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
 
 function renderTotal() {
-  const y         = billingCycle === 'yearly';
-  const unit      = y ? '/년' : '/월';
-  const addonMul  = y ? 10 : 1;
-  const mainPrice = PLAN_PRICES[selectedPlan + '_' + billingCycle];
-  const mainName  = selectedPlan === 'early'
+  const y          = billingCycle === 'yearly';
+  const unit       = y ? '/년' : '/월';
+  const addonPrice = ADDON_PRICES[billingCycle];
+  const mainPrice  = PLAN_PRICES[selectedPlan + '_' + billingCycle];
+  const mainName   = selectedPlan === 'early'
     ? (y ? '업무일지 (얼리버드, 연결제)' : '업무일지 (얼리버드)')
     : (y ? '업무일지 (연결제)'           : '업무일지');
   const items = [{ name: mainName, price: mainPrice }];
   let total   = mainPrice;
   Object.keys(addons).forEach(k => {
     if (addons[k]) {
-      const p = PRICES[k] * addonMul;
-      items.push({ name: NAMES[k], price: p });
-      total += p;
+      items.push({ name: NAMES[k], price: addonPrice });
+      total += addonPrice;
     }
   });
 
@@ -402,9 +401,8 @@ window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
 
-  const addonMul = billingCycle === 'yearly' ? 10 : 1;
-  const total    = PLAN_PRICES[selectedPlan + '_' + billingCycle]
-                 + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] * addonMul : 0), 0);
+  const total = PLAN_PRICES[selectedPlan + '_' + billingCycle]
+              + Object.keys(addons).reduce((s, k) => s + (addons[k] ? ADDON_PRICES[billingCycle] : 0), 0);
   const parts = ['업무일지'];
   if (addons.exam)     parts.push('승급심사');
   if (addons.jumprope) parts.push('줄넘기');
