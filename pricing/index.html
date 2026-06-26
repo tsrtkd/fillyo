@@ -421,13 +421,13 @@ window.startPayment = async function() {
     channelKey:   'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
     paymentId:    'fillyo_' + Date.now(),
     orderName:    planName,
-    totalAmount:      total,
-    currency:         'CURRENCY_KRW',
-    billingKeyMethod: 'CARD',
+    totalAmount: total,
+    currency:    'CURRENCY_KRW',
+    payMethod:   'CARD',
     customer: {
       customerId:  user.uid,
       email:       user.email || '',
-      fullName:    userData.name || 'FILLYO 사용자',
+      fullName:    userData.name || user.email || 'FILLYO 사용자',
       phoneNumber: userData.phone || '010-0000-0000',
     },
   }).then(async (rsp) => {
