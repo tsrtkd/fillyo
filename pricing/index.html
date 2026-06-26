@@ -43,7 +43,11 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 .checkbox-wrap{flex-shrink:0}
 .cb{width:22px;height:22px;border-radius:6px;border:2px solid #DDE4EE;background:#fff;display:flex;align-items:center;justify-content:center;transition:all .2s}
 .cb.checked{background:#0B7B6B;border-color:#0B7B6B}
-.cb.disabled{background:#f3f4f6;border-color:#DDE4EE;cursor:default}
+.cb.disabled:not(.checked){background:#f3f4f6;border-color:#DDE4EE;cursor:default}
+
+.rb{width:22px;height:22px;border-radius:50%;border:2px solid #DDE4EE;background:#fff;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.rb.selected{border-color:#0B7B6B}
+.rb.selected::after{content:'';width:10px;height:10px;border-radius:50%;background:#0B7B6B}
 .cb svg{display:none}
 .cb.checked svg{display:block}
 
@@ -112,25 +116,38 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
 
     <div class="section-label">메인 플랜</div>
 
-    <!-- 업무일지 (필수) -->
-    <div class="plan-card required" id="cardMain">
+    <!-- 업무일지 얼리버드 -->
+    <div class="plan-card selected" id="cardEarly" onclick="selectPlan('early')">
       <div class="card-top-bar"></div>
       <div class="card-row">
         <div class="checkbox-wrap">
-          <div class="cb checked disabled">
-            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
+          <div class="rb selected" id="rbEarly"></div>
         </div>
         <div class="card-body">
-          <div class="card-name">업무일지<span class="card-badge">필수</span></div>
+          <div class="card-name">업무일지<span class="card-badge">얼리버드</span></div>
           <div class="price-row">
             <span class="price-regular">₩19,800/월</span>
             <span class="price-now">₩9,900</span>
             <span class="price-unit">/월</span>
           </div>
-          <div class="price-note">얼리버드 특가 · 가입일로부터 1년간 고정</div>
+          <div class="price-note">8/31까지 가입 시 1년간 고정</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 업무일지 정상가 -->
+    <div class="plan-card" id="cardRegular" onclick="selectPlan('regular')">
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="rb" id="rbRegular"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">업무일지</div>
+          <div class="price-row">
+            <span class="price-now">₩19,800</span>
+            <span class="price-unit">/월</span>
+          </div>
+          <div class="price-note">가입 즉시 정상가 적용</div>
         </div>
       </div>
     </div>
@@ -262,6 +279,19 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   signOut(auth).then(() => { location.href = '/login/'; });
 });
 
+// ── 메인 플랜 선택 ──
+const PLAN_PRICES = { early: 9900, regular: 19800 };
+let selectedPlan  = 'early';
+
+window.selectPlan = function(plan) {
+  selectedPlan = plan;
+  document.getElementById('cardEarly').classList.toggle('selected', plan === 'early');
+  document.getElementById('cardRegular').classList.toggle('selected', plan === 'regular');
+  document.getElementById('rbEarly').classList.toggle('selected', plan === 'early');
+  document.getElementById('rbRegular').classList.toggle('selected', plan === 'regular');
+  renderTotal();
+};
+
 // ── 애드온 상태 ──
 const addons = { exam: false, jumprope: false, report: false };
 
@@ -284,8 +314,10 @@ const PRICES = { main: 9900, exam: 4900, jumprope: 4900, report: 4900 };
 const NAMES  = { main: '업무일지', exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
 
 function renderTotal() {
-  const items   = [{ key: 'main', name: '업무일지', price: 9900 }];
-  let total     = 9900;
+  const mainPrice = PLAN_PRICES[selectedPlan];
+  const mainName  = selectedPlan === 'early' ? '업무일지 (얼리버드)' : '업무일지';
+  const items     = [{ name: mainName, price: mainPrice }];
+  let total       = mainPrice;
   Object.keys(addons).forEach(k => {
     if (addons[k]) { items.push({ key: k, name: NAMES[k], price: PRICES[k] }); total += PRICES[k]; }
   });
@@ -305,7 +337,7 @@ window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
 
-  const total = 9900 + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] : 0), 0);
+  const total = PLAN_PRICES[selectedPlan] + Object.keys(addons).reduce((s, k) => s + (addons[k] ? PRICES[k] : 0), 0);
   const parts = ['업무일지'];
   if (addons.exam)     parts.push('승급심사');
   if (addons.jumprope) parts.push('줄넘기');
