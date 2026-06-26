@@ -418,7 +418,6 @@ window.startPayment = async function() {
 
   IMP.init('imp04058244');
   IMP.request_pay({
-    pg:           'html5_inicis.INIpayTest',
     pay_method:   'card',
     merchant_uid: 'fillyo_' + Date.now(),
     name:         planName,
