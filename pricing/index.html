@@ -416,7 +416,7 @@ window.startPayment = async function() {
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
 
-  PortOne.requestPayment({
+  const payParams = {
     storeId:      'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
     channelKey:   'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
     paymentId:    'fillyo_' + Date.now(),
@@ -430,7 +430,18 @@ window.startPayment = async function() {
       fullName:    userData.name || user.email || 'FILLYO 사용자',
       phoneNumber: userData.phone || '010-0000-0000',
     },
-  }).then(async (rsp) => {
+  };
+  if (billingCycle === 'yearly') {
+    payParams.card = {
+      installment: {
+        monthOption: {
+          availableMonthList: [0, 2, 3, 6],
+        },
+      },
+    };
+  }
+
+  PortOne.requestPayment(payParams).then(async (rsp) => {
     if (rsp.code === undefined) {
       try {
         await update(ref(db, 'users/' + user.uid), {
