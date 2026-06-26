@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>구독 플랜 선택 — FILLYO</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.iamport.kr/v1/iamport.js"></script>
+<script src="https://cdn.iamport.kr/v2/iamport.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#EEF2F8;color:#1A2332;min-height:100vh;-webkit-font-smoothing:antialiased}
@@ -402,9 +402,9 @@ window.startPayment = async function() {
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
 
-  IMP.init('imp04058244');
   IMP.request_pay({
-    pg:          'inicis.INIpayTest',
+    channelKey: 'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+    storeId:    'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
     pay_method:  'card',
     merchant_uid: 'fillyo_' + Date.now(),
     name:         planName,
