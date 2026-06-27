@@ -71,6 +71,13 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 /* ── SECTION LABEL ── */
 .section-label{font-size:12px;font-weight:700;color:#0B7B6B;letter-spacing:1.2px;text-transform:uppercase;margin:24px 0 10px}
 
+/* ── INFO BOX ── */
+.info-box{background:#f0fdf8;border:1px solid #b2dfdb;border-radius:10px;padding:12px 16px;margin-top:4px;margin-bottom:14px;font-size:13px;color:#374151;line-height:1.7}
+.info-box strong{color:#0B7B6B}
+
+/* ── DISABLED CARD ── */
+.card-disabled{opacity:.4;pointer-events:none;cursor:default}
+
 /* ── TOTAL BOX ── */
 .total-box{background:#fff;border-radius:16px;box-shadow:0 2px 16px rgba(11,31,58,.08);padding:20px 24px;margin-top:24px;margin-bottom:20px}
 .total-label{font-size:13px;color:#5A6A7A;margin-bottom:12px}
@@ -125,44 +132,61 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
     <!-- 월결제/연결제 토글 -->
     <div class="billing-toggle">
       <button class="billing-tab active" id="tabMonthly" onclick="setBilling('monthly')">월결제</button>
-      <button class="billing-tab" id="tabYearly" onclick="setBilling('yearly')">연결제 <span class="billing-badge">2개월 무료</span></button>
+      <button class="billing-tab" id="tabYearly" onclick="setBilling('yearly')">연결제 <span class="billing-badge">최대 50% 할인</span></button>
     </div>
 
     <div class="section-label">메인 플랜</div>
 
-    <!-- 업무일지 얼리버드 -->
-    <div class="plan-card selected" id="cardEarly" onclick="selectPlan('early')">
-      <div class="card-top-bar"></div>
+    <!-- [월결제 전용] 업무일지 정가 월정액 -->
+    <div class="plan-card selected" id="cardMonthly" onclick="selectPlan('monthly')">
       <div class="card-row">
         <div class="checkbox-wrap">
-          <div class="rb selected" id="rbEarly"></div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">업무일지<span class="card-badge">얼리버드</span></div>
-          <div class="price-row">
-            <span class="price-regular" id="earlyPriceRegular">₩19,800/월</span>
-            <span class="price-now" id="earlyPriceNow">₩9,900</span>
-            <span class="price-unit" id="earlyPriceUnit">/월</span>
-          </div>
-          <div class="price-note" id="earlyPriceNote">8/31까지 가입 시 1년간 고정</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 업무일지 정상가 -->
-    <div class="plan-card" id="cardRegular" onclick="selectPlan('regular')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="rb" id="rbRegular"></div>
+          <div class="rb selected" id="rbMonthly"></div>
         </div>
         <div class="card-body">
           <div class="card-name">업무일지</div>
           <div class="price-row">
-            <span class="price-regular" id="regularPriceRegular" style="display:none">₩237,600/년</span>
-            <span class="price-now" id="regularPriceNow">₩19,800</span>
-            <span class="price-unit" id="regularPriceUnit">/월</span>
+            <span class="price-now">₩19,800</span>
+            <span class="price-unit">/월</span>
           </div>
-          <div class="price-note" id="regularPriceNote">가입 즉시 정상가 적용</div>
+          <div class="price-note">계약 없음 · 언제든 해지 가능</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- [연결제 전용] 업무일지 얼리버드 -->
+    <div class="plan-card" id="cardEarly" onclick="selectPlan('early')" style="display:none">
+      <div class="card-top-bar"></div>
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="rb" id="rbEarly"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">업무일지<span class="card-badge">얼리버드</span></div>
+          <div class="price-row">
+            <span class="price-regular">₩19,800/월</span>
+            <span class="price-now">₩9,900</span>
+            <span class="price-unit">/월</span>
+          </div>
+          <div class="price-note">8/31까지 가입 시 · 1년 약정 필수</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- [연결제 전용] 업무일지 1년 계약 정가 -->
+    <div class="plan-card" id="cardContract" onclick="selectPlan('contract')" style="display:none">
+      <div class="card-row">
+        <div class="checkbox-wrap">
+          <div class="rb" id="rbContract"></div>
+        </div>
+        <div class="card-body">
+          <div class="card-name">업무일지<span class="card-badge" style="background:#5A6A7A">1년 약정</span></div>
+          <div class="price-row">
+            <span class="price-regular">₩19,800/월</span>
+            <span class="price-now">₩15,840</span>
+            <span class="price-unit">/월</span>
+          </div>
+          <div class="price-note">20% 할인 · 연간 ₩190,080</div>
         </div>
       </div>
     </div>
@@ -182,9 +206,11 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">승급심사</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px" id="priceExam">₩4,900</span>
+            <span class="price-regular" id="examPriceRegular" style="display:none">₩9,800/월</span>
+            <span class="price-now" style="font-size:18px" id="priceExam">₩9,800</span>
             <span class="price-unit" id="unitExam">/월</span>
           </div>
+          <div class="price-note" id="noteExam">필요한 달만 구독 가능</div>
         </div>
       </div>
     </div>
@@ -202,32 +228,45 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         <div class="card-body">
           <div class="card-name">줄넘기</div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px" id="priceJump">₩4,900</span>
+            <span class="price-regular" id="jumpPriceRegular" style="display:none">₩9,800/월</span>
+            <span class="price-now" style="font-size:18px" id="priceJump">₩9,800</span>
             <span class="price-unit" id="unitJump">/월</span>
           </div>
+          <div class="price-note" id="noteJump">필요한 달만 구독 가능</div>
         </div>
       </div>
     </div>
 
-    <!-- AI 성장리포트 -->
-    <div class="plan-card" id="cardReport" onclick="toggleAddon('report')">
+    <!-- 애드온 묶음 (연결제 전용) -->
+    <div class="plan-card card-disabled" id="cardBundle" onclick="toggleAddon('bundle')">
       <div class="card-row">
         <div class="checkbox-wrap">
-          <div class="cb" id="cbReport">
+          <div class="cb" id="cbBundle">
             <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
               <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
         <div class="card-body">
-          <div class="card-name">AI 성장리포트</div>
+          <div class="card-name">애드온 묶음<span class="card-badge" style="background:#F9A825;color:#1A2332">3개 세트</span></div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px" id="priceReport">₩4,900</span>
-            <span class="price-unit" id="unitReport">/월</span>
+            <span class="price-now" style="font-size:18px" id="priceBundle">₩11,760</span>
+            <span class="price-unit">/월</span>
           </div>
-          <div class="price-note">100명 이하 기준 · 100명 초과 시 별도 문의</div>
+          <div class="price-note">줄넘기 + 승급심사 + AI 성장리포트 · 연결제 전용</div>
         </div>
       </div>
+    </div>
+
+    <!-- 안내 문구 (월결제) -->
+    <div class="info-box" id="infoMonthly">
+      AI 성장리포트는 <strong>묶음 플랜(연결제 전용)</strong>에만 포함됩니다.
+    </div>
+
+    <!-- 안내 문구 (연결제) -->
+    <div class="info-box" id="infoYearly" style="display:none">
+      <strong>1년 계약 중도 해지 시</strong> 이용한 기간은 정가로 재산정되며 차액이 청구됩니다.<br>
+      AI 성장리포트는 <strong>묶음 플랜에만</strong> 포함됩니다.
     </div>
 
     <!-- 합계 -->
@@ -237,7 +276,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       <div class="total-divider"></div>
       <div class="total-final-row">
         <span class="total-final-label" id="totalFinalLabel">월 결제 금액</span>
-        <span class="total-final-price" id="totalPrice">₩9,900<span class="total-final-unit">/월</span></span>
+        <span class="total-final-price" id="totalPrice">₩19,800<span class="total-final-unit">/월</span></span>
       </div>
     </div>
 
@@ -292,107 +331,153 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   signOut(auth).then(() => { location.href = '/login/'; });
 });
 
-// ── 메인 플랜 선택 ──
+// ── 요금 상수 ──
 const PLAN_PRICES = {
-  early_monthly:   9900,
-  early_yearly:    118800,
-  regular_monthly: 19800,
-  regular_yearly:  198000,
+  monthly:  19800,
+  early:     9900,
+  contract: 15840,
 };
-let selectedPlan  = 'early';
+const ADDON_PRICES = { monthly: 9800, yearly: 4900 };
+const BUNDLE_PRICE = 11760;
 
+// ── 상태 ──
+let selectedPlan = 'monthly';
+let billingCycle = 'monthly';
+const addons     = { exam: false, jumprope: false, bundle: false };
+
+// ── 메인 플랜 선택 ──
 window.selectPlan = function(plan) {
   selectedPlan = plan;
-  document.getElementById('cardEarly').classList.toggle('selected', plan === 'early');
-  document.getElementById('cardRegular').classList.toggle('selected', plan === 'regular');
-  document.getElementById('rbEarly').classList.toggle('selected', plan === 'early');
-  document.getElementById('rbRegular').classList.toggle('selected', plan === 'regular');
+  ['monthly', 'early', 'contract'].forEach(p => {
+    const cap  = p.charAt(0).toUpperCase() + p.slice(1);
+    const rb   = document.getElementById('rb'   + cap);
+    const card = document.getElementById('card' + cap);
+    if (rb)   rb.classList.toggle('selected',  p === plan);
+    if (card) card.classList.toggle('selected', p === plan);
+  });
   renderTotal();
 };
 
 // ── 결제 주기 ──
-let billingCycle = 'monthly';
-
 window.setBilling = function(cycle) {
   billingCycle = cycle;
   document.getElementById('tabMonthly').classList.toggle('active', cycle === 'monthly');
-  document.getElementById('tabYearly').classList.toggle('active', cycle === 'yearly');
-  updateCardPrices();
-  renderTotal();
+  document.getElementById('tabYearly').classList.toggle('active',  cycle === 'yearly');
+
+  const isYearly = cycle === 'yearly';
+
+  // 메인 플랜 카드 표시 전환
+  document.getElementById('cardMonthly').style.display  = isYearly ? 'none' : '';
+  document.getElementById('cardEarly').style.display    = isYearly ? '' : 'none';
+  document.getElementById('cardContract').style.display = isYearly ? '' : 'none';
+
+  // 묶음 카드 활성/비활성
+  document.getElementById('cardBundle').classList.toggle('card-disabled', !isYearly);
+
+  // 안내 문구 전환
+  document.getElementById('infoMonthly').style.display = isYearly ? 'none' : '';
+  document.getElementById('infoYearly').style.display  = isYearly ? '' : 'none';
+
+  if (isYearly) {
+    selectPlan('early');
+    updateAddonPrices(true);
+  } else {
+    // 묶음 해제 및 개별 애드온 카드 복구
+    if (addons.bundle) {
+      addons.bundle = false;
+      document.getElementById('cbBundle').classList.remove('checked');
+      document.getElementById('cardBundle').classList.remove('selected');
+      document.getElementById('cardExam').classList.remove('card-disabled');
+      document.getElementById('cardJump').classList.remove('card-disabled');
+    }
+    selectPlan('monthly');
+    updateAddonPrices(false);
+  }
 };
 
-function updateCardPrices() {
-  const y = billingCycle === 'yearly';
-  // 얼리버드 카드
-  const earlyReg = document.getElementById('earlyPriceRegular');
-  earlyReg.textContent  = '₩19,800/월';
-  earlyReg.style.display = y ? 'none' : '';
-  document.getElementById('earlyPriceNow').textContent  = y ? '₩118,800' : '₩9,900';
-  document.getElementById('earlyPriceUnit').textContent = y ? '/년'       : '/월';
-  document.getElementById('earlyPriceNote').textContent = y
-    ? '₩118,800/년 · 얼리버드 1년 약정'
-    : '₩9,900/월 · 1년 약정 필수 · 8/31까지';
-  // 정상가 카드
-  const regReg = document.getElementById('regularPriceRegular');
-  regReg.textContent    = '₩237,600/년';
-  regReg.style.display  = y ? '' : 'none';
-  document.getElementById('regularPriceNow').textContent  = y ? '₩198,000' : '₩19,800';
-  document.getElementById('regularPriceUnit').textContent = y ? '/년'       : '/월';
-  document.getElementById('regularPriceNote').textContent = y ? '2개월 무료' : '가입 즉시 정상가 적용';
-  // 애드온 카드
-  ['Exam','Jump','Report'].forEach(k => {
-    document.getElementById('price' + k).textContent = y ? '₩49,000' : '₩4,900';
-    document.getElementById('unit'  + k).textContent = y ? '/년'      : '/월';
+function updateAddonPrices(isYearly) {
+  const price = isYearly ? ADDON_PRICES.yearly : ADDON_PRICES.monthly;
+  ['Exam', 'Jump'].forEach(k => {
+    document.getElementById('price' + k).textContent = '₩' + price.toLocaleString();
+    document.getElementById(k.toLowerCase() + 'PriceRegular').style.display = isYearly ? '' : 'none';
+    document.getElementById('note' + k).textContent = isYearly
+      ? '50% 할인 · 1년 약정'
+      : '필요한 달만 구독 가능';
   });
-  // 합계 레이블
-  document.getElementById('totalFinalLabel').textContent = y ? '연 결제 금액' : '월 결제 금액';
+  renderTotal();
 }
 
-// ── 애드온 상태 ──
-const addons = { exam: false, jumprope: false, report: false };
-
+// ── 애드온 토글 ──
 window.toggleAddon = function(key) {
+  if (key === 'bundle' && billingCycle !== 'yearly') return;
+
   addons[key] = !addons[key];
-  const cb    = document.getElementById('cb' + key.charAt(0).toUpperCase() + key.slice(1));
-  const card  = { exam: 'cardExam', jumprope: 'cardJump', report: 'cardReport' }[key];
+
+  const cbId   = 'cb'   + key.charAt(0).toUpperCase() + key.slice(1);
+  const cardId = { exam: 'cardExam', jumprope: 'cardJump', bundle: 'cardBundle' }[key];
+
   if (addons[key]) {
-    cb.classList.add('checked');
-    document.getElementById(card).classList.add('selected');
+    document.getElementById(cbId).classList.add('checked');
+    document.getElementById(cardId).classList.add('selected');
+    if (key === 'bundle') {
+      // 묶음 선택 시 개별 애드온 비활성화
+      ['exam', 'jumprope'].forEach(k => {
+        addons[k] = false;
+        const cap = k.charAt(0).toUpperCase() + k.slice(1);
+        document.getElementById('cb' + cap).classList.remove('checked');
+        document.getElementById(k === 'exam' ? 'cardExam' : 'cardJump').classList.remove('selected');
+        document.getElementById(k === 'exam' ? 'cardExam' : 'cardJump').classList.add('card-disabled');
+      });
+    }
   } else {
-    cb.classList.remove('checked');
-    document.getElementById(card).classList.remove('selected');
+    document.getElementById(cbId).classList.remove('checked');
+    document.getElementById(cardId).classList.remove('selected');
+    if (key === 'bundle') {
+      // 묶음 해제 시 개별 애드온 재활성화
+      document.getElementById('cardExam').classList.remove('card-disabled');
+      document.getElementById('cardJump').classList.remove('card-disabled');
+    }
   }
   renderTotal();
 };
 
 // ── 합계 렌더링 ──
-const ADDON_PRICES = { monthly: 4900, yearly: 49000 };
-const NAMES        = { exam: '승급심사', jumprope: '줄넘기', report: 'AI 성장리포트' };
+const NAMES = {
+  monthly:  '업무일지 (월정액)',
+  early:    '업무일지 (얼리버드)',
+  contract: '업무일지 (1년 약정)',
+  exam:     '승급심사',
+  jumprope: '줄넘기',
+  bundle:   '애드온 묶음 (줄넘기+승급심사+AI리포트)',
+};
 
 function renderTotal() {
-  const y          = billingCycle === 'yearly';
-  const unit       = y ? '/년' : '/월';
-  const addonPrice = ADDON_PRICES[billingCycle];
-  const mainPrice  = PLAN_PRICES[selectedPlan + '_' + billingCycle];
-  const mainName   = selectedPlan === 'early'
-    ? (y ? '업무일지 (얼리버드, 연결제)' : '업무일지 (얼리버드)')
-    : (y ? '업무일지 (연결제)'           : '업무일지');
-  const items = [{ name: mainName, price: mainPrice }];
-  let total   = mainPrice;
-  Object.keys(addons).forEach(k => {
-    if (addons[k]) {
-      items.push({ name: NAMES[k], price: addonPrice });
-      total += addonPrice;
-    }
-  });
+  const isYearly   = billingCycle === 'yearly';
+  const addonPrice = isYearly ? ADDON_PRICES.yearly : ADDON_PRICES.monthly;
+  const mainPrice  = PLAN_PRICES[selectedPlan];
 
-  const el = document.getElementById('totalItems');
-  el.innerHTML = items.map(i =>
+  const items = [{ name: NAMES[selectedPlan], price: mainPrice }];
+  let total   = mainPrice;
+
+  if (addons.bundle && isYearly) {
+    items.push({ name: NAMES.bundle, price: BUNDLE_PRICE });
+    total += BUNDLE_PRICE;
+  } else {
+    ['exam', 'jumprope'].forEach(k => {
+      if (addons[k]) {
+        items.push({ name: NAMES[k], price: addonPrice });
+        total += addonPrice;
+      }
+    });
+  }
+
+  document.getElementById('totalItems').innerHTML = items.map(i =>
     `<div class="total-item"><span class="total-item-name">${i.name}</span><span class="total-item-price">₩${i.price.toLocaleString()}</span></div>`
   ).join('');
 
+  document.getElementById('totalFinalLabel').textContent = isYearly ? '월 결제 금액 (1년 약정)' : '월 결제 금액';
   document.getElementById('totalPrice').innerHTML =
-    `₩${total.toLocaleString()}<span class="total-final-unit">${unit}</span>`;
+    `₩${total.toLocaleString()}<span class="total-final-unit">/월</span>`;
 }
 renderTotal();
 
@@ -401,12 +486,24 @@ window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
 
-  const total = PLAN_PRICES[selectedPlan + '_' + billingCycle]
-              + Object.keys(addons).reduce((s, k) => s + (addons[k] ? ADDON_PRICES[billingCycle] : 0), 0);
+  const isYearly   = billingCycle === 'yearly';
+  const addonPrice = isYearly ? ADDON_PRICES.yearly : ADDON_PRICES.monthly;
+  let monthlyTotal = PLAN_PRICES[selectedPlan];
+
+  if (addons.bundle && isYearly) {
+    monthlyTotal += BUNDLE_PRICE;
+  } else {
+    ['exam', 'jumprope'].forEach(k => { if (addons[k]) monthlyTotal += addonPrice; });
+  }
+  const total = isYearly ? monthlyTotal * 12 : monthlyTotal;
+
   const parts = ['업무일지'];
-  if (addons.exam)     parts.push('승급심사');
-  if (addons.jumprope) parts.push('줄넘기');
-  if (addons.report)   parts.push('AI 성장리포트');
+  if (addons.bundle) {
+    parts.push('줄넘기', '승급심사', 'AI 성장리포트');
+  } else {
+    if (addons.exam)     parts.push('승급심사');
+    if (addons.jumprope) parts.push('줄넘기');
+  }
   const planName = 'FILLYO ' + parts.join('+');
 
   const btn = document.getElementById('payBtn');
@@ -449,9 +546,9 @@ window.startPayment = async function() {
           billingCycle: billingCycle,
           planExpiry:   Date.now() + (billingCycle === 'yearly' ? 365 : 30) * 24 * 60 * 60 * 1000,
           subscribedAddons: {
-            exam:     !!addons.exam,
-            jumprope: !!addons.jumprope,
-            report:   !!addons.report,
+            exam:     !!(addons.bundle || addons.exam),
+            jumprope: !!(addons.bundle || addons.jumprope),
+            report:   !!addons.bundle,
           },
           lastPayment: {
             amount:    total,
