@@ -204,14 +204,10 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         </div>
         <div class="card-body">
           <div class="card-name">승급심사</div>
-          <div class="price-row">
-            <span class="price-now" style="font-size:18px" id="priceExam">₩4,900</span>
-            <span class="price-unit">/월</span>
-          </div>
         </div>
       </div>
-      <!-- 청구 방식 선택 -->
-      <div class="addon-billing" id="billingExam" style="display:none">
+      <!-- 청구 방식 선택 (항상 표시) -->
+      <div class="addon-billing" id="billingExam">
         <div class="addon-billing-row" onclick="setAddonBilling('exam','monthly');event.stopPropagation()">
           <div class="rb" id="billingExamMonthly"></div>
           <div class="addon-billing-info">
@@ -241,14 +237,10 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         </div>
         <div class="card-body">
           <div class="card-name">줄넘기</div>
-          <div class="price-row">
-            <span class="price-now" style="font-size:18px" id="priceJump">₩4,900</span>
-            <span class="price-unit">/월</span>
-          </div>
         </div>
       </div>
-      <!-- 청구 방식 선택 -->
-      <div class="addon-billing" id="billingJump" style="display:none">
+      <!-- 청구 방식 선택 (항상 표시) -->
+      <div class="addon-billing" id="billingJump">
         <div class="addon-billing-row" onclick="setAddonBilling('jumprope','monthly');event.stopPropagation()">
           <div class="rb" id="billingJumpMonthly"></div>
           <div class="addon-billing-info">
@@ -408,7 +400,6 @@ window.setAddonBilling = function(key, cycle) {
   const capKey = key === 'jumprope' ? 'Jump' : 'Exam';
   document.getElementById('billing' + capKey + 'Yearly').classList.toggle('selected',  cycle === 'yearly');
   document.getElementById('billing' + capKey + 'Monthly').classList.toggle('selected', cycle === 'monthly');
-  document.getElementById('price' + capKey).textContent = cycle === 'yearly' ? '₩4,900' : '₩9,800';
   updatePayBtn();
   renderTotal();
 };
@@ -428,16 +419,12 @@ window.toggleAddon = function(key) {
     if (key === 'bundle') {
       ['exam', 'jumprope'].forEach(k => {
         addons[k] = false;
-        const cap    = k.charAt(0).toUpperCase() + k.slice(1);
-        const cid    = k === 'exam' ? 'cardExam' : 'cardJump';
-        const bilId  = k === 'exam' ? 'billingExam' : 'billingJump';
+        const cap = k.charAt(0).toUpperCase() + k.slice(1);
+        const cid = k === 'exam' ? 'cardExam' : 'cardJump';
         document.getElementById('cb' + cap).classList.remove('checked');
         document.getElementById(cid).classList.remove('selected');
         document.getElementById(cid).classList.add('card-disabled');
-        document.getElementById(bilId).style.display = 'none';
       });
-    } else {
-      document.getElementById(key === 'exam' ? 'billingExam' : 'billingJump').style.display = '';
     }
   } else {
     document.getElementById(cbId).classList.remove('checked');
@@ -445,8 +432,6 @@ window.toggleAddon = function(key) {
     if (key === 'bundle') {
       document.getElementById('cardExam').classList.remove('card-disabled');
       document.getElementById('cardJump').classList.remove('card-disabled');
-    } else {
-      document.getElementById(key === 'exam' ? 'billingExam' : 'billingJump').style.display = 'none';
     }
   }
   updatePayBtn();
