@@ -63,11 +63,12 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 
 /* ── ADDON BILLING SUB-SELECTOR ── */
 .addon-billing{margin-top:12px;border-top:1px solid #f3f4f6;padding-top:12px}
-.addon-billing-opts{display:flex;gap:8px}
-.addon-billing-opt{flex:1;border:2px solid #DDE4EE;border-radius:10px;padding:8px 10px;text-align:center;cursor:pointer;transition:border-color .15s,background .15s}
-.addon-billing-opt.selected{border-color:#0B7B6B;background:#f0fdf8}
-.addon-billing-opt-label{font-size:11px;font-weight:700;color:#5A6A7A}
-.addon-billing-opt-price{font-size:15px;font-weight:900;color:#0B7B6B;margin-top:2px}
+.addon-billing-row{display:flex;align-items:center;gap:12px;padding:7px 0;cursor:pointer}
+.addon-billing-row:first-child{padding-top:0}
+.addon-billing-row:last-child{padding-bottom:0}
+.addon-billing-info{display:flex;flex-direction:column;gap:2px}
+.addon-billing-name{font-size:14px;font-weight:700;color:#1A2332}
+.addon-billing-desc{font-size:12px;color:#9ca3af}
 
 /* ── INFO BOX ── */
 .info-box{background:#f0fdf8;border:1px solid #b2dfdb;border-radius:10px;padding:12px 16px;margin-top:4px;margin-bottom:14px;font-size:13px;color:#374151;line-height:1.7}
@@ -211,14 +212,18 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       </div>
       <!-- 청구 방식 선택 -->
       <div class="addon-billing" id="billingExam" style="display:none">
-        <div class="addon-billing-opts">
-          <div class="addon-billing-opt selected" id="billingExamYearly" onclick="setAddonBilling('exam','yearly');event.stopPropagation()">
-            <div class="addon-billing-opt-label">1년 약정</div>
-            <div class="addon-billing-opt-price">₩4,900/월</div>
+        <div class="addon-billing-row" onclick="setAddonBilling('exam','monthly');event.stopPropagation()">
+          <div class="rb" id="billingExamMonthly"></div>
+          <div class="addon-billing-info">
+            <span class="addon-billing-name">월정액</span>
+            <span class="addon-billing-desc">₩9,800/월 · 계약 없음, 필요한 달만</span>
           </div>
-          <div class="addon-billing-opt" id="billingExamMonthly" onclick="setAddonBilling('exam','monthly');event.stopPropagation()">
-            <div class="addon-billing-opt-label">월정액</div>
-            <div class="addon-billing-opt-price">₩9,800/월</div>
+        </div>
+        <div class="addon-billing-row" onclick="setAddonBilling('exam','yearly');event.stopPropagation()">
+          <div class="rb selected" id="billingExamYearly"></div>
+          <div class="addon-billing-info">
+            <span class="addon-billing-name">1년 계약<span class="card-badge" style="font-size:9px;padding:1px 6px">50% 할인</span></span>
+            <span class="addon-billing-desc">₩4,900/월</span>
           </div>
         </div>
       </div>
@@ -244,14 +249,18 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       </div>
       <!-- 청구 방식 선택 -->
       <div class="addon-billing" id="billingJump" style="display:none">
-        <div class="addon-billing-opts">
-          <div class="addon-billing-opt selected" id="billingJumpYearly" onclick="setAddonBilling('jumprope','yearly');event.stopPropagation()">
-            <div class="addon-billing-opt-label">1년 약정</div>
-            <div class="addon-billing-opt-price">₩4,900/월</div>
+        <div class="addon-billing-row" onclick="setAddonBilling('jumprope','monthly');event.stopPropagation()">
+          <div class="rb" id="billingJumpMonthly"></div>
+          <div class="addon-billing-info">
+            <span class="addon-billing-name">월정액</span>
+            <span class="addon-billing-desc">₩9,800/월 · 계약 없음, 필요한 달만</span>
           </div>
-          <div class="addon-billing-opt" id="billingJumpMonthly" onclick="setAddonBilling('jumprope','monthly');event.stopPropagation()">
-            <div class="addon-billing-opt-label">월정액</div>
-            <div class="addon-billing-opt-price">₩9,800/월</div>
+        </div>
+        <div class="addon-billing-row" onclick="setAddonBilling('jumprope','yearly');event.stopPropagation()">
+          <div class="rb selected" id="billingJumpYearly"></div>
+          <div class="addon-billing-info">
+            <span class="addon-billing-name">1년 계약<span class="card-badge" style="font-size:9px;padding:1px 6px">50% 할인</span></span>
+            <span class="addon-billing-desc">₩4,900/월</span>
           </div>
         </div>
       </div>
@@ -389,14 +398,6 @@ window.selectPlan = function(plan) {
     document.getElementById('cardJump').classList.remove('card-disabled');
   }
 
-  // 계약 동의 박스 표시 전환
-  const agreeBox = document.getElementById('agreeBox');
-  agreeBox.style.display = isContract ? '' : 'none';
-  if (!isContract) {
-    document.getElementById('agreeCheck').checked = false;
-    agreeBox.classList.remove('agreed');
-  }
-
   updatePayBtn();
   renderTotal();
 };
@@ -408,6 +409,7 @@ window.setAddonBilling = function(key, cycle) {
   document.getElementById('billing' + capKey + 'Yearly').classList.toggle('selected',  cycle === 'yearly');
   document.getElementById('billing' + capKey + 'Monthly').classList.toggle('selected', cycle === 'monthly');
   document.getElementById('price' + capKey).textContent = cycle === 'yearly' ? '₩4,900' : '₩9,800';
+  updatePayBtn();
   renderTotal();
 };
 
@@ -447,16 +449,28 @@ window.toggleAddon = function(key) {
       document.getElementById(key === 'exam' ? 'billingExam' : 'billingJump').style.display = 'none';
     }
   }
+  updatePayBtn();
   renderTotal();
 };
 
+// ── 계약 동의 필요 여부 ──
+function needsAgreement() {
+  if (selectedPlan !== 'monthly') return true;
+  return ['exam', 'jumprope'].some(k => addons[k] && addonBillings[k] === 'yearly');
+}
+
 // ── 결제 버튼 상태 갱신 ──
 window.updatePayBtn = function() {
-  const isContract = selectedPlan !== 'monthly';
-  const check      = document.getElementById('agreeCheck');
-  const agreed     = !isContract || check.checked;
-  document.getElementById('agreeBox').classList.toggle('agreed', check.checked);
-  document.getElementById('payBtn').disabled = !agreed;
+  const needs    = needsAgreement();
+  const check    = document.getElementById('agreeCheck');
+  const agreeBox = document.getElementById('agreeBox');
+  agreeBox.style.display = needs ? '' : 'none';
+  if (!needs) {
+    check.checked = false;
+    agreeBox.classList.remove('agreed');
+  }
+  agreeBox.classList.toggle('agreed', check.checked);
+  document.getElementById('payBtn').disabled = needs && !check.checked;
 };
 
 // ── 합계 렌더링 ──
@@ -499,6 +513,7 @@ function renderTotal() {
     `₩${total.toLocaleString()}<span class="total-final-unit">/월</span>`;
 }
 renderTotal();
+updatePayBtn();
 
 // ── 결제 ──
 window.startPayment = async function() {
