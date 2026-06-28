@@ -319,6 +319,47 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       </div>
     </div>
 
+    <!-- ── 추천정책 등록 ──────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">📌 추천정책 등록</span>
+      </div>
+      <div style="padding:16px 20px;display:flex;flex-direction:column;gap:10px;">
+        <input type="text" id="polTitle" class="search-inp" style="max-width:100%;" placeholder="사업명 *">
+        <input type="text" id="polOrg"   class="search-inp" style="max-width:100%;" placeholder="기관명">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:4px;">시작일</label>
+            <input type="date" id="polStart" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+          <div>
+            <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:4px;">마감일 *</label>
+            <input type="date" id="polEnd" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
+          </div>
+        </div>
+        <input type="text" id="polUrl" class="search-inp" style="max-width:100%;" placeholder="상세 URL (https://...)">
+        <input type="text" id="polTag" class="search-inp" style="max-width:100%;" placeholder="태그 (예: 대전 | 체육시설 | 소상공인)">
+        <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;">
+          <input type="checkbox" id="polPinned" style="width:16px;height:16px;cursor:pointer;">
+          📌 상단 고정 (pinned)
+        </label>
+        <div style="display:flex;justify-content:flex-end;">
+          <button class="btn-ok" onclick="saveCurated()" style="width:auto;padding:10px 24px;">📌 등록</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── 등록된 추천정책 목록 ──────────────────────────────────── -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">📋 등록된 추천정책 목록</span>
+        <button class="btn-refresh" onclick="loadCurated()">↻ 새로고침</button>
+      </div>
+      <div id="curatedPolicyList">
+        <div class="req-empty"><div class="req-empty-icon">⏳</div><div class="req-empty-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
     <!-- TABLE -->
     <div class="card">
       <div class="card-header">
@@ -448,6 +489,7 @@ onAuthStateChanged(auth, async (user) => {
   document.getElementById('hdrUser').textContent   = user.email;
   await loadData();
   await loadNotices();
+  await loadCurated();
 });
 
 window.doLogout = () => signOut(auth).then(() => location.href = '/login');
@@ -810,6 +852,71 @@ window.deleteNotice = async (id) => {
     await remove(ref(db, `notices/${id}`));
     showToast('삭제되었습니다.', 'ok');
     await loadNotices();
+  } catch (e) { showToast('삭제 실패: ' + e.message, 'err'); }
+};
+
+// ── 추천정책 관리 ─────────────────────────────────────────────────
+window.saveCurated = async () => {
+  const title     = (document.getElementById('polTitle').value  || '').trim();
+  const org       = (document.getElementById('polOrg').value    || '').trim();
+  const startDate = (document.getElementById('polStart').value  || '').trim();
+  const endDate   = (document.getElementById('polEnd').value    || '').trim();
+  const url       = (document.getElementById('polUrl').value    || '').trim();
+  const tag       = (document.getElementById('polTag').value    || '').trim();
+  const pinned    = document.getElementById('polPinned').checked;
+
+  if (!title || !endDate) { showToast('사업명과 마감일은 필수입니다.', 'err'); return; }
+
+  try {
+    await push(ref(db, 'policy/curated'), { title, org, startDate, endDate, url, tag, pinned });
+    ['polTitle','polOrg','polStart','polEnd','polUrl','polTag'].forEach(id => {
+      document.getElementById(id).value = '';
+    });
+    document.getElementById('polPinned').checked = false;
+    showToast('추천정책이 등록되었습니다.', 'ok');
+    await loadCurated();
+  } catch (e) { showToast('등록 실패: ' + e.message, 'err'); }
+};
+
+async function loadCurated() {
+  const el = document.getElementById('curatedPolicyList');
+  if (!el) return;
+  try {
+    const snap = await get(ref(db, 'policy/curated'));
+    if (!snap.exists()) {
+      el.innerHTML = `<div class="req-empty"><div class="req-empty-icon">📭</div><div class="req-empty-text">등록된 추천정책이 없습니다.</div></div>`;
+      return;
+    }
+    const list = Object.entries(snap.val())
+      .map(([id, v]) => ({ id, ...v }))
+      .sort((a, b) => {
+        if (!a.endDate) return 1;
+        if (!b.endDate) return -1;
+        return a.endDate.localeCompare(b.endDate);
+      });
+    el.innerHTML = list.map(p => `
+      <div class="notice-item">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          ${p.pinned ? '<span style="font-size:11px;font-weight:900;background:#fff7e0;color:#b36200;padding:2px 8px;border-radius:5px;">📌 고정</span>' : ''}
+          <div class="notice-item-title" style="margin-bottom:0;">${esc(p.title)}</div>
+        </div>
+        <div class="notice-item-date">${esc(p.org || '')}${p.org ? ' · ' : ''}마감 ${esc(p.endDate || '—')}</div>
+        <div class="notice-item-preview">${esc(p.tag || '')}</div>
+        <div class="notice-item-footer">
+          <button class="btn-act btn-del" onclick="deleteCurated('${p.id}')">삭제</button>
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패</div></div>`;
+  }
+}
+
+window.deleteCurated = async (id) => {
+  if (!confirm('이 추천정책을 삭제하시겠습니까?')) return;
+  try {
+    await remove(ref(db, `policy/curated/${id}`));
+    showToast('삭제되었습니다.', 'ok');
+    await loadCurated();
   } catch (e) { showToast('삭제 실패: ' + e.message, 'err'); }
 };
 
