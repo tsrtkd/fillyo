@@ -54,14 +54,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .divider span{font-size:11px;color:var(--gray);}
 
-/* PLAN CHIPS (회원가입 시) */
-.plan-row{display:flex;gap:8px;margin-bottom:16px;}
-.plan-chip{flex:1;border:2px solid var(--border);border-radius:10px;padding:12px 8px;cursor:pointer;text-align:center;transition:all 0.15s;}
-.plan-chip.on{border-color:var(--blue);background:var(--sky);}
-.plan-chip .pc-name{font-size:13px;font-weight:900;color:var(--text);}
-.plan-chip .pc-price{font-size:11px;color:var(--gray);margin-top:3px;}
-.plan-chip .pc-desc{font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;}
-.plan-chip.on .pc-name{color:var(--blue);}
+/* TRIAL NOTICE (회원가입 시) */
+.trial-notice{background:var(--sky);border:1.5px solid #b3c9f5;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:13px;font-weight:700;color:var(--blue);text-align:center;}
 
 /* AGREE CHECKBOXES */
 .agree-block{margin:14px 0 4px;}
@@ -134,19 +128,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
       <label>비밀번호 확인</label>
       <input type="password" id="signupPw2" placeholder="비밀번호 재입력" required>
     </div>
-    <div class="divider"><span>플랜 선택</span></div>
-    <div class="plan-row">
-      <div class="plan-chip on" id="chipFree" onclick="selectPlan('free')">
-        <div class="pc-name">무료</div>
-        <div class="pc-price">₩0 / 월</div>
-        <div class="pc-desc">1주일 무료 체험<br>모든 기능 미리 보기</div>
-      </div>
-      <div class="plan-chip" id="chipPro" onclick="selectPlan('pro')">
-        <div class="pc-name">Pro</div>
-        <div class="pc-price">₩9,900 / 월</div>
-        <div class="pc-desc">도장 맞춤 커스텀<br>모든 기능 계속 사용</div>
-      </div>
-    </div>
+    <div class="trial-notice">7일 무료 체험 후 구독 전환 · 카드 등록 없이 시작</div>
     <div class="agree-block">
       <label class="agree-row">
         <input type="checkbox" id="agreeTerms">
@@ -201,8 +183,6 @@ const app  = initializeApp(FB_CONFIG);
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-let selectedPlan = 'free';
-
 // ── 탭 전환 ──────────────────────────────────────────────────────
 window.switchTab = (tab) => {
   document.getElementById('loginForm').style.display  = tab === 'login'  ? '' : 'none';
@@ -210,13 +190,6 @@ window.switchTab = (tab) => {
   document.getElementById('tabLogin').classList.toggle('on',  tab === 'login');
   document.getElementById('tabSignup').classList.toggle('on', tab === 'signup');
   clearErrors();
-};
-
-// ── 플랜 선택 ─────────────────────────────────────────────────────
-window.selectPlan = (plan) => {
-  selectedPlan = plan;
-  document.getElementById('chipFree').classList.toggle('on', plan === 'free');
-  document.getElementById('chipPro').classList.toggle('on',  plan === 'pro');
 };
 
 // ── 에러 표시 헬퍼 ────────────────────────────────────────────────
@@ -318,8 +291,8 @@ window.doSignup = async (e) => {
     await set(ref(db, `users/${cred.user.uid}`), {
       email,
       phone,
-      planType:    selectedPlan,
-      planExpiry:  selectedPlan === 'pro' ? Date.now() + 30 * 24 * 60 * 60 * 1000 : null,
+      planType:    'trial',
+      planExpiry:  Date.now() + 7 * 24 * 60 * 60 * 1000,
       createdAt:   Date.now(),
       academyId:   null,
     });
