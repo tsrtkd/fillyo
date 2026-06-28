@@ -219,21 +219,29 @@ function cardHTML(item, pinned = false) {
     expired ? `<span class="pol-badge expired-b">마감</span>` : '',
   ].filter(Boolean).join('');
 
-  // API는 reqstBeginEndDe, Firebase 큐레이션은 reqstBeginEndDe 또는 begin/end 각각 가능
-  const period = item.reqstBeginEndDe || '상시';
+  const title  = item.pblancNm  || item.title  || '제목 없음';
+  const org    = item.jrsdInsttNm || item.org  || '';
+  const href   = item.pblancUrl  || item.url   || '';
+  const period = item.reqstBeginEndDe
+    || (item.startDate && item.endDate ? item.startDate + ' ~ ' + item.endDate : '상시');
 
-  const url = item.pblancUrl
-    ? `<a href="${item.pblancUrl}" target="_blank" rel="noopener" class="pol-btn">자세히 보기 →</a>`
+  const url = href
+    ? `<a href="${href}" target="_blank" rel="noopener" class="pol-btn">자세히 보기 →</a>`
+    : '';
+
+  const tagLine = item.tag
+    ? `<div class="pol-org" style="margin-top:2px;">${escHtml(item.tag)}</div>`
     : '';
 
   return `
     <div class="${cls}">
       ${badges ? `<div class="pol-badges">${badges}</div>` : ''}
       <div class="pol-top">
-        <span class="pol-title">${escHtml(item.pblancNm || '제목 없음')}</span>
+        <span class="pol-title">${escHtml(title)}</span>
         <span class="pol-dday ${dd.cls}">${dd.text}</span>
       </div>
-      <div class="pol-org">${escHtml(item.jrsdInsttNm || '')}</div>
+      <div class="pol-org">${escHtml(org)}</div>
+      ${tagLine}
       <div class="pol-period">📅 ${escHtml(period)}</div>
       ${url}
     </div>`;
