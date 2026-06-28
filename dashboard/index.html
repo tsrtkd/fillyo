@@ -538,7 +538,7 @@
           <div class="arrow">›</div>
         </div>
 
-        <div class="quick-item">
+        <div class="quick-item" onclick="document.getElementById('customRequestModal').style.display='flex'">
           <div class="quick-left">
             <div class="quick-icon bg-blue">✏️</div>
             <div class="quick-text">
@@ -974,5 +974,59 @@ function xss(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 </script>
+
+<style>
+  #customRequestModal{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:9000;padding:16px;}
+  .crm-box{background:#fff;border-radius:24px;width:100%;max-width:480px;padding:28px 24px;box-shadow:0 24px 60px rgba(0,0,0,0.25);position:relative;}
+  .crm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+  .crm-title{font-size:18px;font-weight:900;color:#0B1F3A;}
+  .crm-close{background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;padding:0 4px;font-family:inherit;}
+  .crm-close:hover{color:#333;}
+  .crm-desc{font-size:13px;color:#555;margin-bottom:20px;line-height:1.6;}
+  .crm-cards{display:flex;gap:12px;margin-bottom:20px;}
+  .crm-card{flex:1;border:2px solid #e8edf5;border-radius:16px;padding:18px 14px;text-align:center;}
+  .crm-card.highlight{border-color:#0B7B6B;background:#f0fdf8;}
+  .crm-tier{font-size:10px;font-weight:700;color:#888;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px;}
+  .crm-card.highlight .crm-tier{color:#0B7B6B;}
+  .crm-name{font-size:14px;font-weight:900;color:#0B1F3A;margin-bottom:6px;}
+  .crm-detail{font-size:11px;color:#666;line-height:1.5;margin-bottom:12px;}
+  .crm-price{font-size:20px;font-weight:900;color:#0B1F3A;}
+  .crm-price-unit{font-size:11px;color:#888;margin-top:4px;}
+  .crm-note{font-size:10px;color:#0B7B6B;font-weight:700;margin-top:6px;}
+  .crm-kakao{display:flex;align-items:center;justify-content:center;gap:8px;background:#FEE500;color:#191919;border-radius:14px;padding:14px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;width:100%;text-decoration:none;transition:background 0.15s;}
+  .crm-kakao:hover{background:#f0d800;}
+  .crm-kakao:active{transform:scale(0.98);}
+  @media(max-width:480px){.crm-cards{flex-direction:column;}.crm-box{padding:22px 18px;}}
+</style>
+
+<div id="customRequestModal" onclick="if(event.target===this)this.style.display='none'">
+  <div class="crm-box">
+    <div class="crm-head">
+      <span class="crm-title">✏️ 업무일지 맞춤 수정 요청</span>
+      <button class="crm-close" onclick="document.getElementById('customRequestModal').style.display='none'">✕</button>
+    </div>
+    <p class="crm-desc">우리 도장에 맞게 업무일지를 수정해드립니다.</p>
+    <div class="crm-cards">
+      <div class="crm-card">
+        <div class="crm-tier">스탠다드</div>
+        <div class="crm-name">항목 추가·변경</div>
+        <div class="crm-detail">출석부 항목, 평가 구조 등<br>기능 단위 수정</div>
+        <div class="crm-price">₩50,000</div>
+        <div class="crm-price-unit">/ 1회</div>
+        <div class="crm-note">최대 3회까지 요청 가능</div>
+      </div>
+      <div class="crm-card highlight">
+        <div class="crm-tier">프리미엄</div>
+        <div class="crm-name">전면 재설계</div>
+        <div class="crm-detail">UI 개편, 신규 기능 추가,<br>구조 변경 등</div>
+        <div class="crm-price">협의</div>
+        <div class="crm-price-unit">&nbsp;</div>
+        <div class="crm-note">규모에 따라 견적 안내</div>
+      </div>
+    </div>
+    <a href="https://pf.kakao.com/_xnxicxjX" target="_blank" class="crm-kakao">카카오로 요청하기 💬</a>
+  </div>
+</div>
+
 </body>
 </html>
