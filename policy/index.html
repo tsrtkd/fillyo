@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>지원정책 알림 — FILLYO</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+:root {
+  --navy:#0B1F3A; --teal:#0B7B6B; --teal-lt:#E4F5F3;
+  --yellow:#F9A825; --red:#C62828; --red-lt:#FFEBEE;
+  --gray:#546E7A; --border:#DDE4EE; --bg:#EEF2F8;
+  --text:#1A2332; --text2:#4A5A6A;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+/* LOADING */
+#loadingScreen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;}
+.ld-icon{font-size:48px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.ld-name{color:var(--yellow);font-size:20px;font-weight:900;margin-top:8px;}
+
+/* PAGE */
+#pageContent{display:none;}
+
+/* HEADER */
+.hdr{background:var(--navy);height:56px;padding:0 16px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(0,0,0,0.25);}
+.hdr-back{background:none;border:none;color:rgba(255,255,255,0.75);font-size:22px;cursor:pointer;padding:8px;font-family:inherit;line-height:1;flex-shrink:0;}
+.hdr-back:hover{color:#fff;}
+.hdr-center{flex:1;text-align:center;color:#fff;font-size:16px;font-weight:900;letter-spacing:-0.3px;}
+.hdr-refresh{background:none;border:none;color:rgba(255,255,255,0.75);font-size:20px;cursor:pointer;padding:8px;font-family:inherit;line-height:1;flex-shrink:0;transition:transform 0.3s;}
+.hdr-refresh:hover{color:#fff;}
+.hdr-refresh.spinning{animation:spin360 0.6s linear;}
+@keyframes spin360{to{transform:rotate(360deg)}}
+
+/* TABS */
+.tab-bar{display:flex;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:99;}
+.tab-btn{flex:1;padding:13px 0;font-size:14px;font-weight:700;color:var(--gray);background:none;border:none;border-bottom:3px solid transparent;cursor:pointer;font-family:inherit;transition:all 0.15s;}
+.tab-btn.on{color:var(--teal);border-bottom-color:var(--teal);}
+
+/* CONTENT */
+.tab-content{display:none;padding:16px 14px 80px;}
+.tab-content.on{display:block;}
+
+/* SPINNER */
+.spinner-wrap{display:flex;align-items:center;justify-content:center;padding:60px 0;flex-direction:column;gap:12px;}
+.spinner{width:36px;height:36px;border:3px solid rgba(11,123,107,0.2);border-top-color:var(--teal);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.spinner-txt{font-size:13px;color:var(--gray);}
+
+/* POLICY CARD */
+.pol-card{background:#fff;border-radius:16px;padding:16px 18px;margin-bottom:12px;box-shadow:0 2px 10px rgba(11,31,58,0.07);transition:transform 0.15s;}
+.pol-card:active{transform:scale(0.98);}
+.pol-card.expired{opacity:0.45;}
+.pol-card.pinned{border-left:4px solid var(--teal);}
+.pol-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.pol-badges{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;}
+.pol-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;background:var(--teal-lt);color:var(--teal);}
+.pol-badge.pin{background:#fff7e0;color:#b36200;}
+.pol-badge.expired-b{background:#f3f4f6;color:#9ca3af;}
+.pol-title{font-size:15px;font-weight:900;color:var(--text);line-height:1.4;flex:1;}
+.pol-dday{flex-shrink:0;font-size:12px;font-weight:900;padding:4px 9px;border-radius:8px;background:var(--red-lt);color:var(--red);}
+.pol-dday.soon{background:#fff3cd;color:#856404;}
+.pol-dday.ok{background:#e6f4ea;color:#1a7f37;}
+.pol-dday.expired-d{background:#f3f4f6;color:#9ca3af;}
+.pol-org{font-size:12px;color:var(--gray);margin-bottom:6px;font-weight:500;}
+.pol-period{font-size:12px;color:var(--text2);margin-bottom:12px;}
+.pol-btn{display:inline-block;background:var(--teal);color:#fff;font-size:13px;font-weight:700;padding:9px 18px;border-radius:10px;text-decoration:none;font-family:inherit;transition:background 0.15s;}
+.pol-btn:hover{background:#085041;}
+
+/* EMPTY */
+.empty-box{text-align:center;padding:60px 20px;color:var(--gray);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-txt{font-size:14px;font-weight:700;margin-bottom:6px;}
+.empty-sub{font-size:12px;color:#9ca3af;line-height:1.6;}
+
+/* ERROR */
+.error-box{background:var(--red-lt);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--red);margin:20px 0;}
+</style>
+</head>
+<body>
+
+<div id="loadingScreen">
+  <div class="ld-icon">📋</div>
+  <div class="ld-name">FILLYO</div>
+</div>
+
+<div id="pageContent">
+
+  <header class="hdr">
+    <button class="hdr-back" onclick="location.href='/dashboard/'">‹</button>
+    <span class="hdr-center">📋 지원정책 알림</span>
+    <button class="hdr-refresh" id="btnRefresh" onclick="refresh()" title="새로고침">↻</button>
+  </header>
+
+  <div class="tab-bar">
+    <button class="tab-btn on" id="tabAuto" onclick="switchTab('auto')">자동검색</button>
+    <button class="tab-btn" id="tabCurated" onclick="switchTab('curated')">추천정책</button>
+  </div>
+
+  <!-- 자동검색 탭 -->
+  <div class="tab-content on" id="panelAuto">
+    <div class="spinner-wrap" id="autoSpinner">
+      <div class="spinner"></div>
+      <div class="spinner-txt">정책 정보를 불러오는 중...</div>
+    </div>
+    <div id="autoList"></div>
+  </div>
+
+  <!-- 추천정책 탭 -->
+  <div class="tab-content" id="panelCurated">
+    <div class="spinner-wrap" id="curatedSpinner">
+      <div class="spinner"></div>
+      <div class="spinner-txt">추천 정책을 불러오는 중...</div>
+    </div>
+    <div id="curatedList"></div>
+  </div>
+
+</div>
+
+<script type="module">
+import { initializeApp }  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const FB_CONFIG = {
+  apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain:        "fillyo-journal.firebaseapp.com",
+  projectId:         "fillyo-journal",
+  storageBucket:     "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId:             "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL:       "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+};
+
+const app  = initializeApp(FB_CONFIG);
+const auth = getAuth(app);
+const db   = getDatabase(app);
+
+// ── 탭 전환 ────────────────────────────────────────────────────────
+let activeTab = 'auto';
+let autoLoaded = false;
+let curatedLoaded = false;
+
+window.switchTab = function(tab) {
+  activeTab = tab;
+  document.getElementById('tabAuto').classList.toggle('on', tab === 'auto');
+  document.getElementById('tabCurated').classList.toggle('on', tab === 'curated');
+  document.getElementById('panelAuto').classList.toggle('on', tab === 'auto');
+  document.getElementById('panelCurated').classList.toggle('on', tab === 'curated');
+  if (tab === 'curated' && !curatedLoaded) loadCurated();
+};
+
+// ── 새로고침 ───────────────────────────────────────────────────────
+window.refresh = function() {
+  const btn = document.getElementById('btnRefresh');
+  btn.classList.add('spinning');
+  setTimeout(() => btn.classList.remove('spinning'), 600);
+  if (activeTab === 'auto') {
+    autoLoaded = false;
+    loadAuto();
+  } else {
+    curatedLoaded = false;
+    loadCurated();
+  }
+};
+
+// ── 인증 체크 ──────────────────────────────────────────────────────
+onAuthStateChanged(auth, (user) => {
+  if (!user) { location.href = '/login/'; return; }
+  document.getElementById('loadingScreen').style.display = 'none';
+  document.getElementById('pageContent').style.display   = 'block';
+  loadAuto();
+});
+
+// ── D-day 계산 ─────────────────────────────────────────────────────
+function calcDday(endDateStr) {
+  if (!endDateStr) return null;
+  const end  = new Date(endDateStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
+  const now  = new Date(); now.setHours(0,0,0,0); end.setHours(0,0,0,0);
+  return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+}
+
+function ddayLabel(d) {
+  if (d === null) return { text: '상시', cls: 'ok' };
+  if (d < 0)  return { text: '마감', cls: 'expired-d' };
+  if (d === 0) return { text: 'D-day', cls: 'soon' };
+  if (d <= 7)  return { text: `D-${d}`, cls: 'soon' };
+  return { text: `D-${d}`, cls: 'ok' };
+}
+
+function fmtDate(s) {
+  if (!s) return '상시';
+  return s.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
+}
+
+// ── 카드 HTML 생성 ─────────────────────────────────────────────────
+function cardHTML(item, pinned = false) {
+  const d   = calcDday(item.reqstEndDt);
+  const dd  = ddayLabel(d);
+  const expired = d !== null && d < 0;
+  const cls = [
+    'pol-card',
+    expired ? 'expired' : '',
+    pinned  ? 'pinned'  : '',
+  ].filter(Boolean).join(' ');
+
+  const badges = [
+    pinned  ? `<span class="pol-badge pin">📌 추천</span>` : '',
+    expired ? `<span class="pol-badge expired-b">마감</span>` : '',
+  ].filter(Boolean).join('');
+
+  const period = [fmtDate(item.reqstBeginDt), fmtDate(item.reqstEndDt)]
+    .filter(v => v !== '상시').join(' ~ ') || '상시';
+
+  const url = item.pblancUrl
+    ? `<a href="${item.pblancUrl}" target="_blank" rel="noopener" class="pol-btn">자세히 보기 →</a>`
+    : '';
+
+  return `
+    <div class="${cls}">
+      ${badges ? `<div class="pol-badges">${badges}</div>` : ''}
+      <div class="pol-top">
+        <span class="pol-title">${escHtml(item.pblancNm || '제목 없음')}</span>
+        <span class="pol-dday ${dd.cls}">${dd.text}</span>
+      </div>
+      <div class="pol-org">${escHtml(item.jrsdInsttNm || '')}</div>
+      <div class="pol-period">📅 ${escHtml(period)}</div>
+      ${url}
+    </div>`;
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── 자동검색 ───────────────────────────────────────────────────────
+const KEYWORDS = ['태권도', '학원', '체육시설', '소상공인', '스포츠', '대전'];
+const API_BASE = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=10&keyword=';
+
+async function fetchKeyword(kw) {
+  try {
+    const res  = await fetch(API_BASE + encodeURIComponent(kw));
+    const json = await res.json();
+    return (json?.jsonArray || json?.result || []);
+  } catch {
+    return [];
+  }
+}
+
+async function loadAuto() {
+  if (autoLoaded) return;
+  autoLoaded = true;
+
+  const listEl    = document.getElementById('autoList');
+  const spinnerEl = document.getElementById('autoSpinner');
+  listEl.innerHTML = '';
+  spinnerEl.style.display = 'flex';
+
+  try {
+    const results = await Promise.all(KEYWORDS.map(fetchKeyword));
+    const flat    = results.flat();
+
+    // 중복 제거 (pblancId 기준)
+    const seen = new Set();
+    const uniq = flat.filter(item => {
+      const id = item.pblancId || item.pblancNm;
+      if (!id || seen.has(id)) return false;
+      seen.add(id);
+      return true;
+    });
+
+    // 마감일 임박 순 정렬 (마감된 항목은 맨 뒤)
+    uniq.sort((a, b) => {
+      const da = calcDday(a.reqstEndDt);
+      const db = calcDday(b.reqstEndDt);
+      const va = da === null ? 9999 : da < 0 ? 99999 : da;
+      const vb = db === null ? 9999 : db < 0 ? 99999 : db;
+      return va - vb;
+    });
+
+    spinnerEl.style.display = 'none';
+
+    if (!uniq.length) {
+      listEl.innerHTML = `
+        <div class="empty-box">
+          <div class="empty-icon">🔍</div>
+          <div class="empty-txt">검색 결과가 없습니다</div>
+          <div class="empty-sub">잠시 후 다시 시도해주세요</div>
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = uniq.map(item => cardHTML(item)).join('');
+  } catch (e) {
+    spinnerEl.style.display = 'none';
+    listEl.innerHTML = `<div class="error-box">⚠️ 정보를 불러오지 못했습니다.<br>네트워크를 확인하고 새로고침 해주세요.</div>`;
+  }
+}
+
+// ── 추천정책 (Firebase) ────────────────────────────────────────────
+async function loadCurated() {
+  if (curatedLoaded) return;
+  curatedLoaded = true;
+
+  const listEl    = document.getElementById('curatedList');
+  const spinnerEl = document.getElementById('curatedSpinner');
+  listEl.innerHTML = '';
+  spinnerEl.style.display = 'flex';
+
+  try {
+    const snap = await get(ref(db, 'policy/curated'));
+    spinnerEl.style.display = 'none';
+
+    if (!snap.exists()) {
+      listEl.innerHTML = `
+        <div class="empty-box">
+          <div class="empty-icon">📋</div>
+          <div class="empty-txt">추천 정책이 없습니다</div>
+          <div class="empty-sub">관리자가 등록한 추천 정책이 여기에 표시됩니다</div>
+        </div>`;
+      return;
+    }
+
+    const raw   = snap.val();
+    const items = Object.values(raw);
+
+    // pinned:true 상단 고정, 나머지 마감일 순 정렬
+    const pinned  = items.filter(i => i.pinned);
+    const rest    = items.filter(i => !i.pinned).sort((a, b) => {
+      const da = calcDday(a.reqstEndDt);
+      const db = calcDday(b.reqstEndDt);
+      const va = da === null ? 9999 : da < 0 ? 99999 : da;
+      const vb = db === null ? 9999 : db < 0 ? 99999 : db;
+      return va - vb;
+    });
+
+    const sorted = [...pinned, ...rest];
+    listEl.innerHTML = sorted.map(item => cardHTML(item, !!item.pinned)).join('');
+  } catch (e) {
+    spinnerEl.style.display = 'none';
+    listEl.innerHTML = `<div class="error-box">⚠️ 데이터를 불러오지 못했습니다.</div>`;
+  }
+}
+</script>
+</body>
+</html>
