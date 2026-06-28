@@ -244,17 +244,12 @@ function escHtml(s) {
 }
 
 // ── 자동검색 ───────────────────────────────────────────────────────
-const KEYWORDS = ['태권도', '학원', '체육시설', '소상공인', '스포츠', '대전'];
-const API_BASE = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=10&pageIndex=1&keyword=';
+const API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=30&pageIndex=1';
+const FILTER_KEYWORDS = ['소상공인', '학원', '체육', '스포츠', '태권도', '대전', '서구', '중소기업', '창업', '자영업'];
 
-async function fetchKeyword(kw) {
-  try {
-    const res  = await fetch(API_BASE + encodeURIComponent(kw));
-    const json = await res.json();
-    return (json?.jsonArray || []);
-  } catch {
-    return [];
-  }
+function matchesFilter(item) {
+  const tags = (item.hashtags || '').toLowerCase();
+  return FILTER_KEYWORDS.some(kw => tags.includes(kw.toLowerCase()));
 }
 
 async function loadAuto() {
@@ -267,20 +262,21 @@ async function loadAuto() {
   spinnerEl.style.display = 'flex';
 
   try {
-    const results = await Promise.all(KEYWORDS.map(fetchKeyword));
-    const flat    = results.flat();
+    const res  = await fetch(API_URL);
+    const json = await res.json();
+    const all  = json?.jsonArray || [];
 
-    // 중복 제거 (pblancId 기준)
-    const seen = new Set();
-    const uniq = flat.filter(item => {
-      const id = item.pblancId || item.pblancNm;
-      if (!id || seen.has(id)) return false;
-      seen.add(id);
-      return true;
-    });
+    // hashtags 기준 클라이언트 필터링
+    let filtered = all.filter(matchesFilter);
+    let fallback = false;
+
+    if (!filtered.length) {
+      filtered = all;
+      fallback = true;
+    }
 
     // 마감일 임박 순 정렬 (마감된 항목은 맨 뒤)
-    uniq.sort((a, b) => {
+    filtered.sort((a, b) => {
       const da = calcDday(getEndDate(a));
       const db = calcDday(getEndDate(b));
       const va = da === null ? 9999 : da < 0 ? 99999 : da;
@@ -290,7 +286,7 @@ async function loadAuto() {
 
     spinnerEl.style.display = 'none';
 
-    if (!uniq.length) {
+    if (!filtered.length) {
       listEl.innerHTML = `
         <div class="empty-box">
           <div class="empty-icon">🔍</div>
@@ -300,7 +296,10 @@ async function loadAuto() {
       return;
     }
 
-    listEl.innerHTML = uniq.map(item => cardHTML(item)).join('');
+    const notice = fallback
+      ? `<div class="error-box" style="background:#fffbea;color:#856404;border:1px solid #fde68a;">관련 공고가 없어 전체 최신 공고를 표시합니다</div>`
+      : '';
+    listEl.innerHTML = notice + filtered.map(item => cardHTML(item)).join('');
   } catch (e) {
     spinnerEl.style.display = 'none';
     listEl.innerHTML = `<div class="error-box">⚠️ 정보를 불러오지 못했습니다.<br>네트워크를 확인하고 새로고침 해주세요.</div>`;
