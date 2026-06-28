@@ -878,7 +878,7 @@ window.saveCurated = async () => {
   } catch (e) { showToast('등록 실패: ' + e.message, 'err'); }
 };
 
-async function loadCurated() {
+window.loadCurated = async () => {
   const el = document.getElementById('curatedPolicyList');
   if (!el) return;
   try {
