@@ -63,6 +63,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
 .plan-chip .pc-desc{font-size:10px;color:var(--text2);margin-top:4px;line-height:1.4;}
 .plan-chip.on .pc-name{color:var(--blue);}
 
+/* AGREE CHECKBOXES */
+.agree-block{margin:14px 0 4px;}
+.agree-row{display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;cursor:pointer;}
+.agree-row input[type=checkbox]{width:16px;height:16px;margin-top:2px;flex-shrink:0;accent-color:var(--navy);cursor:pointer;}
+.agree-row span{font-size:12px;color:var(--gray);line-height:1.5;}
+.agree-row a{color:var(--blue);text-decoration:underline;}
+.agree-row a:hover{opacity:0.8;}
+
 /* FOOTER */
 .auth-footer{color:rgba(255,255,255,0.35);font-size:11px;margin-top:20px;text-align:center;line-height:1.8;}
 .auth-footer a{color:rgba(255,255,255,0.55);text-decoration:none;}
@@ -138,6 +146,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
         <div class="pc-price">₩9,900 / 월</div>
         <div class="pc-desc">도장 맞춤 커스텀<br>모든 기능 계속 사용</div>
       </div>
+    </div>
+    <div class="agree-block">
+      <label class="agree-row">
+        <input type="checkbox" id="agreeTerms">
+        <span><a href="/terms/" target="_blank">이용약관</a>에 동의합니다 (필수)</span>
+      </label>
+      <label class="agree-row">
+        <input type="checkbox" id="agreePrivacy">
+        <span><a href="/privacy/" target="_blank">개인정보 수집·이용</a>에 동의합니다 (필수)</span>
+      </label>
     </div>
     <button type="submit" class="btn-submit" id="btnSignup">다음 — 학원 설정</button>
     <div class="err-msg" id="signupErr"></div>
@@ -266,6 +284,12 @@ window.doResetPassword = async () => {
 window.doSignup = async (e) => {
   e.preventDefault();
   clearErrors();
+
+  if (!document.getElementById('agreeTerms').checked || !document.getElementById('agreePrivacy').checked) {
+    showErr('signupErr', '이용약관 및 개인정보 수집·이용에 동의해주세요.');
+    return;
+  }
+
   const email = document.getElementById('signupEmail').value.trim();
   const phone = document.getElementById('signupPhone').value.trim();
   const pw    = document.getElementById('signupPw').value;
