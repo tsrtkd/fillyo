@@ -174,11 +174,24 @@ onAuthStateChanged(auth, (user) => {
   loadAuto();
 });
 
+// ── 마감일 추출 ────────────────────────────────────────────────────
+// API 응답: reqstBeginEndDe = "2026-06-29 ~ 2026-07-06"
+// Firebase 큐레이션: reqstEndDt 직접 저장 가능 (fallback)
+function getEndDate(item) {
+  if (item.reqstEndDt) return item.reqstEndDt;
+  const s = item.reqstBeginEndDe || '';
+  const parts = s.split(' ~ ');
+  return parts.length === 2 ? parts[1].trim() : null;
+}
+
 // ── D-day 계산 ─────────────────────────────────────────────────────
 function calcDday(endDateStr) {
   if (!endDateStr) return null;
-  const end  = new Date(endDateStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'));
-  const now  = new Date(); now.setHours(0,0,0,0); end.setHours(0,0,0,0);
+  // YYYY-MM-DD 또는 YYYYMMDD 모두 처리
+  const normalized = endDateStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+  const end = new Date(normalized);
+  if (isNaN(end.getTime())) return null;
+  const now = new Date(); now.setHours(0,0,0,0); end.setHours(0,0,0,0);
   return Math.ceil((end - now) / (1000 * 60 * 60 * 24));
 }
 
@@ -190,14 +203,9 @@ function ddayLabel(d) {
   return { text: `D-${d}`, cls: 'ok' };
 }
 
-function fmtDate(s) {
-  if (!s) return '상시';
-  return s.replace(/(\d{4})(\d{2})(\d{2})/, '$1.$2.$3');
-}
-
 // ── 카드 HTML 생성 ─────────────────────────────────────────────────
 function cardHTML(item, pinned = false) {
-  const d   = calcDday(item.reqstEndDt);
+  const d   = calcDday(getEndDate(item));
   const dd  = ddayLabel(d);
   const expired = d !== null && d < 0;
   const cls = [
@@ -211,8 +219,8 @@ function cardHTML(item, pinned = false) {
     expired ? `<span class="pol-badge expired-b">마감</span>` : '',
   ].filter(Boolean).join('');
 
-  const period = [fmtDate(item.reqstBeginDt), fmtDate(item.reqstEndDt)]
-    .filter(v => v !== '상시').join(' ~ ') || '상시';
+  // API는 reqstBeginEndDe, Firebase 큐레이션은 reqstBeginEndDe 또는 begin/end 각각 가능
+  const period = item.reqstBeginEndDe || '상시';
 
   const url = item.pblancUrl
     ? `<a href="${item.pblancUrl}" target="_blank" rel="noopener" class="pol-btn">자세히 보기 →</a>`
@@ -237,13 +245,13 @@ function escHtml(s) {
 
 // ── 자동검색 ───────────────────────────────────────────────────────
 const KEYWORDS = ['태권도', '학원', '체육시설', '소상공인', '스포츠', '대전'];
-const API_BASE = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=10&keyword=';
+const API_BASE = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=10&pageIndex=1&keyword=';
 
 async function fetchKeyword(kw) {
   try {
     const res  = await fetch(API_BASE + encodeURIComponent(kw));
     const json = await res.json();
-    return (json?.jsonArray || json?.result || []);
+    return (json?.jsonArray || []);
   } catch {
     return [];
   }
@@ -273,8 +281,8 @@ async function loadAuto() {
 
     // 마감일 임박 순 정렬 (마감된 항목은 맨 뒤)
     uniq.sort((a, b) => {
-      const da = calcDday(a.reqstEndDt);
-      const db = calcDday(b.reqstEndDt);
+      const da = calcDday(getEndDate(a));
+      const db = calcDday(getEndDate(b));
       const va = da === null ? 9999 : da < 0 ? 99999 : da;
       const vb = db === null ? 9999 : db < 0 ? 99999 : db;
       return va - vb;
