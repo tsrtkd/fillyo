@@ -457,6 +457,7 @@
       <small>좋은 하루예요, 원장님 👋</small>
       <h1 id="academyName">불러오는 중...</h1>
       <div class="badge" id="planBadge">🟢 불러오는 중</div>
+      <button id="pricingBtn" onclick="location.href='/pricing/'" style="display:none;margin-top:14px;background:#0B1F3A;color:#fff;border:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:transform .15s;">💳 플랜 구독하기</button>
       <div class="countdown">
         <strong id="countdownNum">—</strong>
         <span id="countdownLabel">구독 만료까지</span>
@@ -703,6 +704,10 @@ onAuthStateChanged(auth, async (user) => {
       badgeEl.textContent = '🟡 무료 체험 중';
     } else {
       badgeEl.textContent = '🔴 체험 종료';
+    }
+
+    if (!isAdmin && planType !== 'pro') {
+      document.getElementById('pricingBtn').style.display = '';
     }
 
     // ── D-day 카운트다운 (비정상 값 방지: 음수 또는 5년 초과 시 만료 처리) ──
