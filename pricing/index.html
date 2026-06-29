@@ -571,7 +571,7 @@ window.startPayment = async function() {
       storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
       channelKey:  'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
       paymentId:   'fillyo_' + Date.now(),
-      orderName:   'FILLYO 업무일지 (월 1회 결제)',
+      orderName:   'FILLYO 업무일지 1개월 사용권',
       totalAmount: 19800,
       currency:    'CURRENCY_KRW',
       payMethod:   'CARD',
@@ -623,8 +623,8 @@ window.startPayment = async function() {
   const planName    = 'FILLYO ' + parts.join('+');
   const modalAmount = selectedPlan === 'early' ? '₩9,900/월' : '₩15,840/월';
   const issueName   = selectedPlan === 'early'
-    ? 'FILLYO 업무일지 - 얼리버드 정기결제 (월 ₩9,900)'
-    : 'FILLYO 업무일지 - 1년 약정 정기결제 (월 ₩15,840)';
+    ? 'FILLYO 업무일지 정기구독 (얼리버드)'
+    : 'FILLYO 업무일지 정기구독 (1년 약정)';
 
   let displayAmount = PLAN_PRICES[selectedPlan];
   if (addons.bundle) {
