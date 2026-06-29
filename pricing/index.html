@@ -336,6 +336,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
     <div class="modal-title">🎉 결제가 완료되었습니다!</div>
     <div class="modal-plan" id="modalPlanName"></div>
     <div class="modal-amount" id="modalAmount"></div>
+    <div class="modal-billing-note" id="modalBillingNote" style="display:none;font-size:13px;color:#0B7B6B;font-weight:700;margin-bottom:12px"></div>
     <div class="modal-desc">결제해 주셔서 감사합니다.<br>대시보드에서 서비스를 이용하세요.</div>
     <button class="modal-btn" onclick="location.href='/dashboard'">대시보드로 이동</button>
   </div>
@@ -608,6 +609,9 @@ window.startPayment = async function() {
   }
   const planName    = 'FILLYO ' + parts.join('+');
   const modalAmount = selectedPlan === 'early' ? '₩9,900/월' : '₩15,840/월';
+  const issueName   = selectedPlan === 'early'
+    ? 'FILLYO 업무일지 - 얼리버드 정기결제 (월 ₩9,900)'
+    : 'FILLYO 업무일지 - 1년 약정 정기결제 (월 ₩15,840)';
 
   let displayAmount = PLAN_PRICES[selectedPlan];
   if (addons.bundle) {
@@ -623,9 +627,10 @@ window.startPayment = async function() {
     channelKey:       BILLING_CHANNEL_KEY,
     billingKeyMethod: 'CARD',
     issueId:          'fillyo_bill_' + Date.now(),
-    issueName:        planName,
+    issueName,
     displayAmount,
     currency:         'KRW',
+    offerPeriod:      { interval: '1m' },
     customer: {
       customerId:  user.uid,
       fullName:    userData.name || user.email || 'FILLYO 사용자',
@@ -644,6 +649,9 @@ window.startPayment = async function() {
         });
         document.getElementById('modalPlanName').textContent = planName;
         document.getElementById('modalAmount').textContent = modalAmount;
+        const note = document.getElementById('modalBillingNote');
+        note.textContent = '매월 ' + displayAmount.toLocaleString() + '원이 자동 결제됩니다';
+        note.style.display = '';
         document.getElementById('payModal').classList.add('show');
       } catch(e) {
         showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
