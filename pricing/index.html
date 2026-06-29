@@ -637,7 +637,7 @@ window.startPayment = async function() {
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
     storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey:       'channel-key-7220926d-9db6-4723-b882-123117b9723c',
+    channelKey:       'channel-key-cea655da-2260-4403-8272-3881c069aa76',
     billingKeyMethod: 'CARD',
     issueId:          `fillyo_bill_${crypto.randomUUID()}`,
     issueName,
