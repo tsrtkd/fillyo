@@ -599,7 +599,7 @@ window.startPayment = async function() {
     return;
   }
 
-  // ── 얼리버드/약정: 빌키 발급 (매월 자동결제) ──
+  // ── 얼리버드/약정: 1단계 PASS 본인인증 → 2단계 빌키 발급 ──
   const parts = ['업무일지'];
   if (addons.bundle) {
     parts.push('줄넘기', '승급심사', 'AI 성장리포트');
@@ -622,7 +622,34 @@ window.startPayment = async function() {
     });
   }
 
-  PortOne.requestIssueBillingKey({
+  // 1단계: PASS 본인인증
+  btn.textContent = '본인인증 중...';
+  const ivRsp = await PortOne.requestIdentityVerification({
+    storeId:                'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+    identityVerificationId: 'identity-' + crypto.randomUUID(),
+    channelKey:             'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+    customer: {
+      fullName:    userData.ownerName || '',
+      phoneNumber: userData.phone     || '',
+    },
+    bypass: {
+      inicisUnified: {
+        flgFixedUser: 'N',
+        directAgency: 'PASS',
+      },
+    },
+  });
+
+  if (ivRsp.code !== undefined) {
+    showToast('본인인증 실패: ' + (ivRsp.message || '알 수 없는 오류'), 'error');
+    btn.disabled = false;
+    btn.textContent = '결제하기';
+    return;
+  }
+
+  // 2단계: 빌키 발급
+  btn.textContent = '카드 등록 중...';
+  const billRsp = await PortOne.requestIssueBillingKey({
     storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
     channelKey:       BILLING_CHANNEL_KEY,
     billingKeyMethod: 'CARD',
@@ -633,37 +660,37 @@ window.startPayment = async function() {
     offerPeriod:      { interval: '1m' },
     customer: {
       customerId:  user.uid,
-      fullName:    userData.name || user.email || 'FILLYO 사용자',
+      fullName:    userData.ownerName || user.email || 'FILLYO 사용자',
       email:       user.email || '',
       phoneNumber: userData.phone || '010-0000-0000',
     },
-  }).then(async (rsp) => {
-    if (rsp.code === undefined) {
-      try {
-        await update(ref(db, 'users/' + user.uid), {
-          planType:     'pro',
-          billingCycle: selectedPlan === 'early' ? 'early' : 'yearly',
-          billingKey:   rsp.billingKey,
-          planExpiry:   Date.now() + 365 * 24 * 60 * 60 * 1000,
-          subscribedAddons,
-        });
-        document.getElementById('modalPlanName').textContent = planName;
-        document.getElementById('modalAmount').textContent = modalAmount;
-        const note = document.getElementById('modalBillingNote');
-        note.textContent = '매월 ' + displayAmount.toLocaleString() + '원이 자동 결제됩니다';
-        note.style.display = '';
-        document.getElementById('payModal').classList.add('show');
-      } catch(e) {
-        showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
-        btn.disabled = false;
-        btn.textContent = '결제하기';
-      }
-    } else {
-      showToast('결제 실패: ' + (rsp.message || '알 수 없는 오류'), 'error');
+  });
+
+  if (billRsp.code === undefined) {
+    try {
+      await update(ref(db, 'users/' + user.uid), {
+        planType:     'pro',
+        billingCycle: selectedPlan === 'early' ? 'early' : 'yearly',
+        billingKey:   billRsp.billingKey,
+        planExpiry:   Date.now() + 365 * 24 * 60 * 60 * 1000,
+        subscribedAddons,
+      });
+      document.getElementById('modalPlanName').textContent = planName;
+      document.getElementById('modalAmount').textContent = modalAmount;
+      const note = document.getElementById('modalBillingNote');
+      note.textContent = '매월 ' + displayAmount.toLocaleString() + '원이 자동 결제됩니다';
+      note.style.display = '';
+      document.getElementById('payModal').classList.add('show');
+    } catch(e) {
+      showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
       btn.disabled = false;
       btn.textContent = '결제하기';
     }
-  });
+  } else {
+    showToast('결제 실패: ' + (billRsp.message || '알 수 없는 오류'), 'error');
+    btn.disabled = false;
+    btn.textContent = '결제하기';
+  }
 };
 
 // ── 토스트 ──
