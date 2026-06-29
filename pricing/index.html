@@ -109,6 +109,18 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 .toast.error{background:#C62828}
 .toast.success{background:#0B7B6B}
 
+/* ── PAYMENT COMPLETE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(26,35,50,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
+.modal-overlay.show{opacity:1;pointer-events:auto}
+.modal-box{background:#fff;border-radius:20px;padding:32px 28px;max-width:380px;width:100%;text-align:center;transform:translateY(20px);transition:transform .25s;box-shadow:0 8px 40px rgba(11,31,58,.18)}
+.modal-overlay.show .modal-box{transform:translateY(0)}
+.modal-title{font-size:20px;font-weight:900;color:#1A2332;margin-bottom:16px}
+.modal-plan{font-size:15px;font-weight:700;color:#1A2332;margin-bottom:6px}
+.modal-amount{font-size:28px;font-weight:900;color:#0B7B6B;margin-bottom:16px}
+.modal-desc{font-size:14px;color:#5A6A7A;line-height:1.8;margin-bottom:24px}
+.modal-btn{width:100%;background:#0B7B6B;color:#fff;border:none;border-radius:12px;padding:15px;font-size:16px;font-weight:900;cursor:pointer;font-family:inherit;transition:background .2s}
+.modal-btn:hover{background:#085041}
+
 /* ── FOOTER ── */
 footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,255,0.5);font-size:12px;line-height:2}
 
@@ -317,6 +329,17 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
 </footer>
 
 <div class="toast" id="toast"></div>
+
+<!-- 결제 완료 모달 -->
+<div class="modal-overlay" id="payModal">
+  <div class="modal-box">
+    <div class="modal-title">🎉 결제가 완료되었습니다!</div>
+    <div class="modal-plan" id="modalPlanName"></div>
+    <div class="modal-amount" id="modalAmount"></div>
+    <div class="modal-desc">결제해 주셔서 감사합니다.<br>대시보드에서 서비스를 이용하세요.</div>
+    <button class="modal-btn" onclick="location.href='/dashboard'">대시보드로 이동</button>
+  </div>
+</div>
 
 
 <script type="module">
@@ -589,7 +612,9 @@ window.startPayment = async function() {
             paymentId: rsp.paymentId,
           },
         });
-        location.href = '/dashboard';
+        document.getElementById('modalPlanName').textContent = planName;
+        document.getElementById('modalAmount').textContent = '₩' + total.toLocaleString() + (isContract ? ' (1년 합계)' : '/월');
+        document.getElementById('payModal').classList.add('show');
       } catch(e) {
         showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
         btn.disabled = false;
