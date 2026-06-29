@@ -640,7 +640,7 @@ window.startPayment = async function() {
     });
   }
 
-  console.log('customer data:', userData);
+  console.log('phone:', userData?.phone, 'name:', userData?.ownerName);
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
     storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
