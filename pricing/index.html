@@ -545,33 +545,47 @@ window.startPayment = async function() {
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
 
-  // ── 월정액: 빌키 발급 ──
+  const subscribedAddons = {
+    exam:     !!(addons.bundle || addons.exam),
+    jumprope: !!(addons.bundle || addons.jumprope),
+    report:   !!addons.bundle,
+  };
+
+  // ── 월정액: 단건 결제 ──
   if (selectedPlan === 'monthly') {
-    PortOne.requestIssueBillingKey({
-      storeId:         'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-      channelKey:      BILLING_CHANNEL_KEY,
-      billingKeyMethod: 'CARD',
-      issueId:         'fillyo_bill_' + Date.now(),
-      issueName:       'FILLYO 월정액 구독',
+    PortOne.requestPayment({
+      storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+      channelKey:  'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+      paymentId:   'fillyo_' + Date.now(),
+      orderName:   'FILLYO 업무일지 (월정액)',
+      totalAmount: 19800,
+      currency:    'CURRENCY_KRW',
+      payMethod:   'CARD',
       customer: {
         customerId:  user.uid,
-        fullName:    userData.name || user.email || 'FILLYO 사용자',
         email:       user.email || '',
+        fullName:    userData.name || user.email || 'FILLYO 사용자',
         phoneNumber: userData.phone || '010-0000-0000',
       },
     }).then(async (rsp) => {
       if (rsp.code === undefined) {
         try {
           await update(ref(db, 'users/' + user.uid), {
-            planType:    'pro',
+            planType:     'pro',
             billingCycle: 'monthly',
-            billingKey:  rsp.billingKey,
+            planExpiry:   Date.now() + 30 * 24 * 60 * 60 * 1000,
+            subscribedAddons,
+            lastPayment: {
+              amount:    19800,
+              date:      Date.now(),
+              paymentId: rsp.paymentId,
+            },
           });
           document.getElementById('modalPlanName').textContent = 'FILLYO 업무일지 (월정액)';
           document.getElementById('modalAmount').textContent = '₩19,800/월';
           document.getElementById('payModal').classList.add('show');
         } catch(e) {
-          showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
+          showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
           btn.disabled = false;
           btn.textContent = '결제하기';
         }
@@ -584,22 +598,7 @@ window.startPayment = async function() {
     return;
   }
 
-  // ── 약정/얼리버드: 단건 결제 ──
-  const mainCharge = PLAN_PRICES[selectedPlan] * 12;
-  let total = mainCharge;
-
-  if (addons.bundle) {
-    total += BUNDLE_PRICE * 12;
-  } else {
-    ['exam', 'jumprope'].forEach(k => {
-      if (addons[k]) {
-        const price = ADDON_PRICES[addonBillings[k]];
-        const mult  = addonBillings[k] === 'yearly' ? 12 : 1;
-        total += price * mult;
-      }
-    });
-  }
-
+  // ── 얼리버드/약정: 빌키 발급 (매월 자동결제) ──
   const parts = ['업무일지'];
   if (addons.bundle) {
     parts.push('줄넘기', '승급심사', 'AI 성장리포트');
@@ -607,54 +606,36 @@ window.startPayment = async function() {
     if (addons.exam)     parts.push('승급심사');
     if (addons.jumprope) parts.push('줄넘기');
   }
-  const planName = 'FILLYO ' + parts.join('+');
+  const planName    = 'FILLYO ' + parts.join('+');
+  const modalAmount = selectedPlan === 'early' ? '₩9,900/월' : '₩15,840/월';
 
-  const payParams = {
-    storeId:      'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey:   'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
-    paymentId:    'fillyo_' + Date.now(),
-    orderName:    planName,
-    totalAmount:  total,
-    currency:     'CURRENCY_KRW',
-    payMethod:    'CARD',
+  PortOne.requestIssueBillingKey({
+    storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+    channelKey:       BILLING_CHANNEL_KEY,
+    billingKeyMethod: 'CARD',
+    issueId:          'fillyo_bill_' + Date.now(),
+    issueName:        planName,
     customer: {
       customerId:  user.uid,
-      email:       user.email || '',
       fullName:    userData.name || user.email || 'FILLYO 사용자',
+      email:       user.email || '',
       phoneNumber: userData.phone || '010-0000-0000',
     },
-    card: {
-      installment: {
-        monthOption: {
-          availableMonthList: [0, 2, 3, 6],
-        },
-      },
-    },
-  };
-
-  PortOne.requestPayment(payParams).then(async (rsp) => {
+  }).then(async (rsp) => {
     if (rsp.code === undefined) {
       try {
         await update(ref(db, 'users/' + user.uid), {
           planType:     'pro',
-          billingCycle: 'yearly',
+          billingCycle: selectedPlan === 'early' ? 'early' : 'yearly',
+          billingKey:   rsp.billingKey,
           planExpiry:   Date.now() + 365 * 24 * 60 * 60 * 1000,
-          subscribedAddons: {
-            exam:     !!(addons.bundle || addons.exam),
-            jumprope: !!(addons.bundle || addons.jumprope),
-            report:   !!addons.bundle,
-          },
-          lastPayment: {
-            amount:    total,
-            date:      Date.now(),
-            paymentId: rsp.paymentId,
-          },
+          subscribedAddons,
         });
         document.getElementById('modalPlanName').textContent = planName;
-        document.getElementById('modalAmount').textContent = '₩' + total.toLocaleString() + ' (1년 합계)';
+        document.getElementById('modalAmount').textContent = modalAmount;
         document.getElementById('payModal').classList.add('show');
       } catch(e) {
-        showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
+        showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
         btn.disabled = false;
         btn.textContent = '결제하기';
       }
