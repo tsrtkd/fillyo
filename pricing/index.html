@@ -103,6 +103,9 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 .pay-btn:active{transform:translateY(0)}
 .pay-btn:disabled{background:#9ca3af;cursor:not-allowed;transform:none;box-shadow:none}
 
+/* ── CONTRACT NOTICE BOX ── */
+.contract-notice{background:#FFF3E0;border:1px solid #FF9800;border-radius:10px;padding:14px 16px;margin-bottom:14px;font-size:13px;color:#BF360C;line-height:1.8}
+
 /* ── TOAST ── */
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:#1A2332;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;font-weight:500;z-index:9999;opacity:0;transition:all .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -315,6 +318,11 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       </div>
     </div>
 
+    <!-- 정기결제 중도해지 안내 -->
+    <div class="contract-notice" id="contractNotice">
+      이 상품은 매월 자동 결제되는 1년 약정 정기 구독 상품입니다. 가입 시 등록한 카드로 매월 결제 금액이 자동 청구됩니다. 단, 1년 약정 기간 내 중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.
+    </div>
+
     <button class="pay-btn" id="payBtn" onclick="startPayment()" disabled>결제하기</button>
   </main>
 </div>
@@ -388,7 +396,7 @@ const PLAN_PRICES = {
 };
 const ADDON_PRICES = { yearly: 4900, monthly: 9800 };
 const BUNDLE_PRICE = 11760;
-const BILLING_CHANNEL_KEY = 'channel-key-cea655da-2260-4403-8272-3881c069aa76';
+const BILLING_CHANNEL_KEY = 'channel-key-7220926d-9db6-4723-b882-123117b9723c';
 
 // ── 상태 ──
 let selectedPlan = 'early';
@@ -416,6 +424,9 @@ window.selectPlan = function(plan) {
     document.getElementById('cardExam').classList.remove('card-disabled');
     document.getElementById('cardJump').classList.remove('card-disabled');
   }
+
+  // 정기결제 안내 문구: earlybird/contract 시 표시, monthly 시 숨김
+  document.getElementById('contractNotice').style.display = plan === 'monthly' ? 'none' : '';
 
   updatePayBtn();
   renderTotal();
@@ -526,6 +537,8 @@ function renderTotal() {
 }
 renderTotal();
 updatePayBtn();
+// 초기 플랜(early)에 맞게 안내 문구 표시
+document.getElementById('contractNotice').style.display = '';
 
 // ── 결제 ──
 window.startPayment = async function() {
