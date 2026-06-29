@@ -558,6 +558,12 @@ window.startPayment = async function() {
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
 
+  // phone이 없으면 해당 경로 직접 재조회
+  if (!userData.phone) {
+    const phoneSnap = await get(ref(db, 'users/' + user.uid + '/phone'));
+    if (phoneSnap.exists()) userData.phone = phoneSnap.val();
+  }
+
   const subscribedAddons = {
     exam:     !!(addons.bundle || addons.exam),
     jumprope: !!(addons.bundle || addons.jumprope),
@@ -634,6 +640,7 @@ window.startPayment = async function() {
     });
   }
 
+  console.log('customer data:', userData);
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
     storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
