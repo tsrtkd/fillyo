@@ -277,13 +277,13 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
 <!-- HEADER -->
 <div id="header">
-  <div class="fillyo-icon" onclick="location.href='../dashboard/index.html'">FILLYO</div>
+  <div class="fillyo-icon" onclick="location.href='/dashboard/'">FILLYO</div>
   <div id="hdr-text">
     <div id="headerTitle"></div>
     <div id="hdr-program">승급심사</div>
   </div>
   <div id="hdrBtns">
-    <button class="hdr-btn" onclick="location.href='../dashboard/index.html'">🏠</button>
+    <button class="hdr-btn" onclick="location.href='/dashboard/'">🏠</button>
     <button class="hdr-btn" id="btnLogout" onclick="doLogout()" style="font-size:13px;">로그아웃</button>
   </div>
 </div>
@@ -1059,7 +1059,7 @@ onAuthStateChanged(auth, async (user) => {
   } catch (_e) { console.warn('permission check', _e); }
 
   const aidSnap = await get(ref(db, `users/${user.uid}/academyId`));
-  if (!aidSnap.exists()) { location.href = '../setup/index.html'; return; }
+  if (!aidSnap.exists()) { location.href = '/setup/'; return; }
   academyId = aidSnap.val();
 
   const nameSnap = await get(ref(db, `academies/${academyId}/settings/academyName`));
