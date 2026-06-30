@@ -63,6 +63,7 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 
 /* ── ADDON BILLING SUB-SELECTOR ── */
 .addon-billing{margin-top:12px;border-top:1px solid #f3f4f6;padding-top:12px}
+.addon-billing.disabled{opacity:.4;pointer-events:none}
 .addon-billing-row{display:flex;align-items:center;gap:12px;padding:7px 0;cursor:pointer}
 .addon-billing-row:first-child{padding-top:0}
 .addon-billing-row:last-child{padding-bottom:0}
@@ -222,7 +223,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         </div>
       </div>
       <!-- 청구 방식 선택 (항상 표시) -->
-      <div class="addon-billing" id="billingExam">
+      <div class="addon-billing disabled" id="billingExam">
         <div class="addon-billing-row" onclick="setAddonBilling('exam','monthly');event.stopPropagation()">
           <div class="rb" id="billingExamMonthly"></div>
           <div class="addon-billing-info">
@@ -255,7 +256,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
         </div>
       </div>
       <!-- 청구 방식 선택 (항상 표시) -->
-      <div class="addon-billing" id="billingJump">
+      <div class="addon-billing disabled" id="billingJump">
         <div class="addon-billing-row" onclick="setAddonBilling('jumprope','monthly');event.stopPropagation()">
           <div class="rb" id="billingJumpMonthly"></div>
           <div class="addon-billing-info">
@@ -450,9 +451,14 @@ window.toggleAddon = function(key) {
   const cbId   = 'cb'   + key.charAt(0).toUpperCase() + key.slice(1);
   const cardId = { exam: 'cardExam', jumprope: 'cardJump', bundle: 'cardBundle' }[key];
 
+  const billingElMap = { exam: 'billingExam', jumprope: 'billingJump' };
+
   if (addons[key]) {
     document.getElementById(cbId).classList.add('checked');
     document.getElementById(cardId).classList.add('selected');
+    if (key === 'exam' || key === 'jumprope') {
+      document.getElementById(billingElMap[key]).classList.remove('disabled');
+    }
     if (key === 'bundle') {
       ['exam', 'jumprope'].forEach(k => {
         addons[k] = false;
@@ -461,11 +467,24 @@ window.toggleAddon = function(key) {
         document.getElementById('cb' + cap).classList.remove('checked');
         document.getElementById(cid).classList.remove('selected');
         document.getElementById(cid).classList.add('card-disabled');
+        // 하위 라디오 초기화 및 비활성화
+        addonBillings[k] = 'yearly';
+        document.getElementById('billing' + cap + 'Yearly').classList.add('selected');
+        document.getElementById('billing' + cap + 'Monthly').classList.remove('selected');
+        document.getElementById(billingElMap[k]).classList.add('disabled');
       });
     }
   } else {
     document.getElementById(cbId).classList.remove('checked');
     document.getElementById(cardId).classList.remove('selected');
+    if (key === 'exam' || key === 'jumprope') {
+      // 라디오 yearly로 초기화 후 비활성화
+      addonBillings[key] = 'yearly';
+      const cap = key.charAt(0).toUpperCase() + key.slice(1);
+      document.getElementById('billing' + cap + 'Yearly').classList.add('selected');
+      document.getElementById('billing' + cap + 'Monthly').classList.remove('selected');
+      document.getElementById(billingElMap[key]).classList.add('disabled');
+    }
     if (key === 'bundle') {
       document.getElementById('cardExam').classList.remove('card-disabled');
       document.getElementById('cardJump').classList.remove('card-disabled');
