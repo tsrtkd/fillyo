@@ -641,24 +641,40 @@ window.startPayment = async function() {
   }
 
   console.log('phone:', userData?.phone, 'name:', userData?.ownerName);
+
+  // 1단계: KG이니시스 통합인증(PASS)
+  btn.textContent = '본인인증 중...';
+  const identityResponse = await PortOne.requestIdentityVerification({
+    storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+    channelKey: 'channel-key-23977342-b6d1-4033-a0fe-2149ee43a9e9',
+    identityVerificationId: `identity_${crypto.randomUUID()}`,
+  });
+  if (identityResponse.code !== undefined) {
+    alert(identityResponse.message);
+    btn.textContent = '결제하기';
+    btn.disabled = false;
+    return;
+  }
+
+  // 2단계: 빌키 발급
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
-    storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey:       'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+    storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+    channelKey: 'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
     billingKeyMethod: 'CARD',
-    issueId:          `fillyo_bill_${crypto.randomUUID()}`,
-    issueName,
+    issueId: `fillyo_bill_${crypto.randomUUID()}`,
+    issueName: 'FILLYO 업무일지 정기구독',
     customer: {
       fullName:    userData.ownerName,
       phoneNumber: userData.phone,
-      email:       user.email,
+      email:       currentUser.email,
     },
   });
 
   if (issueResponse.code !== undefined) {
     alert(issueResponse.message);
-    btn.disabled = false;
     btn.textContent = '결제하기';
+    btn.disabled = false;
     return;
   }
 
