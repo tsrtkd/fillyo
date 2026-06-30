@@ -375,7 +375,7 @@ const db   = getDatabase(app);
 
 let currentUser = null;
 
-onAuthStateChanged(auth, user => {
+onAuthStateChanged(auth, async user => {
   if (!user) {
     location.href = '/login/';
     return;
@@ -383,6 +383,40 @@ onAuthStateChanged(auth, user => {
   currentUser = user;
   document.getElementById('loadingWrap').style.display = 'none';
   document.getElementById('pageWrap').style.display = 'block';
+
+  // ── 모바일 리다이렉트 복귀 처리 ──
+  const params = new URLSearchParams(location.search);
+  const billingKey = params.get('billingKey');
+  const code       = params.get('code');
+
+  if (billingKey) {
+    history.replaceState(null, '', location.pathname);
+    const stateStr = sessionStorage.getItem('fillyo_billing_state');
+    if (stateStr) {
+      const s = JSON.parse(stateStr);
+      sessionStorage.removeItem('fillyo_billing_state');
+      try {
+        await update(ref(db, 'users/' + user.uid), {
+          planType:        'pro',
+          billingCycle:    s.selectedPlan === 'early' ? 'early' : 'yearly',
+          billingKey,
+          planExpiry:      Date.now() + 365 * 24 * 60 * 60 * 1000,
+          subscribedAddons: s.subscribedAddons,
+        });
+        document.getElementById('modalPlanName').textContent = s.planName;
+        document.getElementById('modalAmount').textContent   = s.modalAmount;
+        const note = document.getElementById('modalBillingNote');
+        note.textContent = '매월 ' + Number(s.displayAmount).toLocaleString() + '원이 자동 결제됩니다';
+        note.style.display = '';
+        document.getElementById('payModal').classList.add('show');
+      } catch(e) {
+        alert('카드 등록은 완료됐으나 저장 중 오류가 발생했습니다.');
+      }
+    }
+  } else if (code) {
+    history.replaceState(null, '', location.pathname);
+    alert(params.get('message') || '카드 등록에 실패했습니다.');
+  }
 });
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -666,6 +700,15 @@ window.startPayment = async function() {
 
   const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
 
+  // 리다이렉트 복귀 시 Firebase 저장에 필요한 상태 보존
+  sessionStorage.setItem('fillyo_billing_state', JSON.stringify({
+    selectedPlan,
+    subscribedAddons,
+    planName,
+    modalAmount,
+    displayAmount,
+  }));
+
   // 빌키 발급
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
@@ -674,6 +717,7 @@ window.startPayment = async function() {
     billingKeyMethod: 'CARD',
     issueId: `fb_${Date.now()}`,
     issueName,
+    redirectUrl: window.location.origin + '/pricing/',
     offerPeriod: {
       interval: '1m'
     },
