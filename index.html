@@ -1043,5 +1043,27 @@ document.querySelectorAll('.mobile-menu-link').forEach(a => {
   start();
 })();
 </script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+  apiKey: "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain: "fillyo-journal.firebaseapp.com",
+  projectId: "fillyo-journal",
+  storageBucket: "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId: "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL: "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+}));
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  document.querySelectorAll('a[href="/login/"]').forEach(a => {
+    a.href = '/dashboard/';
+    if (a.classList.contains('nav-cta') || a.classList.contains('mobile-cta')) {
+      a.textContent = '대시보드 →';
+    }
+  });
+});
+</script>
 </body>
 </html>
