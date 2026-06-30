@@ -583,7 +583,7 @@ window.startPayment = async function() {
       customer: {
         customerId:  user.uid,
         email:       user.email || '',
-        fullName:    userData.name || user.email || 'FILLYO 사용자',
+        fullName:    userData.ownerName || user.email || 'FILLYO 사용자',
         phoneNumber: userData.phone || '010-0000-0000',
       },
     }).then(async (rsp) => {
