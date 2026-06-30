@@ -656,6 +656,19 @@ window.startPayment = async function() {
     return;
   }
 
+  // 본인인증 완료 후 인증 정보 조회
+  const verificationRes = await fetch(
+    `https://api.portone.io/identity-verifications/${encodeURIComponent(identityResponse.identityVerificationId)}`,
+    {
+      headers: {
+        'Authorization': 'PortOne t2Y4amXylSFvUYAUgagC6mffRsZzPKHy8sHdFa4P18AYT0HhgJdWNflzL6XgWX9IAleNG6ShF6xuBSxQ'
+      }
+    }
+  );
+  const verificationData = await verificationRes.json();
+  const phoneNumber = verificationData.verifiedCustomer?.phoneNumber;
+  const fullName = verificationData.verifiedCustomer?.name;
+
   // 2단계: 빌키 발급
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
@@ -665,8 +678,8 @@ window.startPayment = async function() {
     issueId: `fillyo_bill_${crypto.randomUUID()}`,
     issueName: 'FILLYO 업무일지 정기구독',
     customer: {
-      fullName:    userData.ownerName,
-      phoneNumber: userData.phone,
+      fullName:    fullName || userData.ownerName,
+      phoneNumber: phoneNumber,
       email:       currentUser.email,
     },
   });
