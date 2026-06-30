@@ -2,3 +2,6 @@
 *.pdf
 *.docx
 *.doc
+functions/node_modules/
+functions/.env
+node_modules/

@@ -428,6 +428,20 @@ onAuthStateChanged(auth, async user => {
           await set(ref(db, `academies/${s.academyId}/contracts/${rcId}`), rContract);
         }
         try { await generateContractPDF(rContract); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
+        // ── 정기결제 첫 회차 예약 ──
+        try {
+          const idToken = await user.getIdToken();
+          await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+            body: JSON.stringify({
+              billingKey,
+              academyId: s.academyId,
+              amount: s.displayAmount,
+              orderName: `FILLYO 업무일지 정기구독 (월 ₩${Number(s.displayAmount).toLocaleString()})`,
+            }),
+          });
+        } catch(fnErr) { console.warn('결제 예약 오류:', fnErr); }
         document.getElementById('modalPlanName').textContent = s.planName;
         document.getElementById('modalAmount').textContent   = s.modalAmount;
         const note = document.getElementById('modalBillingNote');
@@ -802,6 +816,15 @@ window.startPayment = async function() {
       await set(ref(db, `academies/${academyId}/contracts/${contractId}`), contractData);
     }
     try { await generateContractPDF(contractData); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
+    // ── 정기결제 첫 회차 예약 ──
+    try {
+      const idToken = await currentUser.getIdToken();
+      await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify({ billingKey: issueResponse.billingKey, academyId, amount: displayAmount, orderName: issueName }),
+      });
+    } catch(fnErr) { console.warn('결제 예약 오류:', fnErr); }
     document.getElementById('modalPlanName').textContent = planName;
     document.getElementById('modalAmount').textContent = modalAmount;
     const note = document.getElementById('modalBillingNote');
