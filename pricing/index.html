@@ -6,6 +6,8 @@
 <title>구독 플랜 선택 — FILLYO</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#EEF2F8;color:#1A2332;min-height:100vh;-webkit-font-smoothing:antialiased}
@@ -336,6 +338,8 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
   © 2026 FILLYO · fillyo.kr
 </footer>
 
+<div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
+
 <div class="toast" id="toast"></div>
 
 <!-- 결제 완료 모달 -->
@@ -355,7 +359,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, get, update }
+import { getDatabase, ref, get, set, update }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const FB_CONFIG = {
@@ -402,6 +406,28 @@ onAuthStateChanged(auth, async user => {
           planExpiry:      Date.now() + 365 * 24 * 60 * 60 * 1000,
           subscribedAddons: s.subscribedAddons,
         });
+        // ── 계약서 Firebase 저장 및 PDF 자동 다운로드 ──
+        const rcId = `contract_${Date.now()}`;
+        const rToday = new Date();
+        const rContract = {
+          contractId: rcId,
+          planName: s.planName,
+          addons: s.addonNames || [],
+          monthlyAmount: s.displayAmount,
+          totalMonths: 12,
+          ownerName: s.ownerName || '',
+          businessName: s.businessName || '',
+          email: user.email,
+          agreedAt: new Date().toISOString(),
+          agreedTermsVersion: 'v1.0',
+          contractStartDate: fmtDateStr(rToday),
+          contractEndDate: fmtDateStr(new Date(rToday.getTime() + 365 * 24 * 60 * 60 * 1000)),
+          earlyTerminationClause: '중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.',
+        };
+        if (s.academyId) {
+          await set(ref(db, `academies/${s.academyId}/contracts/${rcId}`), rContract);
+        }
+        try { await generateContractPDF(rContract); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
         document.getElementById('modalPlanName').textContent = s.planName;
         document.getElementById('modalAmount').textContent   = s.modalAmount;
         const note = document.getElementById('modalBillingNote');
@@ -699,6 +725,14 @@ window.startPayment = async function() {
 
   const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
 
+  // ── 학원명 조회 (계약서용) ──
+  const academyId = userData.academyId || null;
+  let businessName = '';
+  if (academyId) {
+    const acSnap = await get(ref(db, `academies/${academyId}/settings`));
+    if (acSnap.exists()) businessName = acSnap.val().academyName || '';
+  }
+
   // 리다이렉트 복귀 시 Firebase 저장에 필요한 상태 보존
   sessionStorage.setItem('fillyo_billing_state', JSON.stringify({
     selectedPlan,
@@ -706,6 +740,10 @@ window.startPayment = async function() {
     planName,
     modalAmount,
     displayAmount,
+    academyId,
+    addonNames: buildAddonNames(),
+    ownerName: userData.ownerName || '',
+    businessName,
   }));
 
   // 빌키 발급
@@ -742,6 +780,28 @@ window.startPayment = async function() {
       planExpiry:   Date.now() + 365 * 24 * 60 * 60 * 1000,
       subscribedAddons,
     });
+    // ── 계약서 Firebase 저장 및 PDF 자동 다운로드 ──
+    const contractId = `contract_${Date.now()}`;
+    const today = new Date();
+    const contractData = {
+      contractId,
+      planName: selectedPlan === 'early' ? '업무일지 얼리버드' : '업무일지 1년약정',
+      addons: buildAddonNames(),
+      monthlyAmount: displayAmount,
+      totalMonths: 12,
+      ownerName: userData.ownerName || '',
+      businessName,
+      email: currentUser.email,
+      agreedAt: new Date().toISOString(),
+      agreedTermsVersion: 'v1.0',
+      contractStartDate: fmtDateStr(today),
+      contractEndDate: fmtDateStr(new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000)),
+      earlyTerminationClause: '중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.',
+    };
+    if (academyId) {
+      await set(ref(db, `academies/${academyId}/contracts/${contractId}`), contractData);
+    }
+    try { await generateContractPDF(contractData); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
     document.getElementById('modalPlanName').textContent = planName;
     document.getElementById('modalAmount').textContent = modalAmount;
     const note = document.getElementById('modalBillingNote');
@@ -763,6 +823,93 @@ window.showToast = function(msg, type = '') {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 };
+
+// ── 날짜 포맷 (YYYY-MM-DD) ──
+function fmtDateStr(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+
+// ── 선택된 애드온 이름 목록 ──
+function buildAddonNames() {
+  const names = [];
+  if (addons.bundle) {
+    names.push('줄넘기', '승급심사', 'AI 성장리포트');
+  } else {
+    if (addons.exam)     names.push('승급심사');
+    if (addons.jumprope) names.push('줄넘기');
+  }
+  return names;
+}
+
+// ── 계약서 HTML 생성 ──
+function buildContractHTML(data) {
+  const addonText = data.addons && data.addons.length > 0 ? data.addons.join(', ') : '없음';
+  const agreedAtStr = data.agreedAt ? new Date(data.agreedAt).toLocaleString('ko-KR') : '';
+  return `<div style="font-family:'Noto Sans KR',sans-serif;color:#1A2332;line-height:1.8;font-size:14px;">
+    <h1 style="font-size:22px;font-weight:900;text-align:center;margin-bottom:6px;color:#0B1F3A;">필요(FILLYO) 서비스 이용계약서</h1>
+    <p style="text-align:center;color:#5A6A7A;margin-bottom:30px;">(1년 약정)</p>
+    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 당사자</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:5px 0;font-weight:700;width:70px;color:#5A6A7A;vertical-align:top;">공급자</td>
+            <td style="padding:5px 0;">필요(FILLYO) | 대표: 임명신 | 사업자등록번호: 776-51-01113<br><span style="color:#5A6A7A;">주소: 대전 광역시 서구 도안동로 77 린풀하우스 1812-2401</span></td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;vertical-align:top;">가입자</td>
+            <td style="padding:5px 0;">${data.businessName || '—'} | 대표자: ${data.ownerName || '—'} | 이메일: ${data.email}</td></tr>
+      </table>
+    </div>
+    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 내용</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:5px 0;font-weight:700;width:120px;color:#5A6A7A;">상품명</td><td style="padding:5px 0;">${data.planName}</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">추가 애드온</td><td style="padding:5px 0;">${addonText}</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">월 결제 금액</td><td style="padding:5px 0;font-weight:900;color:#0B7B6B;">&#8361;${Number(data.monthlyAmount).toLocaleString()}원</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">계약 기간</td><td style="padding:5px 0;">${data.contractStartDate} ~ ${data.contractEndDate} (12개월)</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">결제 방식</td><td style="padding:5px 0;">매월 등록된 카드로 자동 결제</td></tr>
+      </table>
+    </div>
+    <div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#BF360C;margin-bottom:8px;">중도 해지 조항</h2>
+      <p style="color:#E65100;">${data.earlyTerminationClause}</p>
+    </div>
+    <div style="background:#EBF7F5;border:1.5px solid #0B7B6B;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B7B6B;margin-bottom:8px;">전자 동의 기록</h2>
+      <p>본 계약은 <strong>${agreedAtStr}</strong>, 가입자 본인의 체크박스 동의를 통해 전자적으로 체결되었습니다.</p>
+      <p style="margin-top:4px;">약관 버전: ${data.agreedTermsVersion}</p>
+    </div>
+    <div style="text-align:right;color:#5A6A7A;font-size:12px;padding-top:14px;border-top:1px solid #DDE4EE;">
+      발급일: ${new Date().toLocaleDateString('ko-KR')} &nbsp;|&nbsp; FILLYO · fillyo.kr
+    </div>
+  </div>`;
+}
+
+// ── 계약서 PDF 다운로드 ──
+async function generateContractPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const el  = document.getElementById('contractDoc');
+  el.innerHTML = buildContractHTML(data);
+
+  const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, logging: false });
+  const img    = canvas.toDataURL('image/png');
+  const pdfW   = doc.internal.pageSize.getWidth();
+  const pdfH   = doc.internal.pageSize.getHeight();
+  const imgH   = (canvas.height * pdfW) / canvas.width;
+
+  let y = 0, rem = imgH;
+  doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
+  rem -= pdfH;
+  while (rem > 0) {
+    y -= pdfH;
+    doc.addPage();
+    doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
+    rem -= pdfH;
+  }
+
+  el.innerHTML = '';
+  doc.save(`FILLYO_계약서_${data.contractStartDate}.pdf`);
+}
 </script>
 </body>
 </html>

@@ -6,6 +6,8 @@
 <title>마이페이지 — FILLYO</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 :root {
   --navy:#0B1F3A; --blue:#1352A8; --sky:#E8F1FF;
@@ -225,6 +227,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
+
 <!-- ── TOAST ─────────────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
 
@@ -302,8 +306,13 @@ function renderSubBox(userData) {
     return;
   }
 
-  const planType   = userData.planType   || 'free';
-  const planExpiry = userData.planExpiry || null;
+  const planType    = userData.planType    || 'free';
+  const planExpiry  = userData.planExpiry  || null;
+  const billingCycle = userData.billingCycle || '';
+  const hasContract = billingCycle === 'early' || billingCycle === 'yearly';
+  const contractBtn = hasContract
+    ? `<button onclick="downloadContractPDF()" style="margin-top:14px;width:100%;background:#0B1F3A;color:white;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;">📄 계약서 다운로드</button>`
+    : '';
 
   if (planType === 'pro' && planExpiry) {
     const diff   = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));
@@ -319,6 +328,7 @@ function renderSubBox(userData) {
         <span class="sub-dday${warn ? ' warn' : ''}">${ddayTxt}</span>
       </div>
       ${warn && diff > 0 ? `<div class="sub-warn-text">⚠️ 구독이 ${diff}일 후 만료됩니다. 갱신해주세요.</div>` : ''}
+      ${contractBtn}
     `;
   } else if (planType === 'pro') {
     el.innerHTML = `
@@ -327,6 +337,7 @@ function renderSubBox(userData) {
         <span class="sub-badge pro">유료 구독</span>
       </div>
       <div class="sub-free-desc">구독 기간 정보가 없습니다.</div>
+      ${contractBtn}
     `;
   } else {
     el.innerHTML = `
@@ -444,6 +455,94 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
 }
+
+// ── 계약서 HTML 생성 ──────────────────────────────────────────────
+function buildContractHTML(data) {
+  const addonText = data.addons && data.addons.length > 0 ? data.addons.join(', ') : '없음';
+  const agreedAtStr = data.agreedAt ? new Date(data.agreedAt).toLocaleString('ko-KR') : '';
+  return `<div style="font-family:'Noto Sans KR',sans-serif;color:#1A2332;line-height:1.8;font-size:14px;">
+    <h1 style="font-size:22px;font-weight:900;text-align:center;margin-bottom:6px;color:#0B1F3A;">필요(FILLYO) 서비스 이용계약서</h1>
+    <p style="text-align:center;color:#5A6A7A;margin-bottom:30px;">(1년 약정)</p>
+    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 당사자</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:5px 0;font-weight:700;width:70px;color:#5A6A7A;vertical-align:top;">공급자</td>
+            <td style="padding:5px 0;">필요(FILLYO) | 대표: 임명신 | 사업자등록번호: 776-51-01113<br><span style="color:#5A6A7A;">주소: 대전 광역시 서구 도안동로 77 린풀하우스 1812-2401</span></td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;vertical-align:top;">가입자</td>
+            <td style="padding:5px 0;">${data.businessName || '—'} | 대표자: ${data.ownerName || '—'} | 이메일: ${data.email}</td></tr>
+      </table>
+    </div>
+    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 내용</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:5px 0;font-weight:700;width:120px;color:#5A6A7A;">상품명</td><td style="padding:5px 0;">${data.planName}</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">추가 애드온</td><td style="padding:5px 0;">${addonText}</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">월 결제 금액</td><td style="padding:5px 0;font-weight:900;color:#0B7B6B;">&#8361;${Number(data.monthlyAmount).toLocaleString()}원</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">계약 기간</td><td style="padding:5px 0;">${data.contractStartDate} ~ ${data.contractEndDate} (12개월)</td></tr>
+        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">결제 방식</td><td style="padding:5px 0;">매월 등록된 카드로 자동 결제</td></tr>
+      </table>
+    </div>
+    <div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
+      <h2 style="font-size:15px;font-weight:900;color:#BF360C;margin-bottom:8px;">중도 해지 조항</h2>
+      <p style="color:#E65100;">${data.earlyTerminationClause}</p>
+    </div>
+    <div style="background:#EBF7F5;border:1.5px solid #0B7B6B;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
+      <h2 style="font-size:15px;font-weight:900;color:#0B7B6B;margin-bottom:8px;">전자 동의 기록</h2>
+      <p>본 계약은 <strong>${agreedAtStr}</strong>, 가입자 본인의 체크박스 동의를 통해 전자적으로 체결되었습니다.</p>
+      <p style="margin-top:4px;">약관 버전: ${data.agreedTermsVersion}</p>
+    </div>
+    <div style="text-align:right;color:#5A6A7A;font-size:12px;padding-top:14px;border-top:1px solid #DDE4EE;">
+      발급일: ${new Date().toLocaleDateString('ko-KR')} &nbsp;|&nbsp; FILLYO · fillyo.kr
+    </div>
+  </div>`;
+}
+
+// ── 계약서 PDF 생성 ───────────────────────────────────────────────
+async function generateContractPDF(data) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const el  = document.getElementById('contractDoc');
+  el.innerHTML = buildContractHTML(data);
+
+  const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, logging: false });
+  const img    = canvas.toDataURL('image/png');
+  const pdfW   = doc.internal.pageSize.getWidth();
+  const pdfH   = doc.internal.pageSize.getHeight();
+  const imgH   = (canvas.height * pdfW) / canvas.width;
+
+  let y = 0, rem = imgH;
+  doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
+  rem -= pdfH;
+  while (rem > 0) {
+    y -= pdfH;
+    doc.addPage();
+    doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
+    rem -= pdfH;
+  }
+
+  el.innerHTML = '';
+  doc.save(`FILLYO_계약서_${data.contractStartDate}.pdf`);
+}
+
+// ── 계약서 다운로드 (마이페이지) ──────────────────────────────────
+window.downloadContractPDF = async function() {
+  if (!currentAcadId) { showToast('학원 정보를 찾을 수 없습니다.', 'err'); return; }
+  const btn = document.querySelector('button[onclick="downloadContractPDF()"]');
+  if (btn) { btn.disabled = true; btn.textContent = '생성 중...'; }
+  try {
+    const snap = await get(ref(db, `academies/${currentAcadId}/contracts`));
+    if (!snap.exists()) { showToast('저장된 계약서가 없습니다.', 'err'); return; }
+    const latest = Object.values(snap.val()).sort((a, b) =>
+      b.contractId.localeCompare(a.contractId)
+    )[0];
+    await generateContractPDF(latest);
+  } catch(e) {
+    console.error(e);
+    showToast('계약서 불러오기에 실패했습니다.', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📄 계약서 다운로드'; }
+  }
+};
 </script>
 
 <div style="text-align:center;padding:20px 16px 32px;font-size:12px;color:#9ca3af;line-height:2">
