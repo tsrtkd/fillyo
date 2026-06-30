@@ -189,7 +189,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
       </div>
     </div>
 
-    <!-- 월정액 -->
+    <!-- 단건결제 (1개월 이용권) -->
     <div class="plan-card" id="cardMonthly" onclick="selectPlan('monthly')">
       <div class="card-row">
         <div class="checkbox-wrap">
@@ -551,7 +551,7 @@ window.updatePayBtn = function() {
 const NAMES = {
   early:    '업무일지 (얼리버드)',
   contract: '업무일지 (1년 약정)',
-  monthly:  '업무일지 (월정액)',
+  monthly:  '업무일지 (1개월 이용권)',
   exam:     '승급심사',
   jumprope: '줄넘기',
   bundle:   '애드온 묶음 (줄넘기+승급심사+AI리포트)',
@@ -582,9 +582,9 @@ function renderTotal() {
     `<div class="total-item"><span class="total-item-name">${i.name}</span><span class="total-item-price">₩${i.price.toLocaleString()}</span></div>`
   ).join('');
 
-  document.getElementById('totalFinalLabel').textContent = isContract ? '월 결제 금액 (1년 약정)' : '월 결제 금액';
+  document.getElementById('totalFinalLabel').textContent = isContract ? '월 결제 금액 (1년 약정)' : '결제 금액';
   document.getElementById('totalPrice').innerHTML =
-    `₩${total.toLocaleString()}<span class="total-final-unit">/월</span>`;
+    `₩${total.toLocaleString()}${isContract ? '<span class="total-final-unit">/월</span>' : ''}`;
 }
 renderTotal();
 updatePayBtn();
@@ -630,7 +630,7 @@ window.startPayment = async function() {
     report:   !!addons.bundle,
   };
 
-  // ── 월정액: 단건 결제 ──
+  // ── 단건결제 (1개월 이용권) ──
   if (selectedPlan === 'monthly') {
     PortOne.requestPayment({
       storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
@@ -661,7 +661,7 @@ window.startPayment = async function() {
             },
           });
           document.getElementById('modalPlanName').textContent = 'FILLYO 업무일지 (월 1회 결제)';
-          document.getElementById('modalAmount').textContent = '₩19,800/월';
+          document.getElementById('modalAmount').textContent = '₩19,800';
           document.getElementById('payModal').classList.add('show');
         } catch(e) {
           showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
