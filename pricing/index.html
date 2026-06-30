@@ -559,10 +559,17 @@ window.startPayment = async function() {
   const userData = snap.exists() ? snap.val() : {};
   console.log('[FILLYO] users/' + user.uid, userData);
 
-  // phone이 없으면 해당 경로 직접 재조회
+  // phone이 없으면 직접 입력 받아 Firebase에 저장
   if (!userData.phone) {
     const phoneSnap = await get(ref(db, 'users/' + user.uid + '/phone'));
-    if (phoneSnap.exists()) userData.phone = phoneSnap.val();
+    if (phoneSnap.exists()) {
+      userData.phone = phoneSnap.val();
+    } else {
+      const phone = prompt('정기결제 등록을 위해 휴대폰 번호를 입력해주세요 (예: 01012345678)');
+      if (!phone) { btn.disabled = false; btn.textContent = '결제하기'; return; }
+      userData.phone = phone;
+      await update(ref(db, 'users/' + user.uid), { phone });
+    }
   }
 
   const subscribedAddons = {
