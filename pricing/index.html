@@ -639,36 +639,7 @@ window.startPayment = async function() {
 
   const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
 
-  console.log('phone:', userData?.phone, 'name:', userData?.ownerName);
-
-  // 1단계: KG이니시스 통합인증(PASS)
-  btn.textContent = '본인인증 중...';
-  const identityResponse = await PortOne.requestIdentityVerification({
-    storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey: 'channel-key-23977342-b6d1-4033-a0fe-2149ee43a9e9',
-    identityVerificationId: `identity_${crypto.randomUUID()}`,
-  });
-  if (identityResponse.code !== undefined) {
-    alert(identityResponse.message);
-    btn.textContent = '결제하기';
-    btn.disabled = false;
-    return;
-  }
-
-  // 본인인증 완료 후 인증 정보 조회
-  const verificationRes = await fetch(
-    `https://api.portone.io/identity-verifications/${encodeURIComponent(identityResponse.identityVerificationId)}`,
-    {
-      headers: {
-        'Authorization': 'PortOne t2Y4amXylSFvUYAUgagC6mffRsZzPKHy8sHdFa4P18AYT0HhgJdWNflzL6XgWX9IAleNG6ShF6xuBSxQ'
-      }
-    }
-  );
-  const verificationData = await verificationRes.json();
-  const phoneNumber = verificationData.verifiedCustomer?.phoneNumber;
-  const fullName = verificationData.verifiedCustomer?.name;
-
-  // 2단계: 빌키 발급
+  // 빌키 발급
   btn.textContent = '카드 등록 중...';
   const issueResponse = await PortOne.requestIssueBillingKey({
     storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
@@ -680,8 +651,8 @@ window.startPayment = async function() {
       interval: '1m'
     },
     customer: {
-      fullName:    fullName || userData.ownerName,
-      phoneNumber: phoneNumber,
+      fullName:    userData.ownerName,
+      phoneNumber: userData.phone,
       email:       currentUser.email,
     },
   });
