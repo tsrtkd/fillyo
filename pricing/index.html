@@ -557,6 +557,7 @@ window.startPayment = async function() {
 
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
+  console.log('[FILLYO] users/' + user.uid, userData);
 
   // phone이 없으면 해당 경로 직접 재조회
   if (!userData.phone) {
