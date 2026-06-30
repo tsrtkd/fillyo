@@ -325,7 +325,7 @@ onAuthStateChanged(auth, async (user) => {
   const userData = snap.val();
 
   if (!userData.academyId) {
-    location.href = '/setup';
+    location.href = '/setup/';
     return;
   }
 
@@ -335,7 +335,7 @@ onAuthStateChanged(auth, async (user) => {
     return;
   }
 
-  location.href = '/dashboard';
+  location.href = '/dashboard/';
 });
 </script>
 </body>

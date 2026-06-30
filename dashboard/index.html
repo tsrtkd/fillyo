@@ -650,12 +650,12 @@ const db    = getDatabase(fbApp);
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = '/login'; return; }
+  if (!user) { location.href = '/login/'; return; }
   _uid = user.uid;
 
   try {
     const userSnap = await get(ref(db, `users/${user.uid}`));
-    if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
+    if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
 
     const userData           = userSnap.val();
     const planType           = userData.planType           || 'free';
@@ -738,7 +738,7 @@ onAuthStateChanged(auth, async (user) => {
       labelEl.style.color  = '#C62828';
       const cdBox = document.querySelector('.countdown');
       cdBox.style.cursor = 'pointer';
-      cdBox.addEventListener('click', () => location.href = '/mypage');
+      cdBox.addEventListener('click', () => location.href = '/mypage/');
     }
 
     // ── 서비스 카드 상태 동적 표시 ───────────────────────────────────
@@ -804,11 +804,11 @@ document.getElementById('cardAIDesk').addEventListener('click', () => {
 });
 
 document.getElementById('quickMypage').addEventListener('click', () => {
-  location.href = '/mypage';
+  location.href = '/mypage/';
 });
 
 document.getElementById('quickAdmin').addEventListener('click', () => {
-  location.href = '/admin';
+  location.href = '/admin/';
 });
 
 document.getElementById('quickKakao').addEventListener('click', () => {
@@ -816,11 +816,11 @@ document.getElementById('quickKakao').addEventListener('click', () => {
 });
 
 document.getElementById('btnMypage').addEventListener('click', () => {
-  location.href = '/mypage';
+  location.href = '/mypage/';
 });
 
 document.getElementById('navMypage').addEventListener('click', () => {
-  location.href = '/mypage';
+  location.href = '/mypage/';
 });
 
 document.getElementById('navHome').addEventListener('click', () => {
@@ -880,7 +880,7 @@ document.getElementById('alarmDim').addEventListener('click', () => {
 
 document.getElementById('quickLogout').addEventListener('click', async () => {
   await signOut(auth);
-  location.href = '/login';
+  location.href = '/login/';
 });
 
 // ── 알림 모달 ─────────────────────────────────────────────────────

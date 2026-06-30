@@ -199,14 +199,14 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
   <div class="denied-icon">🔒</div>
   <div class="denied-title">접근 권한 없음</div>
   <div class="denied-desc">관리자 계정으로 로그인해야<br>이 페이지에 접근할 수 있습니다.</div>
-  <button class="btn-back" onclick="location.href='/login'">로그인으로 돌아가기</button>
+  <button class="btn-back" onclick="location.href='/login/'">로그인으로 돌아가기</button>
 </div>
 
 <!-- ── ADMIN UI ───────────────────────────────────────────────────── -->
 <div id="adminUI" style="display:none;">
 
   <header class="hdr">
-    <span class="hdr-logo" onclick="location.href='/login'">🥋 FILLYO</span>
+    <span class="hdr-logo" onclick="location.href='/login/'">🥋 FILLYO</span>
     <span class="hdr-badge">ADMIN</span>
     <div class="hdr-spacer"></div>
     <span class="hdr-user" id="hdrUser"></span>
@@ -492,7 +492,7 @@ onAuthStateChanged(auth, async (user) => {
   await loadCurated();
 });
 
-window.doLogout = () => signOut(auth).then(() => location.href = '/login');
+window.doLogout = () => signOut(auth).then(() => location.href = '/login/');
 
 // ── 데이터 로드 ───────────────────────────────────────────────────
 window.loadData = async () => {

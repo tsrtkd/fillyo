@@ -743,7 +743,7 @@ let vehicleSchedule = {};
 
 // ── 인증 & 앱 진입 ────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = '/login'; return; }
+  if (!user) { location.href = '/login/'; return; }
   currentUser = user;
   MY_ID = user.uid;
 
@@ -771,7 +771,7 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     academyId = userData.academyId;
-    if (!academyId) { location.href = '/setup'; return; }
+    if (!academyId) { location.href = '/setup/'; return; }
 
     // Pro 만료 체크
     if (userData.planType === 'pro' && userData.planExpiry && Date.now() > userData.planExpiry) {
@@ -888,7 +888,7 @@ function setSync(on, txt, time) {
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
-  location.href = '/login';
+  location.href = '/login/';
 };
 
 // ── 출석 테이블 ───────────────────────────────────────────────────

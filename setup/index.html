@@ -243,7 +243,7 @@ let pdFaqList = [];
 
 // ── 인증 확인 ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = '/login'; return; }
+  if (!user) { location.href = '/login/'; return; }
   currentUser = user;
 
   const snap = await get(ref(db, `users/${user.uid}`));
@@ -462,7 +462,7 @@ async function saveAndFinish() {
       await update(ref(db, `users/${uid}`), { academyId: newId, ownerName: owner });
     }
 
-    location.href = '/dashboard';
+    location.href = '/dashboard/';
   } catch (err) {
     console.error(err);
     showToast('저장 중 오류가 발생했습니다. 다시 시도해주세요.');

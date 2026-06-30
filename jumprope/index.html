@@ -1028,7 +1028,7 @@ window.saveCertImage = saveCertImage;
 
 // ── Auth & Data Load ─────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
-  if (!user) { location.href = '/login'; return; }
+  if (!user) { location.href = '/login/'; return; }
   uid = user.uid;
 
   // ── 권한 체크 (admin / 체험 / 구독) ─────────────────────────────

@@ -480,17 +480,17 @@ function beltBadge(belt, grade) {
 // ── 인증 ─────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   try {
-    if (!user) { location.href = '/login'; return; }
+    if (!user) { location.href = '/login/'; return; }
 
     const userSnap = await get(ref(db, `users/${user.uid}`));
-    if (!userSnap.exists()) { await signOut(auth); location.href = '/login'; return; }
+    if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
 
     const userData = userSnap.val();
     academyId = userData.academyId || null;
 
     if (!academyId) {
       alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
-      location.href = '/dashboard';
+      location.href = '/dashboard/';
       return;
     }
 

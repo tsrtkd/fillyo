@@ -148,7 +148,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <span class="hdr-sep">›</span>
     <span class="hdr-title">마이페이지</span>
     <div class="hdr-spacer"></div>
-    <button class="btn-hdr btn-hdr-back" onclick="location.href='/dashboard'">← 대시보드</button>
+    <button class="btn-hdr btn-hdr-back" onclick="location.href='/dashboard/'">← 대시보드</button>
     <button class="btn-hdr" onclick="doLogout()">로그아웃</button>
   </header>
 
@@ -256,7 +256,7 @@ let currentAcadId = null;
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) {
-    location.href = '/login';
+    location.href = '/login/';
     return;
   }
   currentUser = user;
@@ -264,7 +264,7 @@ onAuthStateChanged(auth, async (user) => {
 
   try {
     const snap = await get(ref(db, `users/${user.uid}`));
-    if (!snap.exists()) { await signOut(auth); location.href = '/login'; return; }
+    if (!snap.exists()) { await signOut(auth); location.href = '/login/'; return; }
 
     const userData = snap.val();
     currentAcadId  = userData.academyId || null;
@@ -403,7 +403,7 @@ window.doWithdraw = async () => {
     if (currentAcadId) await remove(ref(db, `academies/${currentAcadId}`));
     await remove(ref(db, `users/${uid}`));
     await deleteUser(currentUser);
-    location.href = '/login';
+    location.href = '/login/';
   } catch (e) {
     console.error(e);
     const msg = e.code === 'auth/requires-recent-login'
@@ -418,7 +418,7 @@ window.doWithdraw = async () => {
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
-  location.href = '/login';
+  location.href = '/login/';
 };
 
 // ── ESC / 배경 클릭으로 모달 닫기 ─────────────────────────────────
