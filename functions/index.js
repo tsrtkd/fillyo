@@ -4,6 +4,7 @@ const { onRequest } = require('firebase-functions/v2/https');
 const admin  = require('firebase-admin');
 const axios  = require('axios');
 const cors   = require('cors')({ origin: true });
+const PortOne = require('@portone/server-sdk');
 
 admin.initializeApp();
 const db = admin.database();
@@ -107,6 +108,18 @@ exports.portoneWebhook = onRequest(
   { region: 'asia-northeast3', timeoutSeconds: 30 },
   async (req, res) => {
     if (req.method !== 'POST') return res.status(200).send('ok');
+
+    // PortOne 웹훅 시그니처 검증
+    try {
+      await PortOne.Webhook.verify(
+        process.env.PORTONE_WEBHOOK_SECRET,
+        req.rawBody.toString('utf-8'),
+        req.headers,
+      );
+    } catch (e) {
+      console.error('[portoneWebhook] 시그니처 검증 실패:', e.message);
+      return res.status(400).json({ error: '웹훅 시그니처 검증 실패' });
+    }
 
     // PortOne V2 웹훅 바디에서 paymentId 추출 (위변조 방지를 위해 실제 조회 필수)
     const body      = req.body || {};
