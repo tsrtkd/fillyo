@@ -1102,14 +1102,17 @@ window.saveDay = async (isAuto = false) => {
     }
 
     const mk2 = monthKey(currentDate);
-    if (!monthData[mk2]) monthData[mk2] = {};
-    if (!monthData[mk2].base || monthData[mk2].base === 0) {
-      const prevMk   = monthKey(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-      const prevTotal = calcMemberUpTo(prevMk, null);
-      if (prevTotal > 0) {
-        monthData[mk2].base = prevTotal;
-        await set(ref(db, `academies/${academyId}/months/${mk2}/base`), prevTotal);
-        showToast('🔄 전달 총원(' + prevTotal + '명) 자동 이월됨!');
+    const realTodayMk = monthKey(new Date());
+    if (mk2 === realTodayMk) {
+      if (!monthData[mk2]) monthData[mk2] = {};
+      if (!monthData[mk2].base || monthData[mk2].base === 0) {
+        const prevMk   = monthKey(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+        const prevTotal = calcMemberUpTo(prevMk, null);
+        if (prevTotal > 0) {
+          monthData[mk2].base = prevTotal;
+          await set(ref(db, `academies/${academyId}/months/${mk2}/base`), prevTotal);
+          showToast('🔄 전달 총원(' + prevTotal + '명) 자동 이월됨!');
+        }
       }
     }
     updateMonthStrip();
@@ -1242,6 +1245,7 @@ function calcMemberUpTo(mk, upToKey) {
 
 async function autoCarryOverBase() {
   const now = new Date(), thisMk = monthKey(now);
+  if (thisMk !== monthKey(new Date())) return;
   const thisMd = monthData[thisMk] || {};
   if (thisMd.base && thisMd.base > 0) return;
   const prevMk    = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
