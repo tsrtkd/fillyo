@@ -90,6 +90,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-kakao:hover{background:#f0d800;}
 .btn-kakao:active{transform:scale(0.98);}
 
+/* ── CANCEL SUBSCRIPTION ────────────────────────────────────────── */
+.cancel-sub-desc{font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.65;}
+.btn-cancel-sub{background:none;border:1.5px solid var(--border);color:var(--text2);border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;width:100%;}
+.btn-cancel-sub:hover{border-color:var(--red);color:var(--red);}
+
 /* ── WITHDRAW ────────────────────────────────────────────────────── */
 .withdraw-row{text-align:center;margin-top:28px;padding-bottom:8px;}
 .btn-withdraw{background:none;border:none;color:var(--gray);font-size:12px;font-family:inherit;cursor:pointer;text-decoration:underline;padding:4px 8px;}
@@ -203,12 +208,31 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div class="sub-box" id="subBox"><!-- JS로 채움 --></div>
     </div>
 
+    <!-- ── 구독 취소 ──────────────────────────────────────────────── -->
+    <div class="sec-card" id="cancelSubRow" style="display:none">
+      <div class="sec-title">🚫 구독 취소</div>
+      <p class="cancel-sub-desc">계정은 유지하고 정기결제만 중단합니다.<br>취소 후에도 이번 달 결제된 서비스는 결제일까지 이용 가능합니다.</p>
+      <button class="btn-cancel-sub" onclick="openCancelSubModal()">구독 취소</button>
+    </div>
+
     <!-- ── 회원 탈퇴 ──────────────────────────────────────────────── -->
     <div class="withdraw-row">
       <button class="btn-withdraw" onclick="openWithdrawModal()">회원 탈퇴</button>
     </div>
 
   </main>
+</div>
+
+<!-- ── 구독취소 확인 모달 ──────────────────────────────────────────── -->
+<div class="modal-bg" id="cancelSubModal">
+  <div class="modal">
+    <div class="modal-title">구독 취소</div>
+    <div class="modal-sub">정기결제를 취소하시겠습니까?<br>계정과 데이터는 유지되며, 이번 달 결제된 서비스는 결제일까지 계속 이용 가능합니다.</div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeCancelSubModal()">돌아가기</button>
+      <button class="btn-ok" id="btnCancelSubOk" onclick="doCancelSub()">취소 확인</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── 탈퇴 확인 모달 ────────────────────────────────────────────── -->
@@ -254,8 +278,11 @@ const app  = initializeApp(FB_CONFIG);
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-let currentUser   = null;
-let currentAcadId = null;
+const CANCEL_SUB_URL = 'https://asia-northeast3-fillyo-journal.cloudfunctions.net/cancelSubscription';
+
+let currentUser       = null;
+let currentAcadId     = null;
+let currentBillingKey = null;
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -279,6 +306,13 @@ onAuthStateChanged(auth, async (user) => {
         const s = acSnap.val();
         document.getElementById('inputAcadName').value  = s.academyName || s.name || '';
         document.getElementById('inputOwnerName').value = s.ownerName || userData.ownerName || '';
+      }
+      const billingSnap = await get(ref(db, `academies/${currentAcadId}/billing`));
+      if (billingSnap.exists()) {
+        currentBillingKey = billingSnap.val()?.billingKey || null;
+      }
+      if (currentBillingKey) {
+        document.getElementById('cancelSubRow').style.display = 'block';
       }
     }
 
@@ -402,6 +436,34 @@ window.changePassword = async () => {
   }
 };
 
+// ── 구독 취소 ────────────────────────────────────────────────────
+window.openCancelSubModal  = () => document.getElementById('cancelSubModal').classList.add('show');
+window.closeCancelSubModal = () => document.getElementById('cancelSubModal').classList.remove('show');
+
+window.doCancelSub = async () => {
+  const btn = document.getElementById('btnCancelSubOk');
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    const idToken = await currentUser.getIdToken();
+    const resp = await fetch(CANCEL_SUB_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ academyId: currentAcadId }),
+    });
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${resp.status}`);
+    }
+    closeCancelSubModal();
+    showToast('구독이 취소되었습니다.', 'ok');
+    setTimeout(() => location.reload(), 1500);
+  } catch (e) {
+    console.error('[doCancelSub]', e);
+    showToast('구독 취소 실패: ' + e.message, 'err');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+};
+
 // ── 회원 탈퇴 ────────────────────────────────────────────────────
 window.openWithdrawModal  = () => document.getElementById('withdrawModal').classList.add('show');
 window.closeWithdrawModal = () => document.getElementById('withdrawModal').classList.remove('show');
@@ -411,6 +473,23 @@ window.doWithdraw = async () => {
   btn.disabled = true; btn.classList.add('loading');
   try {
     const uid = currentUser.uid;
+
+    // 구독 중이면 탈퇴 전 먼저 정기결제 해지
+    if (currentAcadId && currentBillingKey) {
+      try {
+        const idToken = await currentUser.getIdToken();
+        const resp = await fetch(CANCEL_SUB_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body: JSON.stringify({ academyId: currentAcadId }),
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      } catch (e) {
+        console.error('[doWithdraw] 정기결제 해지 실패:', e);
+        alert('정기결제 해지에 실패했습니다. 카카오톡 채널로 별도 문의해주세요.');
+      }
+    }
+
     if (currentAcadId) await remove(ref(db, `academies/${currentAcadId}`));
     await remove(ref(db, `users/${uid}`));
     await deleteUser(currentUser);
@@ -434,7 +513,10 @@ window.doLogout = async () => {
 
 // ── ESC / 배경 클릭으로 모달 닫기 ─────────────────────────────────
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeWithdrawModal();
+  if (e.key === 'Escape') { closeCancelSubModal(); closeWithdrawModal(); }
+});
+document.getElementById('cancelSubModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('cancelSubModal')) closeCancelSubModal();
 });
 document.getElementById('withdrawModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('withdrawModal')) closeWithdrawModal();

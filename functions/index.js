@@ -211,3 +211,122 @@ exports.portoneWebhook = onRequest(
     return res.status(200).send('ok');
   },
 );
+
+// ──────────────────────────────────────────────────────────────────
+// cancelSubscription
+// 구독 해지: 결제 예약 취소 → 빌링키 삭제 → Firebase 상태 갱신
+// ──────────────────────────────────────────────────────────────────
+exports.cancelSubscription = onRequest(
+  { region: 'asia-northeast3', timeoutSeconds: 30 },
+  (req, res) => {
+    cors(req, res, async () => {
+      if (req.method === 'OPTIONS') return res.status(204).send('');
+      if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+
+      // Firebase ID 토큰 검증 + uid 추출
+      const authHeader = req.headers.authorization || '';
+      if (!authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      let uid;
+      try {
+        const decoded = await admin.auth().verifyIdToken(authHeader.slice(7));
+        uid = decoded.uid;
+      } catch {
+        return res.status(401).json({ error: 'Invalid token' });
+      }
+
+      const { academyId } = req.body;
+      if (!academyId) {
+        return res.status(400).json({ error: 'academyId 필수' });
+      }
+
+      // 본인 학원 소유권 확인
+      const userSnap = await db.ref(`users/${uid}/academyId`).get();
+      if (!userSnap.exists() || userSnap.val() !== academyId) {
+        return res.status(403).json({ error: '본인 학원의 구독만 취소할 수 있습니다' });
+      }
+
+      // academies/{academyId}/billing에서 billingKey, lastScheduledPaymentId 조회
+      const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
+      const billing = billingSnap.val() || {};
+      const { billingKey, lastScheduledPaymentId } = billing;
+
+      if (!billingKey) {
+        return res.status(400).json({ error: '해지할 정기결제가 없습니다' });
+      }
+
+      const now = Date.now();
+
+      // ① 결제 예약 취소 (예약 ID가 있을 때만)
+      if (lastScheduledPaymentId) {
+        try {
+          await axios.post(
+            `${PORTONE_BASE}/payments/${lastScheduledPaymentId}/schedule/cancel`,
+            {},
+            { headers: { Authorization: `PortOne ${apiSecret()}` } },
+          );
+        } catch (e) {
+          console.error('[cancelSubscription] ① 결제 예약 취소 실패:', e.response?.data ?? e.message);
+          return res.status(500).json({ error: '결제 예약 취소 실패', details: e.response?.data });
+        }
+      }
+
+      // ② 빌링키 삭제
+      try {
+        await axios.delete(
+          `${PORTONE_BASE}/billing-keys/${billingKey}`,
+          { headers: { Authorization: `PortOne ${apiSecret()}` } },
+        );
+      } catch (e) {
+        console.error('[cancelSubscription] ② 빌링키 삭제 실패:', e.response?.data ?? e.message);
+        return res.status(500).json({ error: '빌링키 삭제 실패', details: e.response?.data });
+      }
+
+      // ③ academies/{academyId}/billing에 해지 상태 기록 (billingKey null로 초기화)
+      try {
+        await db.ref(`academies/${academyId}/billing`).update({
+          status:      'cancelled',
+          cancelledAt: now,
+          billingKey:  null,
+        });
+      } catch (e) {
+        console.error('[cancelSubscription] ③ billing 업데이트 실패:', e.message);
+        return res.status(500).json({ error: 'billing 업데이트 실패' });
+      }
+
+      // ④ users/{uid}에 해지 상태 기록
+      try {
+        await db.ref(`users/${uid}`).update({
+          planType:    'cancelled',
+          cancelledAt: now,
+        });
+      } catch (e) {
+        console.error('[cancelSubscription] ④ users 업데이트 실패:', e.message);
+        return res.status(500).json({ error: 'users 업데이트 실패' });
+      }
+
+      // ⑤ active 계약 또는 최신 계약에 cancelled 상태 기록
+      try {
+        const contractsSnap = await db.ref(`academies/${academyId}/contracts`).get();
+        if (contractsSnap.exists()) {
+          const contracts = contractsSnap.val();
+          // active 상태인 계약 우선, 없으면 key 기준 가장 최근 계약
+          const activeEntry = Object.entries(contracts).find(([, v]) => v.status === 'active');
+          const targetEntry = activeEntry ?? Object.entries(contracts).at(-1);
+          if (targetEntry) {
+            const [contractId] = targetEntry;
+            await db.ref(`academies/${academyId}/contracts/${contractId}`).update({
+              status:      'cancelled',
+              cancelledAt: now,
+            });
+          }
+        }
+      } catch (e) {
+        console.error('[cancelSubscription] ⑤ 계약서 업데이트 실패:', e.message);
+      }
+
+      return res.status(200).json({ ok: true, cancelledAt: now });
+    });
+  },
+);
