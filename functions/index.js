@@ -247,10 +247,10 @@ exports.cancelSubscription = onRequest(
         return res.status(403).json({ error: '본인 학원의 구독만 취소할 수 있습니다' });
       }
 
-      // academies/{academyId}/billing에서 billingKey, lastScheduledPaymentId 조회
+      // academies/{academyId}/billing에서 billingKey 조회
       const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
       const billing = billingSnap.val() || {};
-      const { billingKey, lastScheduledPaymentId } = billing;
+      const { billingKey } = billing;
 
       if (!billingKey) {
         return res.status(400).json({ error: '해지할 정기결제가 없습니다' });
@@ -258,18 +258,19 @@ exports.cancelSubscription = onRequest(
 
       const now = Date.now();
 
-      // ① 결제 예약 취소 (예약 ID가 있을 때만)
-      if (lastScheduledPaymentId) {
-        try {
-          await axios.post(
-            `${PORTONE_BASE}/payments/${lastScheduledPaymentId}/schedule/cancel`,
-            {},
-            { headers: { Authorization: `PortOne ${apiSecret()}` } },
-          );
-        } catch (e) {
-          console.error('[cancelSubscription] ① 결제 예약 취소 실패:', e.response?.data ?? e.message);
-          return res.status(500).json({ error: '결제 예약 취소 실패', details: e.response?.data });
-        }
+      // ① 결제 예약 전체 취소 (billingKey 기준 일괄)
+      try {
+        await axios.delete(
+          `${PORTONE_BASE}/payment-schedules`,
+          {
+            headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+            data: { billingKey },
+          },
+        );
+      } catch (e) {
+        const portoneMsg = e.response?.data?.message ?? e.message;
+        console.error('[cancelSubscription] ① 결제 예약 취소 실패:', portoneMsg);
+        return res.status(500).json({ error: '결제 예약 취소 실패: ' + portoneMsg });
       }
 
       // ② 빌링키 삭제

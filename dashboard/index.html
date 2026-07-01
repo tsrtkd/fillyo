@@ -340,9 +340,11 @@
 
     /* RESPONSIVE */
     @media(max-width:390px){
-      .hero h1{font-size:30px;}
+      .hero h1{font-size:30px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:110px;}
       .countdown{width:82px;height:82px;}
       .card{min-height:130px;}
+      .logo{font-size:26px;}
+      .header a[href*="fillyo.kr"]{font-size:11px;padding:4px 10px;}
     }
     /* POLICY BANNER */
     .policy-banner{display:flex;align-items:center;justify-content:space-between;background:#E8F5E9;border:1.5px solid #A5D6A7;border-radius:12px;padding:11px 16px;margin:0 20px 18px;cursor:pointer;transition:background 0.15s;}
