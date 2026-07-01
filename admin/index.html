@@ -52,7 +52,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ── TABLE ──────────────────────────────────────────────────────── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-table{width:100%;border-collapse:collapse;min-width:740px;}
+table{width:100%;border-collapse:collapse;min-width:960px;}
+.td-sub{color:var(--text);font-size:12px;white-space:nowrap;}
+.td-amt{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;}
 thead th{background:var(--bg);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
 tbody tr:last-child{border-bottom:none;}
@@ -378,12 +380,14 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
               <th>가입일</th>
               <th>플랜</th>
               <th>구독 만료일</th>
+              <th>구독 구성</th>
+              <th>월 결제금액</th>
               <th>관리</th>
             </tr>
           </thead>
           <tbody id="tbody">
             <tr>
-              <td colspan="7" class="empty">
+              <td colspan="9" class="empty">
                 <div class="empty-icon">⏳</div>
                 <div class="empty-text">불러오는 중...</div>
               </td>
@@ -513,24 +517,39 @@ window.loadData = async () => {
     const entries  = Object.entries(usersObj).filter(([, u]) => u.academyId);
 
     allData = await Promise.all(entries.map(async ([uid, u]) => {
-      let acadName  = '(데이터 없음)';
-      let ownerName = u.ownerName || '';
+      let acadName      = '(데이터 없음)';
+      let ownerName     = u.ownerName || '';
+      let monthlyAmount = null;
       try {
-        const snap = await get(ref(db, `academies/${u.academyId}/settings`));
-        if (snap.exists()) {
-          const s   = snap.val();
+        const [settingsSnap, contractsSnap] = await Promise.all([
+          get(ref(db, `academies/${u.academyId}/settings`)),
+          get(ref(db, `academies/${u.academyId}/contracts`)),
+        ]);
+        if (settingsSnap.exists()) {
+          const s   = settingsSnap.val();
           acadName  = s.name      || '(이름 없음)';
           ownerName = u.ownerName || s.ownerName || '';
+        }
+        if (contractsSnap.exists()) {
+          const latest = Object.values(contractsSnap.val())
+            .sort((a, b) => (b.contractId || '').localeCompare(a.contractId || ''))[0];
+          monthlyAmount = latest?.monthlyAmount ?? null;
+        }
+        if (!monthlyAmount && u.lastPayment?.amount) {
+          monthlyAmount = u.lastPayment.amount;
         }
       } catch (_) { /* 읽기 권한 없을 수 있음 */ }
       return {
         uid,
-        email:       u.email       || '',
-        planType:    u.planType    || 'free',
-        planExpiry:  u.planExpiry  || null,
-        createdAt:   u.createdAt   || 0,
-        academyId:   u.academyId,
-        academyName: acadName,
+        email:            u.email            || '',
+        planType:         u.planType         || 'free',
+        planExpiry:       u.planExpiry       || null,
+        billingCycle:     u.billingCycle     || '',
+        subscribedAddons: u.subscribedAddons || null,
+        monthlyAmount,
+        createdAt:        u.createdAt        || 0,
+        academyId:        u.academyId,
+        academyName:      acadName,
         ownerName,
       };
     }));
@@ -568,7 +587,7 @@ window.renderTable = () => {
   const tbody = document.getElementById('tbody');
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">
+    tbody.innerHTML = `<tr><td colspan="9" class="empty">
       <div class="empty-icon">${q ? '🔍' : '📋'}</div>
       <div class="empty-text">${q ? '검색 결과가 없습니다.' : '등록된 학원이 없습니다.'}</div>
     </td></tr>`;
@@ -594,6 +613,8 @@ window.renderTable = () => {
       <td class="td-date">${fmt(a.createdAt)}</td>
       <td>${badge}</td>
       <td class="td-date">${expiry}</td>
+      <td class="td-sub">${buildSubText(a)}</td>
+      <td class="td-amt">${buildAmtText(a)}</td>
       <td>
         <div class="act-row">
           <button class="btn-act btn-plan" onclick="openPlanModal('${a.uid}')">플랜 변경</button>
@@ -919,6 +940,28 @@ window.deleteCurated = async (id) => {
     await loadCurated();
   } catch (e) { showToast('삭제 실패: ' + e.message, 'err'); }
 };
+
+// ── 구독 구성 텍스트 ──────────────────────────────────────────────
+function buildSubText(a) {
+  if (a.planType !== 'pro') return '—';
+  let base = '업무일지';
+  if (a.billingCycle === 'early')  base = '업무일지(얼리버드)';
+  else if (a.billingCycle === 'yearly') base = '업무일지(1년약정)';
+  const parts = [base];
+  if (a.subscribedAddons) {
+    if (a.subscribedAddons.exam)     parts.push('승급심사');
+    if (a.subscribedAddons.jumprope) parts.push('줄넘기');
+    if (a.subscribedAddons.report)   parts.push('AI리포트');
+  }
+  return parts.join(' + ');
+}
+
+function buildAmtText(a) {
+  if (a.planType !== 'pro') return '<span style="color:var(--border);">—</span>';
+  if (!a.monthlyAmount) return '—';
+  const amt = '₩' + Number(a.monthlyAmount).toLocaleString();
+  return a.billingCycle === 'monthly' ? amt : amt + '/월';
+}
 
 // ── 유틸 ──────────────────────────────────────────────────────────
 function fmt(ts) {
