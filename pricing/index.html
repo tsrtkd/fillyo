@@ -665,6 +665,19 @@ window.startPayment = async function() {
     }
   }
 
+  // ownerName이 없으면 직접 입력 받아 Firebase에 저장
+  if (!userData.ownerName) {
+    const nameSnap = await get(ref(db, 'users/' + user.uid + '/ownerName'));
+    if (nameSnap.exists()) {
+      userData.ownerName = nameSnap.val();
+    } else {
+      const ownerName = prompt('결제자 성함을 입력해주세요 (본인 명의 카드와 일치해야 합니다)');
+      if (!ownerName) { btn.disabled = false; btn.textContent = '결제하기'; return; }
+      userData.ownerName = ownerName;
+      await update(ref(db, 'users/' + user.uid), { ownerName });
+    }
+  }
+
   const subscribedAddons = {
     exam:     !!(addons.bundle || addons.exam),
     jumprope: !!(addons.bundle || addons.jumprope),
