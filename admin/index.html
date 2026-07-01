@@ -958,7 +958,11 @@ function buildSubText(a) {
 
 function buildAmtText(a) {
   if (a.planType !== 'pro') return '<span style="color:var(--border);">—</span>';
-  if (!a.monthlyAmount) return '—';
+  if (!a.monthlyAmount) {
+    return a.email === ADMIN_EMAIL
+      ? '<span style="color:var(--gray);font-size:11px;">관리자(수동설정)</span>'
+      : '—';
+  }
   const amt = '₩' + Number(a.monthlyAmount).toLocaleString();
   return a.billingCycle === 'monthly' ? amt : amt + '/월';
 }
