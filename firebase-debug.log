@@ -1,0 +1,31 @@
+[debug] [2026-07-01T02:21:59.050Z] ----------------------------------------------------------------------
+[debug] [2026-07-01T02:21:59.052Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\뿌이\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js --project fillyo-journal database:get C:/Program Files/Git/academies --instance fillyo-journal-default-rtdb.asia-southeast1
+[debug] [2026-07-01T02:21:59.053Z] CLI Version:   15.22.4
+[debug] [2026-07-01T02:21:59.053Z] Platform:      win32
+[debug] [2026-07-01T02:21:59.053Z] Node Version:  v24.16.0
+[debug] [2026-07-01T02:21:59.053Z] Detected Agent: claude-code_2-1-162_agent
+[debug] [2026-07-01T02:21:59.053Z] Time:          Wed Jul 01 2026 11:21:59 GMT+0900 (한국 표준시)
+[debug] [2026-07-01T02:21:59.053Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-01T02:22:00.347Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-01T02:22:00.348Z] > authorizing via signed-in user (audtls2g@gmail.com)
+[debug] [2026-07-01T02:22:00.348Z] [iam] checking project fillyo-journal for permissions ["firebase.projects.get","firebasedatabase.instances.get"]
+[debug] [2026-07-01T02:22:00.349Z] Checked if tokens are valid: true, expires at: 1782875260452
+[debug] [2026-07-01T02:22:00.349Z] Checked if tokens are valid: true, expires at: 1782875260452
+[debug] [2026-07-01T02:22:00.349Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/fillyo-journal:testIamPermissions [none]
+[debug] [2026-07-01T02:22:00.349Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/fillyo-journal:testIamPermissions  x-goog-user-project=fillyo-journal
+[debug] [2026-07-01T02:22:00.350Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fillyo-journal:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.get"]}
+[debug] [2026-07-01T02:22:00.633Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/fillyo-journal:testIamPermissions 200
+[debug] [2026-07-01T02:22:00.633Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/fillyo-journal:testIamPermissions {"permissions":["firebase.projects.get","firebasedatabase.instances.get"]}
+[debug] [2026-07-01T02:22:00.633Z] Checked if tokens are valid: true, expires at: 1782875260452
+[debug] [2026-07-01T02:22:00.633Z] Checked if tokens are valid: true, expires at: 1782875260452
+[debug] [2026-07-01T02:22:00.633Z] >>> [apiv2][query] GET https://firebasedatabase.googleapis.com/v1beta/projects/fillyo-journal/locations/-/instances/fillyo-journal-default-rtdb.asia-southeast1 [none]
+[debug] [2026-07-01T02:22:01.988Z] <<< [apiv2][status] GET https://firebasedatabase.googleapis.com/v1beta/projects/fillyo-journal/locations/-/instances/fillyo-journal-default-rtdb.asia-southeast1 404
+[debug] [2026-07-01T02:22:01.988Z] <<< [apiv2][body] GET https://firebasedatabase.googleapis.com/v1beta/projects/fillyo-journal/locations/-/instances/fillyo-journal-default-rtdb.asia-southeast1 {"error":{"code":404,"message":"Namespace does not exist.","status":"NOT_FOUND"}}
+[debug] [2026-07-01T02:22:01.988Z] Request to https://firebasedatabase.googleapis.com/v1beta/projects/fillyo-journal/locations/-/instances/fillyo-journal-default-rtdb.asia-southeast1 had HTTP Error: 404, Namespace does not exist.
+[debug] [2026-07-01T02:22:01.990Z] FirebaseError: Request to https://firebasedatabase.googleapis.com/v1beta/projects/fillyo-journal/locations/-/instances/fillyo-journal-default-rtdb.asia-southeast1 had HTTP Error: 404, Namespace does not exist.
+    at responseToError (C:\Users\뿌이\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:53:12)
+    at RetryOperation._fn (C:\Users\뿌이\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:381:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+[error] 
+[error] Error: Failed to get instance details for instance: fillyo-journal-default-rtdb.asia-southeast1. See firebase-debug.log for more details.

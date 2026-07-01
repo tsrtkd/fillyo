@@ -647,6 +647,7 @@ window.startPayment = async function() {
   btn.disabled = true;
   btn.textContent = '결제창 열기...';
 
+  try {
   const snap = await get(ref(db, 'users/' + user.uid));
   const userData = snap.exists() ? snap.val() : {};
   console.log('[FILLYO] users/' + user.uid, userData);
@@ -762,22 +763,22 @@ window.startPayment = async function() {
 
   // 빌키 발급
   btn.textContent = '카드 등록 중...';
-  const issueResponse = await PortOne.requestIssueBillingKey({
+  const billingKeyRequest = {
     storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
     channelKey: 'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
     billingKeyMethod: 'CARD',
     issueId: `fb_${Date.now()}`,
     issueName,
     redirectUrl: window.location.origin + '/pricing/',
-    offerPeriod: {
-      interval: '1m'
-    },
+    offerPeriod: { interval: '1m' },
     customer: {
       fullName:    userData.ownerName,
       phoneNumber: userData.phone,
       email:       currentUser.email,
     },
-  });
+  };
+  console.log('[FILLYO] 빌키발급 요청 파라미터:', billingKeyRequest);
+  const issueResponse = await PortOne.requestIssueBillingKey(billingKeyRequest);
 
   if (issueResponse.code !== undefined) {
     alert(issueResponse.message);
@@ -848,6 +849,13 @@ window.startPayment = async function() {
     document.getElementById('payModal').classList.add('show');
   } catch(e) {
     showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
+    btn.disabled = false;
+    btn.textContent = '결제하기';
+  }
+
+  } catch (e) {
+    console.error('[startPayment] 오류:', e);
+    alert('오류가 발생했습니다: ' + (e.message || e.toString()));
     btn.disabled = false;
     btn.textContent = '결제하기';
   }
