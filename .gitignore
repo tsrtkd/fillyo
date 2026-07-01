@@ -6,3 +6,4 @@ functions/node_modules/
 functions/.env
 node_modules/
 response.json
+firebase-debug.log
