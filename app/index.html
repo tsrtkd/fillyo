@@ -755,14 +755,15 @@ onAuthStateChanged(auth, async (user) => {
 
     const userData = userSnap.val();
 
-    // ── 권한 체크 (admin / 체험 / 구독) ───────────────────────────
+    // ── 권한 체크 (admin / pro / 체험) ────────────────────────────
+    // pro 만료는 아래 blockedScreen에서 별도 처리하므로 여기선 planType만 확인
     {
       const _admin   = userData.role === 'admin';
+      const _isPro   = userData.planType === 'pro';
       const _ts      = userData.trialStart || null;
-      const _days    = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 0;
-      const _trial   = _days < 7;
-      const _subs    = userData.subscribedServices || [];
-      if (!_admin && !_trial && !_subs.includes('app')) {
+      const _days    = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 999;
+      const _trial   = _ts !== null && _days < 7;
+      if (!_admin && !_isPro && !_trial) {
         document.getElementById('loadingScreen').style.display = 'none';
         alert('무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
         location.href = '/dashboard/';

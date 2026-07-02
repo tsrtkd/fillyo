@@ -671,13 +671,16 @@ onAuthStateChanged(auth, async (user) => {
     }
     const isAdmin = userData.role === 'admin';
 
-    // 학원명 로드
+    // 학원명 + 애드온 로드
+    let addons = {};
     if (academyId) {
       const acSnap = await get(ref(db, `academies/${academyId}/settings`));
       if (acSnap.exists()) {
         const s = acSnap.val();
         document.getElementById('academyName').textContent = s.academyName || s.name || '내 학원';
       }
+      const addonsSnap = await get(ref(db, `academies/${academyId}/addons`));
+      if (addonsSnap.exists()) addons = addonsSnap.val();
     } else {
       document.getElementById('academyName').textContent = '내 학원';
     }
@@ -743,12 +746,13 @@ onAuthStateChanged(auth, async (user) => {
     }
 
     // ── 서비스 카드 상태 동적 표시 ───────────────────────────────────
-    // admin → 모두 이용중 / subscribed → 이용중 / 체험중 → 체험중 / 만료 → 결제 후 사용
-    function setCardStatus(cardId, serviceKey) {
+    // admin → 모두 이용중 / isActive → 이용중 / 체험중 → 체험중 / 만료 → 결제 후 사용
+    const isPro = planType === 'pro' && (!planExpiry || planExpiry > Date.now());
+    function setCardStatus(cardId, isActive) {
       const card = document.getElementById(cardId);
       if (!card) return;
       const st = card.querySelector('.status');
-      if (isAdmin || subscribedServices.includes(serviceKey)) {
+      if (isAdmin || isActive) {
         st.textContent        = '이용중';
         st.style.background   = 'rgba(76,175,80,0.25)';
         st.style.color        = '#2e7d32';
@@ -762,11 +766,11 @@ onAuthStateChanged(auth, async (user) => {
         st.style.color        = '#888';
       }
     }
-    setCardStatus('cardApp',      'app');
-    setCardStatus('cardExam',     'exam');
-    setCardStatus('cardJumprope', 'jumprope');
-    setCardStatus('cardReport',   'report');
-    setCardStatus('cardSlowmo',   'slowmo');
+    setCardStatus('cardApp',      isPro);
+    setCardStatus('cardExam',     addons.exam?.status === 'active' || addons.bundle?.status === 'active');
+    setCardStatus('cardJumprope', addons.jumprope?.status === 'active' || addons.bundle?.status === 'active');
+    setCardStatus('cardReport',   addons.bundle?.status === 'active');
+    // cardSlowmo: 무료 서비스 — 로그인만 되면 항상 이용 가능, setCardStatus 생략
 
   } catch (e) {
     console.error(e);
