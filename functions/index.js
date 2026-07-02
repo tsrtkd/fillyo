@@ -66,7 +66,7 @@ exports.scheduleNextPayment = onRequest(
       const timeToPay = nextMonthSameDay();
 
       try {
-        await axios.post(
+        const portoneRes = await axios.post(
           `${PORTONE_BASE}/payments/${paymentId}/schedule`,
           {
             payment: {
@@ -81,7 +81,29 @@ exports.scheduleNextPayment = onRequest(
           { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
         );
 
+        console.log('[scheduleNextPayment] PortOne 응답:', JSON.stringify(portoneRes.data));
+
+        const scheduleId = portoneRes.data?.scheduleId
+          ?? portoneRes.data?.schedule?.id
+          ?? portoneRes.data?.schedule?.scheduleId
+          ?? null;
+
         const now = Date.now();
+
+        if (!scheduleId) {
+          console.error('[scheduleNextPayment] scheduleId 없음 — 예약 실패 처리:', JSON.stringify(portoneRes.data));
+          await db.ref(`paymentOrders/${paymentId}`).set({
+            academyId,
+            amount,
+            orderName,
+            billingKey,
+            scheduledAt:        now,
+            scheduleFailed:     true,
+            scheduleFailReason: 'scheduleId 없음',
+            portoneResponse:    JSON.stringify(portoneRes.data),
+          });
+          return res.status(500).json({ error: '결제 예약 실패 (scheduleId 없음)', portoneData: portoneRes.data });
+        }
 
         // academyId별 빌링 정보 저장
         await db.ref(`academies/${academyId}/billing`).update({
@@ -98,10 +120,13 @@ exports.scheduleNextPayment = onRequest(
           amount,
           orderName,
           billingKey,
-          scheduledAt: now,
+          scheduledAt:     now,
+          scheduleId,
+          scheduleStatus:  portoneRes.data?.status ?? portoneRes.data?.schedule?.status ?? null,
+          portoneResponse: JSON.stringify(portoneRes.data),
         });
 
-        return res.status(200).json({ ok: true, paymentId, timeToPay: timeToPay.toISOString() });
+        return res.status(200).json({ ok: true, paymentId, scheduleId, timeToPay: timeToPay.toISOString() });
       } catch (e) {
         console.error('[scheduleNextPayment] PortOne API 오류:', e.response?.data ?? e.message);
         return res.status(500).json({ error: '결제 예약 실패', details: e.response?.data });
