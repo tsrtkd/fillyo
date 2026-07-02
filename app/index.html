@@ -762,7 +762,7 @@ onAuthStateChanged(auth, async (user) => {
       const _isPro   = userData.planType === 'pro';
       const _ts      = userData.trialStart || null;
       const _days    = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 999;
-      const _trial   = _ts !== null && _days < 7;
+      const _trial   = !_isPro && _ts !== null && _days < 7;
       if (!_admin && !_isPro && !_trial) {
         document.getElementById('loadingScreen').style.display = 'none';
         alert('무료 체험이 종료되었습니다. 결제 후 이용해주세요.');

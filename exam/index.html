@@ -1049,7 +1049,7 @@ onAuthStateChanged(auth, async (user) => {
       const _isPro = _ud.planType === 'pro' && (!_ud.planExpiry || _ud.planExpiry > Date.now());
       const _ts    = _ud.trialStart || null;
       const _days  = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 999;
-      const _trial = _ts !== null && _days < 7;
+      const _trial = !_isPro && _ts !== null && _days < 7;
       let _examOk  = false;
       if (_isPro) {
         const _acId = _ud.academyId || null;
