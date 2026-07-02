@@ -180,7 +180,11 @@ onAuthStateChanged(auth, (user) => {
   if (!user) { location.href = '/login/'; return; }
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('pageContent').style.display   = 'block';
-  loadAuto();
+  if (location.hash === '#curated') {
+    switchTab('curated');
+  } else {
+    loadAuto();
+  }
 });
 
 // ── 마감일 추출 ────────────────────────────────────────────────────
