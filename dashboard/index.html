@@ -458,7 +458,7 @@
       <small>좋은 하루예요, 원장님 👋</small>
       <h1 id="academyName">불러오는 중...</h1>
       <div class="badge" id="planBadge">🟢 불러오는 중</div>
-      <button id="pricingBtn" onclick="location.href='/pricing/'" style="display:none;margin-top:14px;background:#0B1F3A;color:#fff;border:none;border-radius:999px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:transform .15s;">💳 플랜 구독하기</button>
+      <button id="pricingBtn" onclick="location.href='/pricing/'" style="display:none;margin-top:14px;background:#0B7B6B;color:#fff;border:none;border-radius:999px;padding:11px 26px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;letter-spacing:.3px;transition:transform .15s,box-shadow .15s;box-shadow:0 4px 14px rgba(11,123,107,0.45);" onmouseover="this.style.transform='scale(1.04)'" onmouseout="this.style.transform='scale(1)'">💳 플랜 구독하기</button>
       <div class="countdown">
         <strong id="countdownNum">—</strong>
         <span id="countdownLabel">구독 만료까지</span>
@@ -742,7 +742,7 @@ onAuthStateChanged(auth, async (user) => {
       labelEl.style.color  = '#C62828';
       const cdBox = document.querySelector('.countdown');
       cdBox.style.cursor = 'pointer';
-      cdBox.addEventListener('click', () => location.href = '/mypage/');
+      cdBox.addEventListener('click', () => location.href = '/pricing/');
     }
 
     // ── 서비스 카드 상태 동적 표시 ───────────────────────────────────
