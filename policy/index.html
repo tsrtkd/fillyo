@@ -78,9 +78,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 /* ERROR */
 .error-box{background:var(--red-lt);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--red);margin:20px 0;}
 
-/* DASHBOARD FAB */
-.fab-dashboard{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;border:none;border-radius:999px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 4px 16px rgba(11,31,58,0.35);white-space:nowrap;z-index:200;letter-spacing:.2px;transition:transform .15s,box-shadow .15s;}
-.fab-dashboard:hover{transform:translateX(-50%) scale(1.04);box-shadow:0 6px 20px rgba(11,31,58,0.45);}
+/* HOME BUTTON */
+.hdr-home{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.28);color:white;font-size:16px;cursor:pointer;padding:5px 9px;border-radius:8px;font-family:inherit;line-height:1;flex-shrink:0;transition:background 0.15s;}
+.hdr-home:hover{background:rgba(255,255,255,0.24);}
+.hdr-right{display:flex;gap:4px;align-items:center;flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -95,7 +96,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   <header class="hdr">
     <button class="hdr-back" onclick="location.href='/dashboard/'">‹</button>
     <span class="hdr-center">📋 지원정책 알림</span>
-    <button class="hdr-refresh" id="btnRefresh" onclick="refresh()" title="새로고침">↻</button>
+    <div class="hdr-right">
+      <button class="hdr-home" onclick="location.href='/dashboard/'" title="대시보드">🏠</button>
+      <button class="hdr-refresh" id="btnRefresh" onclick="refresh()" title="새로고침">↻</button>
+    </div>
   </header>
 
   <div class="tab-bar">
@@ -121,7 +125,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div id="curatedList"></div>
   </div>
 
-  <button class="fab-dashboard" onclick="location.href='/dashboard/'">← 대시보드로</button>
 
 </div>
 
