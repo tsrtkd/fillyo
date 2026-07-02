@@ -1,9 +1,9 @@
 'use strict';
 
-const { onRequest } = require('firebase-functions/v2/https');
-const admin  = require('firebase-admin');
-const axios  = require('axios');
-const cors   = require('cors')({ origin: true });
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const admin   = require('firebase-admin');
+const axios   = require('axios');
+const cors    = require('cors')({ origin: true });
 const PortOne = require('@portone/server-sdk');
 
 admin.initializeApp();
@@ -15,9 +15,19 @@ function apiSecret() {
   return process.env.PORTONE_API_SECRET;
 }
 
+// ── 애드온 가격표 ──────────────────────────────────────────────────
+// billingType: 'contract'(1년 계약) | 'single'(1개월 이용권)
+// regularAmount: 정가(1개월 이용권 기준) → 중도해지 차액 계산용
+// single: null → 해당 billingType 불가
+const ADDON_PRICE_TABLE = {
+  exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사' },
+  jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기' },
+  bundle:   { contract: 11760, single: null,  regularAmount: 11760, name: '애드온 묶음 (줄넘기+승급심사+AI성장리포트)' },
+};
+
 // 다음 달 동일 일자 계산 (월말 보정 포함)
 function nextMonthSameDay(from = new Date()) {
-  const d = new Date(from);
+  const d   = new Date(from);
   const day = d.getDate();
   d.setMonth(d.getMonth() + 1);
   // 1월 31일 → 2월 28/29일처럼 월 오버플로 발생 시 해당 달 마지막 날로 보정
@@ -52,8 +62,8 @@ exports.scheduleNextPayment = onRequest(
         return res.status(400).json({ error: 'billingKey, academyId, amount, orderName 필수' });
       }
 
-      const paymentId  = `sub_${Date.now()}_${academyId}`;
-      const timeToPay  = nextMonthSameDay();
+      const paymentId = `sub_${Date.now()}_${academyId}`;
+      const timeToPay = nextMonthSameDay();
 
       try {
         await axios.post(
@@ -103,6 +113,7 @@ exports.scheduleNextPayment = onRequest(
 // ──────────────────────────────────────────────────────────────────
 // portoneWebhook
 // PortOne 서버가 결제 시도 결과를 POST로 전송하는 엔드포인트
+// paymentId가 'addon_' 로 시작하면 애드온 결제 경로로 분기
 // ──────────────────────────────────────────────────────────────────
 exports.portoneWebhook = onRequest(
   { region: 'asia-northeast3', timeoutSeconds: 30 },
@@ -121,7 +132,7 @@ exports.portoneWebhook = onRequest(
       return res.status(400).json({ error: '웹훅 시그니처 검증 실패' });
     }
 
-    // PortOne V2 웹훅 바디에서 paymentId 추출 (위변조 방지를 위해 실제 조회 필수)
+    // PortOne V2 웹훅 바디에서 paymentId 추출
     const body      = req.body || {};
     const paymentId = body?.data?.paymentId ?? body?.paymentId ?? body?.payment_id;
 
@@ -131,77 +142,180 @@ exports.portoneWebhook = onRequest(
     }
 
     try {
-      // ① PortOne 단건 조회로 실제 결제 상태 확인
+      // ① PortOne 단건 조회로 실제 결제 상태 확인 (위변조 방지)
       const { data: payment } = await axios.get(
         `${PORTONE_BASE}/payments/${paymentId}`,
         { headers: { Authorization: `PortOne ${apiSecret()}` } },
       );
       const status = payment.status; // 'PAID' | 'FAILED' | 'CANCELLED' | ...
 
-      // ② Firebase에서 주문 정보(academyId) 조회
+      // ② Firebase에서 주문 정보 조회
       const orderSnap = await db.ref(`paymentOrders/${paymentId}`).get();
       if (!orderSnap.exists()) {
         console.warn('[portoneWebhook] 주문 정보 없음:', paymentId);
         return res.status(200).send('ok');
       }
-      const { academyId, amount, orderName, billingKey } = orderSnap.val();
+      const order = orderSnap.val();
+      const { academyId, amount, orderName, billingKey } = order;
       const now = Date.now();
 
-      if (status === 'PAID') {
-        // ③-성공: 결제 이력 저장 + 다음 달 재예약
-        await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
-          paymentId,
-          status,
-          amount:    payment.amount?.total ?? amount,
-          orderName,
-          paidAt:    now,
-        });
-        await db.ref(`academies/${academyId}/billing`).update({
-          paymentFailed: false,
-          lastPaidAt:    now,
-        });
+      // ── 애드온 결제 분기 (paymentId 접두사 또는 order.type으로 판별) ──────
+      const isAddon = order.type === 'addon' || paymentId.startsWith('addon_');
 
-        // 다음 달 자동 재예약
-        const nextId      = `sub_${Date.now()}_${academyId}`;
-        const nextTime    = nextMonthSameDay();
-        await axios.post(
-          `${PORTONE_BASE}/payments/${nextId}/schedule`,
-          {
-            payment: {
-              billingKey,
-              orderName,
-              customer: { id: academyId },
-              amount:   { total: amount },
-              currency: 'KRW',
-            },
-            timeToPay: nextTime.toISOString(),
-          },
-          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
-        );
-        await db.ref(`academies/${academyId}/billing`).update({
-          nextPaymentAt:          nextTime.getTime(),
-          lastScheduledPaymentId: nextId,
-        });
-        await db.ref(`paymentOrders/${nextId}`).set({
-          academyId, amount, orderName, billingKey,
-          scheduledAt: now,
-        });
+      if (isAddon) {
+        // ────────────────────────────────────────────────────────────
+        //  애드온 결제 처리 경로
+        // ────────────────────────────────────────────────────────────
+        const { addonKey, billingType } = order;
+
+        if (status === 'PAID') {
+          // 결제 이력 저장
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            type:      'addon',
+            addonKey,
+            status,
+            amount:    payment.amount?.total ?? amount,
+            orderName,
+            paidAt:    now,
+          });
+
+          // paidCount 갱신
+          const addonSnap  = await db.ref(`academies/${academyId}/addons/${addonKey}`).get();
+          const addonData  = addonSnap.val() || {};
+          const newPaidCount = (addonData.paidCount || 0) + 1;
+
+          // 다음 달 재예약: contract 타입이고 12회 미만인 경우만
+          let nextPaymentId = null;
+          let nextScheduleId = null;
+          let nextTime = null;
+
+          if (billingType === 'contract' && newPaidCount < 12) {
+            nextPaymentId = `addon_${addonKey}_${academyId}_${now}`;
+            nextTime = nextMonthSameDay();
+            try {
+              const reschedResp = await axios.post(
+                `${PORTONE_BASE}/payments/${nextPaymentId}/schedule`,
+                {
+                  payment: {
+                    billingKey,
+                    orderName,
+                    customer: { id: academyId },
+                    amount:   { total: amount },
+                    currency: 'KRW',
+                  },
+                  timeToPay: nextTime.toISOString(),
+                },
+                { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+              );
+              nextScheduleId = reschedResp.data?.scheduleId
+                ?? reschedResp.data?.schedule?.id
+                ?? reschedResp.data?.schedule?.scheduleId
+                ?? null;
+
+              await db.ref(`paymentOrders/${nextPaymentId}`).set({
+                type: 'addon',
+                academyId,
+                addonKey,
+                billingType,
+                amount,
+                orderName,
+                billingKey,
+                scheduledAt: now,
+              });
+            } catch (e) {
+              console.error('[portoneWebhook][addon] 재예약 실패:', e.response?.data ?? e.message);
+            }
+          }
+
+          // addon 상태 갱신
+          const addonUpdate = {
+            paidCount:          newPaidCount,
+            lastPaidAt:         now,
+            currentPaymentId:   nextPaymentId,
+            currentScheduleId:  nextScheduleId,
+          };
+          if (newPaidCount >= 12) addonUpdate.status = 'completed';
+          await db.ref(`academies/${academyId}/addons/${addonKey}`).update(addonUpdate);
+
+        } else {
+          // 애드온 결제 실패: 이력 저장 + 실패 플래그
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            type:       'addon',
+            addonKey,
+            status,
+            amount:     payment.amount?.total ?? amount,
+            orderName,
+            failReason: payment.failReason || '결제 실패',
+            failedAt:   now,
+          });
+          await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+            lastFailedAt:   now,
+            lastFailReason: payment.failReason || '결제 실패',
+          });
+        }
 
       } else {
-        // ③-실패: 실패 이력 저장 + 실패 플래그
-        await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
-          paymentId,
-          status,
-          amount:     payment.amount?.total ?? amount,
-          orderName,
-          failReason: payment.failReason || '결제 실패',
-          failedAt:   now,
-        });
-        await db.ref(`academies/${academyId}/billing`).update({
-          paymentFailed: true,
-          failReason:    payment.failReason || '결제 실패',
-          failedAt:      now,
-        });
+        // ────────────────────────────────────────────────────────────
+        //  업무일지(기본 구독) 결제 처리 경로 — 기존 로직 완전 유지
+        // ────────────────────────────────────────────────────────────
+        if (status === 'PAID') {
+          // ③-성공: 결제 이력 저장 + 다음 달 재예약
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            status,
+            amount:    payment.amount?.total ?? amount,
+            orderName,
+            paidAt:    now,
+          });
+          await db.ref(`academies/${academyId}/billing`).update({
+            paymentFailed: false,
+            lastPaidAt:    now,
+          });
+
+          // 다음 달 자동 재예약
+          const nextId   = `sub_${Date.now()}_${academyId}`;
+          const nextTime = nextMonthSameDay();
+          await axios.post(
+            `${PORTONE_BASE}/payments/${nextId}/schedule`,
+            {
+              payment: {
+                billingKey,
+                orderName,
+                customer: { id: academyId },
+                amount:   { total: amount },
+                currency: 'KRW',
+              },
+              timeToPay: nextTime.toISOString(),
+            },
+            { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+          );
+          await db.ref(`academies/${academyId}/billing`).update({
+            nextPaymentAt:          nextTime.getTime(),
+            lastScheduledPaymentId: nextId,
+          });
+          await db.ref(`paymentOrders/${nextId}`).set({
+            academyId, amount, orderName, billingKey,
+            scheduledAt: now,
+          });
+
+        } else {
+          // ③-실패: 실패 이력 저장 + 실패 플래그
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            status,
+            amount:     payment.amount?.total ?? amount,
+            orderName,
+            failReason: payment.failReason || '결제 실패',
+            failedAt:   now,
+          });
+          await db.ref(`academies/${academyId}/billing`).update({
+            paymentFailed: true,
+            failReason:    payment.failReason || '결제 실패',
+            failedAt:      now,
+          });
+        }
       }
     } catch (e) {
       // 웹훅은 항상 200 반환 (PortOne 재시도 방지)
@@ -329,5 +443,217 @@ exports.cancelSubscription = onRequest(
 
       return res.status(200).json({ ok: true, cancelledAt: now });
     });
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// subscribeAddon  (Callable)
+// 기본 구독(업무일지) 활성 상태에서 애드온을 추가 신청
+// 입력: { academyId, addonKey, billingType }
+// ──────────────────────────────────────────────────────────────────
+exports.subscribeAddon = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, addonKey, billingType } = request.data;
+
+    // 입력값 검증
+    if (!academyId || !addonKey || !billingType) {
+      throw new HttpsError('invalid-argument', 'academyId, addonKey, billingType 필수');
+    }
+    const priceInfo = ADDON_PRICE_TABLE[addonKey];
+    if (!priceInfo) {
+      throw new HttpsError('invalid-argument', `알 수 없는 addonKey: ${addonKey}`);
+    }
+    if (billingType !== 'contract' && billingType !== 'single') {
+      throw new HttpsError('invalid-argument', "billingType은 'contract'(1년 계약) 또는 'single'(1개월 이용권)");
+    }
+    if (billingType === 'single' && priceInfo.single === null) {
+      throw new HttpsError(
+        'invalid-argument',
+        `${priceInfo.name}은 1년 계약 전용입니다. 1개월 이용권 불가`,
+      );
+    }
+
+    // 본인 학원 소유권 확인
+    const userSnap = await db.ref(`users/${uid}/academyId`).get();
+    if (!userSnap.exists() || userSnap.val() !== academyId) {
+      throw new HttpsError('permission-denied', '본인 학원만 애드온을 신청할 수 있습니다');
+    }
+
+    // 기본 구독(업무일지) 활성 여부 확인: billingKey 유무로 판단
+    const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
+    const billing     = billingSnap.val() || {};
+    if (!billing.billingKey) {
+      throw new HttpsError(
+        'failed-precondition',
+        '업무일지 정기구독이 활성 상태가 아닙니다 (billingKey 없음)',
+      );
+    }
+    const { billingKey } = billing;
+
+    // 금액 결정
+    const monthlyAmount = billingType === 'contract' ? priceInfo.contract : priceInfo.single;
+    const regularAmount = priceInfo.regularAmount;
+    const orderName     = `FILLYO ${priceInfo.name} ${billingType === 'contract' ? '1년 계약' : '1개월 이용권'}`;
+
+    // paymentId: 업무일지(sub_)와 절대 겹치지 않도록 addon_ 접두사 사용
+    const timestamp = Date.now();
+    const paymentId = `addon_${addonKey}_${academyId}_${timestamp}`;
+    const timeToPay = nextMonthSameDay(new Date(timestamp));
+
+    // PortOne 결제 예약
+    let scheduleId = null;
+    try {
+      const schedResp = await axios.post(
+        `${PORTONE_BASE}/payments/${paymentId}/schedule`,
+        {
+          payment: {
+            billingKey,
+            orderName,
+            customer: { id: academyId },
+            amount:   { total: monthlyAmount },
+            currency: 'KRW',
+          },
+          timeToPay: timeToPay.toISOString(),
+        },
+        { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+      );
+      // PortOne V2 응답 구조: { schedule: { id: "schedule-id-..." } }
+      scheduleId = schedResp.data?.scheduleId
+        ?? schedResp.data?.schedule?.id
+        ?? schedResp.data?.schedule?.scheduleId
+        ?? null;
+    } catch (e) {
+      const detail = e.response?.data ?? e.message;
+      console.error('[subscribeAddon] PortOne 예약 실패:', detail);
+      throw new HttpsError('internal', '결제 예약 실패: ' + JSON.stringify(detail));
+    }
+
+    // Firebase 저장: academies/{academyId}/addons/{addonKey}
+    const addonData = {
+      status:            'active',
+      billingType,
+      monthlyAmount,
+      regularAmount,
+      startDate:         new Date(timestamp).toISOString().slice(0, 10),
+      paidCount:         0,
+      currentPaymentId:  paymentId,
+      currentScheduleId: scheduleId,
+      createdAt:         timestamp,
+    };
+    await db.ref(`academies/${academyId}/addons/${addonKey}`).set(addonData);
+
+    // paymentOrders 저장 (웹훅에서 academyId·addonKey 조회용)
+    await db.ref(`paymentOrders/${paymentId}`).set({
+      type:       'addon',
+      academyId,
+      addonKey,
+      billingType,
+      amount:     monthlyAmount,
+      orderName,
+      billingKey,
+      scheduledAt: timestamp,
+    });
+
+    console.log(`[subscribeAddon] 완료: ${academyId}/${addonKey} paymentId=${paymentId} scheduleId=${scheduleId}`);
+    return {
+      ok:        true,
+      paymentId,
+      scheduleId,
+      timeToPay: timeToPay.toISOString(),
+    };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// cancelAddon  (Callable)
+// 특정 애드온만 해지: 해당 예약건만 취소 (업무일지 예약은 건드리지 않음)
+// 입력: { academyId, addonKey }
+// ──────────────────────────────────────────────────────────────────
+exports.cancelAddon = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, addonKey } = request.data;
+    if (!academyId || !addonKey) {
+      throw new HttpsError('invalid-argument', 'academyId, addonKey 필수');
+    }
+
+    // 소유권 확인
+    const userSnap = await db.ref(`users/${uid}/academyId`).get();
+    if (!userSnap.exists() || userSnap.val() !== academyId) {
+      throw new HttpsError('permission-denied', '본인 학원만 애드온을 해지할 수 있습니다');
+    }
+
+    // 애드온 데이터 조회
+    const addonSnap = await db.ref(`academies/${academyId}/addons/${addonKey}`).get();
+    if (!addonSnap.exists()) {
+      throw new HttpsError('not-found', `addons/${addonKey} 데이터가 없습니다`);
+    }
+    const addon = addonSnap.val();
+    if (addon.status !== 'active') {
+      throw new HttpsError('failed-precondition', '활성 상태의 애드온만 해지할 수 있습니다');
+    }
+
+    // billingKey 조회
+    const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
+    const { billingKey } = billingSnap.val() || {};
+    if (!billingKey) {
+      throw new HttpsError('failed-precondition', 'billingKey가 없습니다');
+    }
+
+    const now    = Date.now();
+    const paid   = addon.paidCount || 0;
+
+    // ── 1년 약정 중도해지: 차액 계산·저장 (카드 청구 X, 관리자 수동 확인 후 청구)
+    //    업무일지 중도해지와 동일한 방식
+    if (addon.billingType === 'contract' && paid < 12) {
+      const pendingCharge = (addon.regularAmount - addon.monthlyAmount) * paid;
+      if (pendingCharge > 0) {
+        await db.ref(`academies/${academyId}/addons/${addonKey}/pendingCharge`).set({
+          amount:        pendingCharge,
+          paidCount:     paid,
+          monthlyAmount: addon.monthlyAmount,
+          regularAmount: addon.regularAmount,
+          calculatedAt:  now,
+          reason:        `1년 약정 중도 해지: ${paid}회 결제분 할인 차액 환수 (회당 ${addon.regularAmount - addon.monthlyAmount}원 × ${paid}회)`,
+        });
+        console.log(`[cancelAddon] 중도해지 차액 저장: ${pendingCharge}원 (${academyId}/${addonKey})`);
+      }
+    }
+
+    // ── PortOne 예약 취소: 이 애드온의 schedule만 (업무일지 예약은 건드리지 않음)
+    if (addon.currentScheduleId) {
+      try {
+        await axios.delete(
+          `${PORTONE_BASE}/payment-schedules`,
+          {
+            headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+            data:    { billingKey, scheduleIds: [addon.currentScheduleId] },
+          },
+        );
+        console.log(`[cancelAddon] PortOne 예약 취소 완료: scheduleId=${addon.currentScheduleId}`);
+      } catch (e) {
+        const detail = e.response?.data ?? e.message;
+        console.error('[cancelAddon] PortOne 예약 취소 실패:', detail);
+        throw new HttpsError('internal', '예약 취소 실패: ' + JSON.stringify(detail));
+      }
+    } else {
+      console.warn(`[cancelAddon] currentScheduleId 없음 — 예약 취소 생략 (${academyId}/${addonKey})`);
+    }
+
+    // ── addon 상태 업데이트
+    await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+      status:      'cancelled',
+      cancelledAt: now,
+    });
+
+    console.log(`[cancelAddon] 해지 완료: ${academyId}/${addonKey}`);
+    return { ok: true, cancelledAt: now };
   },
 );
