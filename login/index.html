@@ -121,6 +121,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
       <input type="tel" id="signupPhone" placeholder="휴대폰번호 (010-0000-0000)" required>
     </div>
     <div class="field">
+      <label>학원 주소</label>
+      <input type="text" id="signupAddress" placeholder="예: 서울시 강남구 역삼동 123" required>
+    </div>
+    <div class="field">
       <label>비밀번호 (6자 이상)</label>
       <input type="password" id="signupPw" placeholder="비밀번호 입력" required minlength="6">
     </div>
@@ -264,10 +268,11 @@ window.doSignup = async (e) => {
     return;
   }
 
-  const email = document.getElementById('signupEmail').value.trim();
-  const phone = document.getElementById('signupPhone').value.trim();
-  const pw    = document.getElementById('signupPw').value;
-  const pw2   = document.getElementById('signupPw2').value;
+  const email   = document.getElementById('signupEmail').value.trim();
+  const phone   = document.getElementById('signupPhone').value.trim();
+  const address = document.getElementById('signupAddress').value.trim();
+  const pw      = document.getElementById('signupPw').value;
+  const pw2     = document.getElementById('signupPw2').value;
 
   if (!phone) {
     document.getElementById('signupPhone').classList.add('err');
@@ -277,6 +282,11 @@ window.doSignup = async (e) => {
   if (!/^[0-9-]{9,13}$/.test(phone)) {
     document.getElementById('signupPhone').classList.add('err');
     showErr('signupErr', '올바른 휴대폰번호 형식이 아닙니다 (예: 010-1234-5678).');
+    return;
+  }
+  if (!address) {
+    document.getElementById('signupAddress').classList.add('err');
+    showErr('signupErr', '학원 주소를 입력해주세요.');
     return;
   }
 
@@ -292,6 +302,7 @@ window.doSignup = async (e) => {
     await set(ref(db, `users/${cred.user.uid}`), {
       email,
       phone,
+      address,
       planType:    'trial',
       planExpiry:  Date.now() + 7 * 24 * 60 * 60 * 1000,
       createdAt:   Date.now(),

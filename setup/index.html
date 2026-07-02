@@ -240,6 +240,8 @@ let userPlanType = 'free';
 let academyId = null;
 let existingBuLabels = null;
 let pdFaqList = [];
+let userPhone = '';
+let userAddress = '';
 
 // ── 인증 확인 ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -250,6 +252,8 @@ onAuthStateChanged(auth, async (user) => {
   if (snap.exists()) {
     const data = snap.val();
     userPlanType = data.planType || 'free';
+    userPhone    = data.phone    || '';
+    userAddress  = data.address  || '';
     if (data.academyId) {
       academyId = data.academyId;
       await loadExistingSettings();
@@ -443,10 +447,13 @@ async function saveAndFinish() {
 
     if (academyId) {
       // 기존 설정 업데이트
-      await update(ref(db, `academies/${academyId}/settings`), {
+      const upd = {
         academyName: name, ownerName: owner, type,
         planType: userPlanType, buCount, buLabels, parentDesk,
-      });
+      };
+      if (userPhone)   upd.phone   = userPhone;
+      if (userAddress) upd.address = userAddress;
+      await update(ref(db, `academies/${academyId}/settings`), upd);
       await update(ref(db, `users/${uid}`), { ownerName: owner });
     } else {
       // 신규 학원 생성
@@ -456,6 +463,8 @@ async function saveAndFinish() {
           academyName: name, ownerName: owner, type,
           planType: userPlanType, buCount, buLabels,
           parentDesk, createdAt: Date.now(),
+          phone:   userPhone,
+          address: userAddress,
         },
         members: { [uid]: 'owner' },
       });

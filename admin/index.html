@@ -52,7 +52,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ── TABLE ──────────────────────────────────────────────────────── */
 .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
-table{width:100%;border-collapse:collapse;min-width:960px;}
+table{width:100%;border-collapse:collapse;min-width:1100px;}
 .td-sub{color:var(--text);font-size:12px;white-space:nowrap;}
 .td-amt{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;}
 thead th{background:var(--bg);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
@@ -374,9 +374,10 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
         <table>
           <thead>
             <tr>
-              <th>학원명</th>
+              <th>학원명 / 주소</th>
               <th>원장명</th>
               <th>이메일</th>
+              <th>연락처</th>
               <th>가입일</th>
               <th>플랜</th>
               <th>구독 만료일</th>
@@ -387,7 +388,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
           </thead>
           <tbody id="tbody">
             <tr>
-              <td colspan="9" class="empty">
+              <td colspan="10" class="empty">
                 <div class="empty-icon">⏳</div>
                 <div class="empty-text">불러오는 중...</div>
               </td>
@@ -520,6 +521,8 @@ window.loadData = async () => {
       let acadName      = '(데이터 없음)';
       let ownerName     = u.ownerName || '';
       let monthlyAmount = null;
+      let phone         = u.phone    || '';
+      let address       = '';
       try {
         const [settingsSnap, contractsSnap] = await Promise.all([
           get(ref(db, `academies/${u.academyId}/settings`)),
@@ -527,8 +530,10 @@ window.loadData = async () => {
         ]);
         if (settingsSnap.exists()) {
           const s   = settingsSnap.val();
-          acadName  = s.name      || '(이름 없음)';
-          ownerName = u.ownerName || s.ownerName || '';
+          acadName  = s.academyName || s.name || '(이름 없음)';
+          ownerName = u.ownerName   || s.ownerName || '';
+          phone     = s.phone       || u.phone || '';
+          address   = s.address     || '';
         }
         if (contractsSnap.exists()) {
           const latest = Object.values(contractsSnap.val())
@@ -551,6 +556,8 @@ window.loadData = async () => {
         academyId:        u.academyId,
         academyName:      acadName,
         ownerName,
+        phone,
+        address,
       };
     }));
 
@@ -581,13 +588,15 @@ window.renderTable = () => {
     ? allData.filter(a =>
         a.academyName.toLowerCase().includes(q) ||
         a.ownerName.toLowerCase().includes(q)   ||
-        a.email.toLowerCase().includes(q))
+        a.email.toLowerCase().includes(q)        ||
+        a.phone.toLowerCase().includes(q)        ||
+        a.address.toLowerCase().includes(q))
     : allData;
 
   const tbody = document.getElementById('tbody');
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" class="empty">
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">
       <div class="empty-icon">${q ? '🔍' : '📋'}</div>
       <div class="empty-text">${q ? '검색 결과가 없습니다.' : '등록된 학원이 없습니다.'}</div>
     </td></tr>`;
@@ -606,10 +615,18 @@ window.renderTable = () => {
       ? `<span style="${expired ? 'color:var(--red);font-weight:700;' : ''}">${fmt(a.planExpiry)}</span>`
       : (a.planType === 'pro' ? '—' : '<span style="color:var(--border);">—</span>');
 
+    const phoneCell = a.phone
+      ? `<a href="tel:${esc(a.phone)}" style="color:var(--navy);text-decoration:none;white-space:nowrap;">${esc(a.phone)}</a>`
+      : `<span style="color:var(--border);">미입력</span>`;
+
     return `<tr>
-      <td class="td-academy">${esc(a.academyName)}</td>
+      <td class="td-academy">
+        ${esc(a.academyName)}
+        ${a.address ? `<div style="font-size:11px;color:var(--gray);margin-top:2px;white-space:normal;">${esc(a.address)}</div>` : '<div style="font-size:11px;color:var(--border);margin-top:2px;">주소 미입력</div>'}
+      </td>
       <td class="td-owner">${esc(a.ownerName)}</td>
       <td class="td-email">${esc(a.email)}</td>
+      <td>${phoneCell}</td>
       <td class="td-date">${fmt(a.createdAt)}</td>
       <td>${badge}</td>
       <td class="td-date">${expiry}</td>
