@@ -137,6 +137,30 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 @media(max-width:360px){
   .btn-hdr{font-size:11px;padding:5px 9px;}
 }
+
+/* ── ADDON ──────────────────────────────────────────────────── */
+.addon-unavail{background:var(--bg);border-radius:12px;padding:16px;font-size:13px;color:var(--text2);text-align:center;line-height:1.7;}
+.addon-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;}
+.addon-card:last-child{margin-bottom:0;}
+.addon-card.active{border-color:var(--green);background:var(--green-lt);}
+.addon-card-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.addon-card-name{font-size:15px;font-weight:900;color:var(--navy);}
+.addon-badge-active{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--green-lt);color:var(--green);border:1px solid var(--green);}
+.addon-card-meta{font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6;}
+.addon-card-meta strong{color:var(--text);}
+.addon-billing-opts{display:flex;flex-direction:column;gap:6px;margin-bottom:10px;}
+.addon-billing-opt{display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;transition:border-color 0.15s,background 0.15s;user-select:none;}
+.addon-billing-opt:hover{border-color:var(--blue);background:#f7f9ff;}
+.addon-billing-opt.sel{border-color:var(--blue);background:var(--sky);}
+.addon-billing-opt-price{font-size:14px;font-weight:700;color:var(--blue);}
+.addon-billing-opt-tag{font-size:12px;color:var(--text2);margin-left:auto;}
+.addon-block-msg{background:var(--red-lt);border-radius:9px;padding:10px 12px;font-size:12px;color:var(--red);line-height:1.6;margin-top:4px;}
+.btn-addon-sub{background:var(--navy);color:white;border:none;border-radius:9px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;width:100%;position:relative;transition:opacity 0.15s;}
+.btn-addon-sub:hover{opacity:0.88;}
+.btn-addon-sub:disabled{opacity:0.5;cursor:default;}
+.btn-addon-sub.loading::after{content:'';position:absolute;right:14px;top:50%;margin-top:-7px;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
+.btn-addon-cancel{background:none;border:1.5px solid var(--border);color:var(--text2);border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;}
+.btn-addon-cancel:hover{border-color:var(--red);color:var(--red);}
 </style>
 </head>
 <body>
@@ -208,6 +232,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div class="sub-box" id="subBox"><!-- JS로 채움 --></div>
     </div>
 
+    <!-- ── 애드온 관리 ──────────────────────────────────────────────── -->
+    <div class="sec-card" id="addonSection" style="display:none">
+      <div class="sec-title">🔌 애드온 관리</div>
+      <div id="addonContent"></div>
+    </div>
+
     <!-- ── 구독 취소 ──────────────────────────────────────────────── -->
     <div class="sec-card" id="cancelSubRow" style="display:none">
       <div class="sec-title">🚫 구독 취소</div>
@@ -251,6 +281,33 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<!-- ── 애드온 신청 확인 모달 ──────────────────────────────────────── -->
+<div class="modal-bg" id="addonSubModal">
+  <div class="modal">
+    <div class="modal-title" id="addonSubModalTitle">애드온 신청</div>
+    <div class="modal-sub" id="addonSubModalSub"></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAddonSubModal()">취소</button>
+      <button class="btn-ok" id="btnAddonSubOk" onclick="doAddonSubscribe()">신청하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── 애드온 해지 확인 모달 ──────────────────────────────────────── -->
+<div class="modal-bg" id="addonCancelModal">
+  <div class="modal">
+    <div class="modal-title">애드온 해지</div>
+    <div class="modal-sub" id="addonCancelModalSub"></div>
+    <div class="modal-warn" id="addonCancelWarnBox" style="display:none">
+      <p id="addonCancelWarnText"></p>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAddonCancelModal()">돌아가기</button>
+      <button class="btn-ok danger" id="btnAddonCancelOk" onclick="doAddonCancel()">해지 확인</button>
+    </div>
+  </div>
+</div>
+
 <div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
 
 <!-- ── TOAST ─────────────────────────────────────────────────────── -->
@@ -263,6 +320,8 @@ import { getAuth, onAuthStateChanged, signOut,
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, get, update, remove }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const FB_CONFIG = {
   apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
@@ -277,12 +336,26 @@ const FB_CONFIG = {
 const app  = initializeApp(FB_CONFIG);
 const auth = getAuth(app);
 const db   = getDatabase(app);
+const fns  = getFunctions(app, 'asia-northeast3');
+const fnSubscribeAddon = httpsCallable(fns, 'subscribeAddon');
+const fnCancelAddon    = httpsCallable(fns, 'cancelAddon');
 
 const CANCEL_SUB_URL = 'https://asia-northeast3-fillyo-journal.cloudfunctions.net/cancelSubscription';
 
 let currentUser       = null;
 let currentAcadId     = null;
 let currentBillingKey = null;
+let currentAddons     = {};
+let pendingAddonKey   = null;
+let pendingAddonBT    = null;
+let pendingCancelKey  = null;
+
+const ADDON_PRICE = {
+  exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사', icon: '🥋' },
+  jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기',   icon: '🪢' },
+  bundle:   { contract: 11760, single: null,  regularAmount: 11760, name: '3종 묶음 (줄넘기+승급심사+AI성장리포트)', icon: '⭐' },
+};
+const addonBillingChoice = { exam: 'contract', jumprope: 'contract', bundle: 'contract' };
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -314,9 +387,12 @@ onAuthStateChanged(auth, async (user) => {
       if (currentBillingKey) {
         document.getElementById('cancelSubRow').style.display = 'block';
       }
+      const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
+      if (addonsSnap.exists()) currentAddons = addonsSnap.val();
     }
 
     renderSubBox(userData);
+    renderAddonSection(userData);
   } catch (e) {
     console.error(e);
   }
@@ -505,6 +581,171 @@ window.doWithdraw = async () => {
   }
 };
 
+// ── 애드온 관리 ────────────────────────────────────────────────────
+function nextMonthSameDayTs(ts) {
+  const d = new Date(ts), day = d.getDate();
+  d.setMonth(d.getMonth() + 1);
+  if (d.getDate() !== day) d.setDate(0);
+  return d.getTime();
+}
+
+function renderAddonSection(userData) {
+  const sec = document.getElementById('addonSection');
+  const content = document.getElementById('addonContent');
+  if (userData.role === 'admin') { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+
+  const isPro = (userData.planType || 'free') === 'pro';
+  if (!isPro) {
+    content.innerHTML = `<div class="addon-unavail">업무일지 구독 후 이용 가능합니다.</div>`;
+    return;
+  }
+
+  const examActive   = currentAddons.exam?.status === 'active';
+  const jumpActive   = currentAddons.jumprope?.status === 'active';
+  const bundleActive = currentAddons.bundle?.status === 'active';
+
+  let html = '';
+  ['exam', 'jumprope', 'bundle'].forEach(key => {
+    const p      = ADDON_PRICE[key];
+    const addon  = currentAddons[key];
+    const active = addon?.status === 'active';
+    const blocked = key === 'bundle' && (examActive || jumpActive) && !bundleActive;
+
+    html += `<div class="addon-card${active ? ' active' : ''}">`;
+    html += `<div class="addon-card-top">`;
+    html += `<span class="addon-card-name">${p.icon} ${p.name}</span>`;
+    if (active) html += `<span class="addon-badge-active">이용 중</span>`;
+    html += `</div>`;
+
+    if (active) {
+      const btLabel  = addon.billingType === 'contract' ? '1년 계약' : '1개월 이용권';
+      const paid     = addon.paidCount || 0;
+      const paidInfo = addon.billingType === 'contract' ? ` · ${paid}/12회 결제` : '';
+      const amt      = p[addon.billingType] ?? p.contract;
+      let nextTxt;
+      if (addon.billingType === 'single') {
+        nextTxt = paid >= 1 ? '단건 결제 완료 · 자동갱신 없음' : `첫 결제: ${fmtDate(nextMonthSameDayTs(addon.createdAt))}`;
+      } else {
+        const base = addon.lastPaidAt || addon.createdAt;
+        nextTxt = `다음 결제: ${fmtDate(nextMonthSameDayTs(base))}`;
+      }
+      html += `<div class="addon-card-meta"><strong>${btLabel}</strong> · ₩${amt.toLocaleString()}/월${paidInfo}<br>${nextTxt}</div>`;
+      html += `<button class="btn-addon-cancel" onclick="openAddonCancelModal('${key}')">해지</button>`;
+    } else if (blocked) {
+      html += `<div class="addon-block-msg">이미 개별 이용 중인 항목이 있어 묶음을 선택할 수 없습니다.<br>먼저 개별 항목을 해지해주세요.</div>`;
+    } else {
+      if (key === 'bundle') {
+        html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;"><span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span><span class="addon-billing-opt-tag">1년 계약 전용</span></div></div>`;
+      } else {
+        const cSel = addonBillingChoice[key] === 'contract' ? ' sel' : '';
+        const sSel = addonBillingChoice[key] === 'single'   ? ' sel' : '';
+        html += `<div class="addon-billing-opts" id="ao-${key}">
+          <div class="addon-billing-opt${cSel}" data-addon-key="${key}" data-addon-type="contract" onclick="selectAddonBilling('${key}','contract')">
+            <span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>
+            <span class="addon-billing-opt-tag">1년 계약</span>
+          </div>
+          <div class="addon-billing-opt${sSel}" data-addon-key="${key}" data-addon-type="single" onclick="selectAddonBilling('${key}','single')">
+            <span class="addon-billing-opt-price">₩${p.single.toLocaleString()}/월</span>
+            <span class="addon-billing-opt-tag">1개월 이용권</span>
+          </div>
+        </div>`;
+      }
+      html += `<button class="btn-addon-sub" onclick="openAddonSubModal('${key}')">신청하기</button>`;
+    }
+
+    html += `</div>`;
+  });
+  content.innerHTML = html;
+}
+
+window.selectAddonBilling = (key, type) => {
+  addonBillingChoice[key] = type;
+  document.querySelectorAll(`[data-addon-key="${key}"]`).forEach(el => {
+    el.classList.toggle('sel', el.dataset.addonType === type);
+  });
+};
+
+window.openAddonSubModal = (key) => {
+  const p  = ADDON_PRICE[key];
+  const bt = key === 'bundle' ? 'contract' : addonBillingChoice[key];
+  const amt = bt === 'contract' ? p.contract : p.single;
+  const btLabel = bt === 'contract' ? '1년 계약' : '1개월 이용권';
+  pendingAddonKey = key;
+  pendingAddonBT  = bt;
+  document.getElementById('addonSubModalTitle').textContent = `${p.name} 애드온 신청`;
+  document.getElementById('addonSubModalSub').textContent   = `${p.name} 애드온을 ${btLabel}(₩${amt.toLocaleString()}/월)으로 신청하시겠습니까?`;
+  document.getElementById('addonSubModal').classList.add('show');
+};
+
+window.closeAddonSubModal = () => document.getElementById('addonSubModal').classList.remove('show');
+
+window.doAddonSubscribe = async () => {
+  const btn = document.getElementById('btnAddonSubOk');
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey, billingType: pendingAddonBT });
+    const p = ADDON_PRICE[pendingAddonKey];
+    currentAddons[pendingAddonKey] = {
+      status: 'active', billingType: pendingAddonBT,
+      monthlyAmount: pendingAddonBT === 'contract' ? p.contract : p.single,
+      regularAmount: p.regularAmount,
+      paidCount: 0, createdAt: Date.now(),
+    };
+    closeAddonSubModal();
+    showToast('애드온이 신청되었습니다.', 'ok');
+    const snap = await get(ref(db, `users/${currentUser.uid}`));
+    renderAddonSection(snap.val());
+  } catch (e) {
+    console.error('[doAddonSubscribe]', e);
+    showToast('신청 실패: ' + (e.message || '오류가 발생했습니다.'), 'err');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+};
+
+window.openAddonCancelModal = (key) => {
+  const p     = ADDON_PRICE[key];
+  const addon = currentAddons[key];
+  if (!addon) return;
+  pendingCancelKey = key;
+  const btLabel = addon.billingType === 'contract' ? '1년 계약' : '1개월 이용권';
+  document.getElementById('addonCancelModalSub').textContent = `${p.name} 애드온(${btLabel})을 해지하시겠습니까?`;
+  const warnBox  = document.getElementById('addonCancelWarnBox');
+  const warnText = document.getElementById('addonCancelWarnText');
+  const paid     = addon.paidCount || 0;
+  if (addon.billingType === 'contract' && paid < 12) {
+    const penalty = (addon.regularAmount - addon.monthlyAmount) * paid;
+    if (penalty > 0) {
+      warnBox.style.display = 'block';
+      warnText.innerHTML = `⚠️ 1년 약정 중도 해지 시 그동안 할인받은 금액 <strong>₩${penalty.toLocaleString()}원</strong>이 별도 청구될 수 있습니다.<br>(₩${(addon.regularAmount - addon.monthlyAmount).toLocaleString()} × ${paid}회)`;
+    } else {
+      warnBox.style.display = 'none';
+    }
+  } else {
+    warnBox.style.display = 'none';
+  }
+  document.getElementById('addonCancelModal').classList.add('show');
+};
+
+window.closeAddonCancelModal = () => document.getElementById('addonCancelModal').classList.remove('show');
+
+window.doAddonCancel = async () => {
+  const btn = document.getElementById('btnAddonCancelOk');
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingCancelKey });
+    if (currentAddons[pendingCancelKey]) currentAddons[pendingCancelKey].status = 'cancelled';
+    closeAddonCancelModal();
+    showToast('애드온이 해지되었습니다.', 'ok');
+    const snap = await get(ref(db, `users/${currentUser.uid}`));
+    renderAddonSection(snap.val());
+  } catch (e) {
+    console.error('[doAddonCancel]', e);
+    showToast('해지 실패: ' + (e.message || '오류가 발생했습니다.'), 'err');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+};
+
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
@@ -513,13 +754,22 @@ window.doLogout = async () => {
 
 // ── ESC / 배경 클릭으로 모달 닫기 ─────────────────────────────────
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { closeCancelSubModal(); closeWithdrawModal(); }
+  if (e.key === 'Escape') {
+    closeCancelSubModal(); closeWithdrawModal();
+    closeAddonSubModal(); closeAddonCancelModal();
+  }
 });
 document.getElementById('cancelSubModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('cancelSubModal')) closeCancelSubModal();
 });
 document.getElementById('withdrawModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('withdrawModal')) closeWithdrawModal();
+});
+document.getElementById('addonSubModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addonSubModal')) closeAddonSubModal();
+});
+document.getElementById('addonCancelModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addonCancelModal')) closeAddonCancelModal();
 });
 
 // ── 유틸 ──────────────────────────────────────────────────────────
