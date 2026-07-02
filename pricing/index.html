@@ -431,7 +431,7 @@ onAuthStateChanged(auth, async user => {
         // ── 정기결제 첫 회차 예약 ──
         try {
           const idToken = await user.getIdToken();
-          await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
+          const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
             body: JSON.stringify({
@@ -441,7 +441,22 @@ onAuthStateChanged(auth, async user => {
               orderName: `FILLYO 업무일지 정기구독 (월 ₩${Number(s.displayAmount).toLocaleString()})`,
             }),
           });
-        } catch(fnErr) { console.warn('결제 예약 오류:', fnErr); }
+          if (!scheduleRes.ok) {
+            const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
+            throw new Error(errText);
+          }
+        } catch(fnErr) {
+          console.warn('결제 예약 오류:', fnErr);
+          if (s.academyId) {
+            try {
+              await update(ref(db, `academies/${s.academyId}/contracts/${rcId}`), {
+                scheduleFailed: true,
+                scheduleError: fnErr.message || '알 수 없는 오류',
+              });
+            } catch(dbErr) { console.warn('scheduleFailed 저장 오류:', dbErr); }
+          }
+          showToast('카드 등록은 완료됐습니다. 정기결제 자동 예약 중 문제가 발생했으니 카카오톡 채널로 문의해 주세요.', 'error');
+        }
         document.getElementById('modalPlanName').textContent = s.planName;
         document.getElementById('modalAmount').textContent   = s.modalAmount;
         const note = document.getElementById('modalBillingNote');
