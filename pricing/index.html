@@ -115,6 +115,12 @@ main{max-width:640px;margin:0 auto;padding:28px 16px 80px}
 .toast.error{background:#C62828}
 .toast.success{background:#0B7B6B}
 
+/* ── SUBSCRIBER BANNER ── */
+#subscriberBanner{display:none;background:#E8F5E9;border:1.5px solid #0B7B6B;border-radius:14px;padding:18px 20px;margin-bottom:24px}
+.sub-banner-text{font-size:14px;color:#1A2332;line-height:1.7;margin-bottom:12px;font-weight:500}
+.sub-banner-btn{display:inline-block;background:#0B7B6B;color:#fff;padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;text-decoration:none;transition:background .2s}
+.sub-banner-btn:hover{background:#085041}
+
 /* ── PAYMENT COMPLETE MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(26,35,50,.6);z-index:10000;display:flex;align-items:center;justify-content:center;padding:20px;opacity:0;pointer-events:none;transition:opacity .25s}
 .modal-overlay.show{opacity:1;pointer-events:auto}
@@ -152,6 +158,13 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
     <h1 class="page-title">구독 플랜 선택</h1>
     <p class="page-sub">업무일지를 중심으로 필요한 서비스를 추가하세요</p>
 
+    <!-- 이미 구독 중인 사용자 안내 배너 -->
+    <div id="subscriberBanner">
+      <p class="sub-banner-text">이미 업무일지를 이용 중이시네요! 애드온 추가/변경은 마이페이지에서 하실 수 있어요.</p>
+      <a class="sub-banner-btn" href="/mypage/">마이페이지로 이동</a>
+    </div>
+
+    <div id="planSelectionUI">
     <div class="section-label">메인 플랜</div>
 
     <!-- 얼리버드 (기본 선택) -->
@@ -326,6 +339,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
     </div>
 
     <button class="pay-btn" id="payBtn" onclick="startPayment()" disabled>결제하기</button>
+    </div><!-- /#planSelectionUI -->
   </main>
 </div>
 
@@ -470,6 +484,13 @@ onAuthStateChanged(auth, async user => {
   } else if (code) {
     history.replaceState(null, '', location.pathname);
     alert(params.get('message') || '카드 등록에 실패했습니다.');
+  } else {
+    // ── 이미 구독 중인 사용자 감지 ──
+    const planSnap = await get(ref(db, `users/${user.uid}/planType`));
+    if (planSnap.exists() && planSnap.val() === 'pro') {
+      document.getElementById('subscriberBanner').style.display = 'block';
+      document.getElementById('planSelectionUI').style.display = 'none';
+    }
   }
 });
 
