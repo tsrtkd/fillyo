@@ -122,6 +122,16 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 .expiry-field input[type=date]:focus{border-color:var(--blue);}
 .expiry-field.hidden{display:none;}
 
+/* Addon checkboxes in modal */
+.addon-field{margin-bottom:20px;}
+.addon-field-label{font-size:12px;font-weight:700;color:var(--gray);margin-bottom:8px;display:block;}
+.addon-opts{display:flex;flex-direction:column;gap:6px;}
+.addon-opt{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1.5px solid var(--border);border-radius:9px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text);transition:all 0.15s;}
+.addon-opt:has(input:checked){border-color:var(--blue);background:var(--sky);}
+.addon-opt input[type=checkbox]{width:15px;height:15px;accent-color:var(--blue);cursor:pointer;flex-shrink:0;}
+.addon-opt.disabled{opacity:0.4;cursor:not-allowed;}
+.addon-opt.disabled input{cursor:not-allowed;}
+
 /* Modal buttons */
 .modal-btns{display:flex;gap:8px;}
 .btn-cancel{flex:1;padding:12px;background:var(--bg);border:1.5px solid var(--border);color:var(--gray);border-radius:10px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;transition:background 0.15s;}
@@ -428,6 +438,20 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       <label>구독 만료일</label>
       <input type="date" id="expiryInput">
     </div>
+    <div class="addon-field" id="addonField">
+      <span class="addon-field-label">애드온 선택</span>
+      <div class="addon-opts">
+        <label class="addon-opt" id="addonOptExam">
+          <input type="checkbox" id="addonExam"> 승급심사
+        </label>
+        <label class="addon-opt" id="addonOptJumprope">
+          <input type="checkbox" id="addonJumprope"> 줄넘기
+        </label>
+        <label class="addon-opt" id="addonOptReport">
+          <input type="checkbox" id="addonReport"> AI리포트
+        </label>
+      </div>
+    </div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closePlanModal()">취소</button>
       <button class="btn-ok" id="btnPlanOk" onclick="savePlan()">저장</button>
@@ -524,9 +548,10 @@ window.loadData = async () => {
       let phone         = u.phone    || '';
       let address       = '';
       try {
-        const [settingsSnap, contractsSnap] = await Promise.all([
+        const [settingsSnap, contractsSnap, addonsSnap] = await Promise.all([
           get(ref(db, `academies/${u.academyId}/settings`)),
           get(ref(db, `academies/${u.academyId}/contracts`)),
+          get(ref(db, `academies/${u.academyId}/addons`)),
         ]);
         if (settingsSnap.exists()) {
           const s   = settingsSnap.val();
@@ -550,7 +575,7 @@ window.loadData = async () => {
         planType:         u.planType         || 'free',
         planExpiry:       u.planExpiry       || null,
         billingCycle:     u.billingCycle     || '',
-        subscribedAddons: u.subscribedAddons || null,
+        addons:           addonsSnap.exists() ? addonsSnap.val() : null,
         monthlyAmount,
         createdAt:        u.createdAt        || 0,
         academyId:        u.academyId,
@@ -647,6 +672,12 @@ window.openPlanModal = (uid) => {
   target = allData.find(a => a.uid === uid);
   if (!target) return;
   document.getElementById('planModalSub').textContent = target.academyName;
+
+  // 애드온 체크박스 현재 상태 반영 (selectModalPlan 호출 전에 설정)
+  document.getElementById('addonExam').checked     = target.addons?.exam?.status     === 'active';
+  document.getElementById('addonJumprope').checked = target.addons?.jumprope?.status === 'active';
+  document.getElementById('addonReport').checked   = target.addons?.report?.status   === 'active';
+
   selectModalPlan(target.planType);
   const d = target.planExpiry
     ? new Date(target.planExpiry)
@@ -660,6 +691,16 @@ window.selectModalPlan = (plan) => {
   document.getElementById('optFree').classList.toggle('on', plan === 'free');
   document.getElementById('optPro').classList.toggle('on',  plan === 'pro');
   document.getElementById('expiryField').classList.toggle('hidden', plan === 'free');
+
+  // 무료 플랜: 애드온 비활성화 + 체크 해제
+  const isFree = plan === 'free';
+  ['addonExam', 'addonJumprope', 'addonReport'].forEach(id => {
+    document.getElementById(id).disabled = isFree;
+    if (isFree) document.getElementById(id).checked = false;
+  });
+  ['addonOptExam', 'addonOptJumprope', 'addonOptReport'].forEach(id => {
+    document.getElementById(id).classList.toggle('disabled', isFree);
+  });
 };
 
 window.closePlanModal = () => {
@@ -681,17 +722,41 @@ window.savePlan = async () => {
       newExpiry = new Date(v + 'T23:59:59').getTime();
     }
 
-    await update(ref(db), {
+    // 애드온 체크 상태 캡처 (await 전에)
+    const addonState = {
+      exam:     modalPlan === 'pro' && document.getElementById('addonExam').checked,
+      jumprope: modalPlan === 'pro' && document.getElementById('addonJumprope').checked,
+      report:   modalPlan === 'pro' && document.getElementById('addonReport').checked,
+    };
+
+    const now = Date.now();
+    const updates = {
       [`users/${target.uid}/planType`]:                      modalPlan,
       [`users/${target.uid}/planExpiry`]:                    newExpiry,
       [`academies/${target.academyId}/settings/planType`]:   modalPlan,
       [`academies/${target.academyId}/settings/planExpiry`]: newExpiry,
-    });
+    };
+
+    if (modalPlan === 'pro') {
+      for (const [key, checked] of Object.entries(addonState)) {
+        updates[`academies/${target.academyId}/addons/${key}/status`]    = checked ? 'active' : 'cancelled';
+        updates[`academies/${target.academyId}/addons/${key}/updatedAt`] = now;
+        updates[`academies/${target.academyId}/addons/${key}/updatedBy`] = 'admin';
+      }
+    }
+
+    await update(ref(db), updates);
 
     const idx = allData.findIndex(a => a.uid === target.uid);
     if (idx !== -1) {
       allData[idx].planType   = modalPlan;
       allData[idx].planExpiry = newExpiry;
+      if (modalPlan === 'pro') {
+        if (!allData[idx].addons) allData[idx].addons = {};
+        for (const [key, checked] of Object.entries(addonState)) {
+          allData[idx].addons[key] = { ...(allData[idx].addons[key] || {}), status: checked ? 'active' : 'cancelled' };
+        }
+      }
     }
 
     closePlanModal();
@@ -965,10 +1030,10 @@ function buildSubText(a) {
   if (a.billingCycle === 'early')  base = '업무일지(얼리버드)';
   else if (a.billingCycle === 'yearly') base = '업무일지(1년약정)';
   const parts = [base];
-  if (a.subscribedAddons) {
-    if (a.subscribedAddons.exam)     parts.push('승급심사');
-    if (a.subscribedAddons.jumprope) parts.push('줄넘기');
-    if (a.subscribedAddons.report)   parts.push('AI리포트');
+  if (a.addons) {
+    if (a.addons.exam?.status     === 'active') parts.push('승급심사');
+    if (a.addons.jumprope?.status === 'active') parts.push('줄넘기');
+    if (a.addons.report?.status   === 'active') parts.push('AI리포트');
   }
   return parts.join(' + ');
 }
