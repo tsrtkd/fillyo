@@ -674,8 +674,11 @@ window.openAddonSubModal = (key) => {
   const btLabel = bt === 'contract' ? '1년 계약' : '1개월 이용권';
   pendingAddonKey = key;
   pendingAddonBT  = bt;
+  const nextPayDate = fmtDate(nextMonthSameDayTs(Date.now()));
   document.getElementById('addonSubModalTitle').textContent = `${p.name} 애드온 신청`;
-  document.getElementById('addonSubModalSub').textContent   = `${p.name} 애드온을 ${btLabel}(₩${amt.toLocaleString()}/월)으로 신청하시겠습니까?`;
+  document.getElementById('addonSubModalSub').innerHTML =
+    `${p.name} 애드온을 ${btLabel}(₩${amt.toLocaleString()}/월)으로 신청합니다.<br><br>` +
+    `오늘은 결제되지 않으며, 기존에 등록하신 카드로 다음 결제일(${nextPayDate})부터 자동으로 청구됩니다.`;
   document.getElementById('addonSubModal').classList.add('show');
 };
 
