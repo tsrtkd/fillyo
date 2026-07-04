@@ -375,6 +375,10 @@ const fbApp = initializeApp(FB_CONFIG);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
 
+function todayKST() {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
+}
+
 // ── 상태 변수 ────────────────────────────────────────────────────────
 let academyId    = null;
 let academyName  = '';
@@ -1027,7 +1031,7 @@ window.generateReport = async function(){
     currentRptKey = rptKey;
     await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${rptKey}`), {
       text,
-      createdAt: new Date().toISOString().slice(0,10),
+      createdAt: todayKST(),
       start: startVal,
       end: endVal,
       attend: document.getElementById('sumAttend').textContent,
