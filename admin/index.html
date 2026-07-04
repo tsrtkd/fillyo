@@ -547,6 +547,7 @@ window.loadData = async () => {
       let monthlyAmount = null;
       let phone         = u.phone    || '';
       let address       = '';
+      let addons        = null;
       try {
         const [settingsSnap, contractsSnap, addonsSnap] = await Promise.all([
           get(ref(db, `academies/${u.academyId}/settings`)),
@@ -568,6 +569,7 @@ window.loadData = async () => {
         if (!monthlyAmount && u.lastPayment?.amount) {
           monthlyAmount = u.lastPayment.amount;
         }
+        addons = addonsSnap.exists() ? addonsSnap.val() : null;
       } catch (_) { /* 읽기 권한 없을 수 있음 */ }
       return {
         uid,
@@ -575,7 +577,7 @@ window.loadData = async () => {
         planType:         u.planType         || 'free',
         planExpiry:       u.planExpiry       || null,
         billingCycle:     u.billingCycle     || '',
-        addons:           addonsSnap.exists() ? addonsSnap.val() : null,
+        addons,
         monthlyAmount,
         createdAt:        u.createdAt        || 0,
         academyId:        u.academyId,
