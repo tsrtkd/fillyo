@@ -768,3 +768,99 @@ exports.parentDeskAsk = onRequest(
     });
   },
 );
+
+// ──────────────────────────────────────────────────────────────────
+// parentDeskKakao
+// 카카오 i 오픈빌더 스킬 서버 전용 엔드포인트
+// - 요청: POST body = 카카오 스킬 요청 형식 { userRequest: { utterance } }
+//         query param: academyId
+// - 응답: 카카오 스킬 응답 형식 { version, template: { outputs: [simpleText] } }
+// ──────────────────────────────────────────────────────────────────
+exports.parentDeskKakao = onRequest(
+  { region: 'asia-northeast3', timeoutSeconds: 30 },
+  async (req, res) => {
+    if (req.method === 'OPTIONS') return res.status(204).send('');
+
+    const academyId = req.query.academyId;
+    const question  = req.body?.userRequest?.utterance;
+
+    const kakaoError = (text) =>
+      res.status(200).json({
+        version: '2.0',
+        template: { outputs: [{ simpleText: { text } }] },
+      });
+
+    if (!academyId || !question) {
+      return kakaoError('요청 정보가 올바르지 않습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+    try {
+      const [deskSnap, keySnap] = await Promise.all([
+        db.ref(`academies/${academyId}/settings/parentDesk`).get(),
+        db.ref(`academies/${academyId}/settings/anthropicApiKey`).get(),
+      ]);
+
+      if (!deskSnap.exists() || !keySnap.exists()) {
+        return kakaoError('학원 설정 정보가 없습니다. 원장님께 문의해주세요.');
+      }
+
+      const desk = deskSnap.val() || {};
+      const anthropicApiKey = keySnap.val();
+
+      if (!anthropicApiKey) {
+        return kakaoError('학원 설정 정보가 없습니다. 원장님께 문의해주세요.');
+      }
+
+      const faqText = Array.isArray(desk.faq)
+        ? desk.faq.map((item) => `Q: ${item.question}\nA: ${item.answer}`).join('\n\n')
+        : (desk.faq || '');
+
+      const systemPrompt = `당신은 태권도장에 문의하는 학부모님을 응대하는 안내 도우미입니다.
+
+[답변 원칙]
+- 아래 제공된 학원 정보(운영시간표/학원비/차량운행안내/FAQ)에 있는 내용만 답변하세요.
+- 제공된 정보에 없는 질문(예: 특정 아이의 개인 성적, 상담 내용, 정보에 없는 세부 요청)은 절대 추측해서 답변하지 말고, '이 부분은 원장님께 직접 문의해주시면 정확히 안내드릴 수 있어요'라고 안내하세요.
+- 따뜻하고 정중한 존댓말을 사용하세요.
+- 2~3문장 이내로 간결하게 답변하세요.
+- 마크다운 문법을 쓰지 마세요.
+
+[학원 정보]
+운영시간표: ${desk.schedule || '정보 없음'}
+학원비 안내: ${desk.tuition || '정보 없음'}
+차량 운행 안내: ${desk.carpool || '정보 없음'}
+자주 묻는 질문: ${faqText || '정보 없음'}`;
+
+      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': anthropicApiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 500,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: question }],
+        }),
+      });
+
+      if (!anthropicRes.ok) {
+        const errData = await anthropicRes.text();
+        console.error('[parentDeskKakao] Anthropic API 오류:', errData);
+        return kakaoError('AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const data   = await anthropicRes.json();
+      const answer = data?.content?.[0]?.text ?? '답변을 가져오지 못했습니다.';
+
+      return res.status(200).json({
+        version: '2.0',
+        template: { outputs: [{ simpleText: { text: answer } }] },
+      });
+    } catch (e) {
+      console.error('[parentDeskKakao] 처리 오류:', e.message);
+      return kakaoError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+  },
+);
