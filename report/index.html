@@ -104,7 +104,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 .rpt-result-wrap{background:var(--sky);border:1px solid var(--sky2);border-radius:12px;padding:14px;position:relative;}
 .rpt-result-title{font-size:11px;font-weight:700;color:#1e3a5f;margin-bottom:8px;}
-.rpt-result{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-all;}
+.rpt-result{font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-all;border-radius:6px;outline:none;transition:background 0.15s,box-shadow 0.15s;}
+.rpt-result[contenteditable]:focus{background:#fffdf0;box-shadow:inset 0 0 0 2px #f59e0b;}
+.rpt-edit-hint{font-size:11px;color:#92714a;margin-bottom:6px;display:none;}
 .btn-copy{margin-top:10px;background:#1e3a5f;color:white;border:none;border-radius:8px;padding:8px 16px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;}
 .btn-copy:active{opacity:.85;}
 .rpt-status{font-size:12px;color:var(--gray);margin-bottom:10px;min-height:18px;}
@@ -325,7 +327,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
           <div id="rptResultWrap" style="display:none" class="rpt-result-wrap">
             <div class="rpt-result-title">AI 생성 리포트</div>
-            <div class="rpt-result" id="rptResult"></div>
+            <div class="rpt-edit-hint" id="rptEditHint">✏️ 필요한 부분을 클릭해서 자유롭게 수정할 수 있어요</div>
+            <div class="rpt-result" id="rptResult" contenteditable="true" spellcheck="false"></div>
             <button class="btn-copy" onclick="copyReport()">복사</button>
             <button class="btn-copy" id="btnSaveImage" onclick="window.saveReportImage()" style="background:#15803d;margin-left:8px;">📷 이미지 저장</button>
           </div>
@@ -378,6 +381,7 @@ let academyName  = '';
 let apiKey       = '';
 let students     = [];    // [{id, name, belt, grade, ...}]
 let selStudent   = null;  // 현재 선택된 학생
+let currentRptKey = null; // 현재 표시 중인 리포트 키 (blur 자동저장용)
 let bodyRecords  = {};    // {pushKey: {date, height, weight}}
 let traitFlags   = {};    // { key: 'pos'|'mid'|'neg' }
 
@@ -918,7 +922,7 @@ window.generateReport = async function(){
 - 주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
 - 마크다운 문법(**굵게** 등)은 절대 사용하지 마세요. 일반 텍스트로만 작성하세요.
 - 따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있도록 작성하세요.
-- 300~400자 내외로 작성하세요.
+- 400~600자 내외로 작성하세요. 데이터 양에 따라 유연하게 조절하세요.
 - 학원명 태그 없이 바로 인사말로 시작하세요. 아이 이름을 자연스럽게 포함하세요.
 - 문단을 3~4개로 나눠 작성하세요: ①출석/성실도 ②실력(심사/줄넘기) ③성장(신체/성격) ④지도진 다짐
 
@@ -961,6 +965,41 @@ window.generateReport = async function(){
 - 키와 몸무게를 구체적인 숫자로 언급하세요. (예: "키 142.5cm, 몸무게 38kg")
 - 이전 기록이 있으면 변화를 자연스럽게 언급하세요. (예: "지난달보다 키가 0.5cm 자랐어요")
 
+[신체발달 해석 작성 방식]
+- 키/몸무게 수치를 언급한 뒤, 질병관리청 소아청소년 성장도표를 참고하여 또래 평균 범위 안에서 건강하게 잘 자라고 있다는 안심 톤의 해석을 한 문장 자연스럽게 덧붙이세요.
+- 백분위수(%), 순위, 저체중·과체중 같은 판단성 표현은 절대 사용하지 마세요. "또래 성장 곡선 안에서 건강하게 자라고 있어요"처럼 안심을 주는 표현만 사용하세요.
+- 신체 기록이 없으면 이 문단 전체를 생략하세요.
+
+[출석/성실 코칭 작성 방식]
+- 결석이 1일 이상이면: 규칙적으로 도장에 나오는 것 자체가 "성실"이라는 가치를 배우는 과정임을 설명하고, 결석이 이어지면 생활 리듬이 흐트러져 오히려 다니기 더 힘들어질 수 있다는 점을 부드럽게 짚어주세요. 꾸준한 출석이 실력과 자신감의 기초가 된다고 언급한 뒤, 가정에서 규칙적인 등원을 함께 도와달라고 협력적으로 부탁하세요.
+- 아이나 부모를 탓하는 어조는 절대 금지. "함께 만들어가자"는 톤을 유지하세요.
+- 결석이 0일이면 성실함을 짧게 칭찬하는 문장만 쓰고 위 코칭은 생략하세요.
+
+[학습 어려움 안내 작성 방식]
+- 최근 심사 결과가 불합격이거나, 기간 내 특이사항에 품새 암기·발차기·동작 습득 관련 어려움을 암시하는 내용이 있으면 이 섹션을 포함하세요.
+- 이런 어려움은 태권도를 배우는 과정에서 누구나 겪는 정상적인 성장 과정임을 전문가적 어조로 설명하세요. 아이가 "힘들다"고 말하는 것이 그만둬야 할 신호가 아니라 새로운 기술을 익히는 중이라는 증거임을 부모가 이해하도록 안내하세요.
+- 도장에서 구체적으로 어떻게 지도할지(반복 연습, 개별 지도 등) 한 줄 포함하고, 가정에서는 "힘들다"는 말을 들었을 때 다그치지 말고 격려해달라는 부탁으로 마무리하세요.
+- 해당 사항이 없으면 이 섹션 전체를 생략하세요.
+
+[성격/태도 가치 코칭 작성 방식]
+- 성격/태도 특성이 있을 때만 이 섹션을 포함하세요.
+- MBTI, 에니어그램, 혈액형 등 성인용 유형 진단·라벨은 절대 사용하지 마세요.
+- "몇째마당" 같은 목차 번호 표현은 절대 사용하지 말고, 가치 이름(성실, 예의, 인내 등)만 자연스럽게 사용하세요.
+- 활발함/차분함, 외향적/내성적, 긍정적/부정적, 리더형/팔로워형 같은 성격·기질 특성은 옳고 그름 없는 타고난 개성이므로 있는 그대로 관찰 서술만 하고 가치 코칭이나 개선 제안을 붙이지 마세요.
+- 아래 특성에는 전문가적 소견으로 가치 코칭 문장을 덧붙이세요:
+  · 성실함/들쑥날쑥 → 성실 가치
+  · 끝까지 해냄/쉽게 포기 → 인내 가치
+  · 실패 후 재도전/좌절 오래감 → 용기·자신감 가치
+  · 배려심 높음/갈등 잦음 → 배려·예의 가치
+  · 협동 잘함/혼자 노는 편 → 협동 가치
+  · 규칙 잘 지킴/규칙 어기는 편 → 준법정신 가치
+  · 집중력 높음/산만함 → 신중함 가치 (ADHD·주의력 부족 등 의학적 표현 절대 금지, 태도의 문제로만 다룰 것)
+  · 신중함/충동적 → 신중 가치
+  · 스스로 열심히/시키는 것만 → 주도성·책임감 가치
+- 성장이 필요한(neg) 특성은 아이를 탓하는 말투 대신 "~을 배워가는 시기입니다"처럼 성장 중심 어조로 서술하고, 그 가치가 왜 중요한지 짧게 설명한 뒤 도장의 지도 노력과 가정에서 도와줄 수 있는 구체적 방법을 한 줄 제안하세요.
+- 이미 잘하는(pos) 특성은 그 가치를 실천하고 있음을 전문가적으로 인정하고 칭찬하세요.
+- 성격/태도 특성이 없으면 이 섹션 전체를 생략하세요.
+
 [업무일지 메모 작성 방식]
 - 민감한 내용(싸움, 갈등 등)은 직접 언급하지 말고 "친구들과의 관계에서 배려와 대화를 배우고 있습니다" 처럼 긍정적으로 순화하세요.
 
@@ -979,11 +1018,13 @@ window.generateReport = async function(){
     const text = json.content?.[0]?.text || '';
 
     document.getElementById('rptResult').textContent = text;
+    document.getElementById('rptEditHint').style.display = 'block';
     resultWrap.style.display = '';
     statusEl.textContent = '';
 
     // Firebase 저장 (최근 4개 유지)
     const rptKey = `${startVal}_${endVal}`;
+    currentRptKey = rptKey;
     await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${rptKey}`), {
       text,
       createdAt: new Date().toISOString().slice(0,10),
@@ -1001,7 +1042,7 @@ window.generateReport = async function(){
         await remove(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${k}`));
       }
     }
-    await loadPrevReports();
+    await loadPrevReports(true);
 
   } catch(e) {
     statusEl.textContent = `오류: ${e.message}`;
@@ -1012,7 +1053,7 @@ window.generateReport = async function(){
 };
 
 window.saveReportImage = async function() {
-  const resultText = document.getElementById('rptResult').textContent;
+  const resultText = document.getElementById('rptResult').innerText;
   if (!resultText) { alert('먼저 리포트를 생성해주세요.'); return; }
 
   // 카드 데이터 채우기
@@ -1072,9 +1113,11 @@ window.saveReportImage = async function() {
   }
 };
 
-async function loadPrevReports() {
+async function loadPrevReports(keepResultVisible = false) {
   if (!selStudent || !academyId) return;
-  document.getElementById('rptResultWrap').style.display = 'none';
+  if (!keepResultVisible) {
+    document.getElementById('rptResultWrap').style.display = 'none';
+  }
   document.getElementById('rptStatus').textContent = '';
   const snap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
   const wrap = document.getElementById('prevReportsWrap');
@@ -1103,7 +1146,9 @@ window._showPrevReport = function(key) {
   const r = window._prevReportsData?.[key];
   if (!r || !r.text) return;
   document.getElementById('rptResult').textContent = r.text;
+  document.getElementById('rptEditHint').style.display = 'block';
   document.getElementById('rptResultWrap').style.display = '';
+  currentRptKey = key;
   document.getElementById('dataSummary').style.display = 'none';
   document.getElementById('rptStatus').textContent = `📁 저장된 리포트 (${r.createdAt || ''}) · 새로 생성하려면 [리포트 생성] 클릭`;
   if (r.attend !== undefined) document.getElementById('sumAttend').textContent = r.attend;
@@ -1119,13 +1164,24 @@ window._deletePrevReport = async function(key) {
 };
 
 window.copyReport = function(){
-  const text = document.getElementById('rptResult').textContent;
+  const text = document.getElementById('rptResult').innerText;
   navigator.clipboard.writeText(text).then(() => {
     const btn = document.querySelector('.btn-copy');
     btn.textContent = '복사됨 ✓';
     setTimeout(() => { btn.textContent = '복사'; }, 1500);
   });
 };
+
+// ── #rptResult blur 자동저장 ──────────────────────────────────────────
+document.getElementById('rptResult').addEventListener('blur', async () => {
+  if (!currentRptKey || !selStudent || !academyId) return;
+  const text = document.getElementById('rptResult').innerText;
+  try {
+    await set(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports/${currentRptKey}/text`), text);
+  } catch(e) {
+    console.error('리포트 수정 저장 오류:', e);
+  }
+});
 
 // ── API Key Modal ─────────────────────────────────────────────────────
 window.openApiKeyModal = function(){
