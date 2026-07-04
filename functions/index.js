@@ -772,26 +772,47 @@ exports.parentDeskAsk = onRequest(
 // ──────────────────────────────────────────────────────────────────
 // parentDeskKakao
 // 카카오 i 오픈빌더 스킬 서버 전용 엔드포인트
-// - 요청: POST body = 카카오 스킬 요청 형식 { userRequest: { utterance } }
+// - 요청: POST body = 카카오 스킬 요청 형식 { userRequest: { utterance, callbackUrl } }
 //         query param: academyId
-// - 응답: 카카오 스킬 응답 형식 { version, template: { outputs: [simpleText] } }
+// - 응답: Kakao 5초 타임아웃 대비 → callbackUrl 있으면 useCallback: true 즉시 반환 후
+//         15초 이내 callbackUrl로 실제 답변 POST
+//         callbackUrl 없으면 (curl 테스트 등) 직접 응답
 // ──────────────────────────────────────────────────────────────────
 exports.parentDeskKakao = onRequest(
   { region: 'asia-northeast3', timeoutSeconds: 30 },
   async (req, res) => {
     if (req.method === 'OPTIONS') return res.status(204).send('');
 
-    const academyId = req.query.academyId;
-    const question  = req.body?.userRequest?.utterance;
+    const academyId   = req.query.academyId;
+    const question    = req.body?.userRequest?.utterance;
+    const callbackUrl = req.body?.userRequest?.callbackUrl;
+    const hasCallback = !!callbackUrl;
 
-    const kakaoError = (text) =>
-      res.status(200).json({
-        version: '2.0',
-        template: { outputs: [{ simpleText: { text } }] },
-      });
+    const toKakao = (text) => ({
+      version: '2.0',
+      template: { outputs: [{ simpleText: { text } }] },
+    });
+
+    // 결과를 callbackUrl 또는 res로 전송하는 헬퍼
+    const sendResult = async (body) => {
+      if (hasCallback) {
+        await fetch(callbackUrl, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+      } else {
+        res.status(200).json(body);
+      }
+    };
 
     if (!academyId || !question) {
-      return kakaoError('요청 정보가 올바르지 않습니다. 잠시 후 다시 시도해주세요.');
+      return res.status(200).json(toKakao('요청 정보가 올바르지 않습니다. 잠시 후 다시 시도해주세요.'));
+    }
+
+    // Kakao 5초 타임아웃 대비: callbackUrl 있으면 즉시 수신확인 후 백그라운드 처리
+    if (hasCallback) {
+      res.status(200).json({ version: '2.0', useCallback: true });
     }
 
     try {
@@ -801,14 +822,14 @@ exports.parentDeskKakao = onRequest(
       ]);
 
       if (!deskSnap.exists() || !keySnap.exists()) {
-        return kakaoError('학원 설정 정보가 없습니다. 원장님께 문의해주세요.');
+        return await sendResult(toKakao('학원 설정 정보가 없습니다. 원장님께 문의해주세요.'));
       }
 
       const desk = deskSnap.val() || {};
       const anthropicApiKey = keySnap.val();
 
       if (!anthropicApiKey) {
-        return kakaoError('학원 설정 정보가 없습니다. 원장님께 문의해주세요.');
+        return await sendResult(toKakao('학원 설정 정보가 없습니다. 원장님께 문의해주세요.'));
       }
 
       const faqText = Array.isArray(desk.faq)
@@ -838,8 +859,8 @@ exports.parentDeskKakao = onRequest(
           'content-type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 500,
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 300,
           system: systemPrompt,
           messages: [{ role: 'user', content: question }],
         }),
@@ -848,19 +869,17 @@ exports.parentDeskKakao = onRequest(
       if (!anthropicRes.ok) {
         const errData = await anthropicRes.text();
         console.error('[parentDeskKakao] Anthropic API 오류:', errData);
-        return kakaoError('AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+        return await sendResult(toKakao('AI 응답 생성에 실패했습니다. 잠시 후 다시 시도해주세요.'));
       }
 
       const data   = await anthropicRes.json();
       const answer = data?.content?.[0]?.text ?? '답변을 가져오지 못했습니다.';
+      console.log(`[parentDeskKakao] 완료: academyId=${academyId} hasCallback=${hasCallback}`);
 
-      return res.status(200).json({
-        version: '2.0',
-        template: { outputs: [{ simpleText: { text: answer } }] },
-      });
+      await sendResult(toKakao(answer));
     } catch (e) {
       console.error('[parentDeskKakao] 처리 오류:', e.message);
-      return kakaoError('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+      await sendResult(toKakao('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')).catch(() => {});
     }
   },
 );
