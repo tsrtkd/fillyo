@@ -248,6 +248,21 @@ tr:hover td{background:#f0faf8}
       <h2 style="font-size:16px;font-weight:800;margin-bottom:6px">⚙️ 급수표 설정</h2>
       <p style="font-size:12px;color:#888;margin-bottom:20px">엑셀 또는 이미지를 업로드하면 기본 급수표를 교체합니다. Firebase에 저장되어 다음 접속 시에도 유지됩니다.</p>
 
+      <!-- 템플릿 선택 -->
+      <div style="border:1.5px solid #0B7B6B;border-radius:10px;padding:16px;margin-bottom:16px;background:#f0faf8">
+        <div style="font-weight:700;font-size:13px;margin-bottom:10px">🏷️ 급수표 템플릿 선택</div>
+        <select id="template-select" onchange="applyTemplate(this.value)" style="width:100%;padding:9px 12px;border:1.5px solid #b2dfdb;border-radius:8px;font-size:13px;font-family:inherit;background:#fff;cursor:pointer">
+          <option value="default">기본형 (FILLYO)</option>
+          <option value="korea-jumprope">한국줄넘기협회형</option>
+          <option value="powerjumping">파워점핑형</option>
+          <option value="jumpingclub">점핑클럽형</option>
+          <option value="jumpwings">점프윙스형</option>
+          <option value="korea-rope">대한줄넘기협회형</option>
+        </select>
+        <p style="font-size:11px;color:#888;margin-top:8px;line-height:1.5">실제 협회의 공인 기준과 다를 수 있으며, FILLYO가 급수 구조만 참고하여 자체 제작한 커리큘럼입니다.</p>
+        <div id="template-apply-status" style="font-size:12px;margin-top:6px;color:#0B7B6B;display:none"></div>
+      </div>
+
       <!-- 엑셀 업로드 -->
       <div style="border:1.5px solid #e0e0e0;border-radius:10px;padding:16px;margin-bottom:16px">
         <div style="font-weight:700;font-size:13px;margin-bottom:8px">📊 엑셀로 급수표 교체</div>
@@ -359,6 +374,52 @@ const CRITERIA = [
   {g12:'15개',g34:'30개',g5:'40개'},
 ];
 
+// ── 협회별 급수표 템플릿 ─────────────────────────────────────────────
+const SKILL_PROGRESSION = [
+  '앞으로뛰기','뒤로뛰기','좌우 흔들어 뛰기','한발 번갈아 뛰기',
+  '가위바위보 뛰기','무릎올리기+엉덩이차기','엇걸어 뛰기','엇걸었다 풀어 뛰기',
+  '되돌리기','되돌리기+다리 들어주기','2단 뛰기','옆으로 십자뛰기',
+  '앞뒤 십자뛰기','손흔들어 뛰기','이중 되돌리기','2단 되돌리기',
+  '3단 뛰기','더블더치 기초','개인기 연결동작','챔피언 기술'
+];
+function _tplLevels(groups) {
+  const out = [];
+  groups.forEach(([prefix, grades]) => grades.forEach(g => out.push(`${prefix} ${g}`)));
+  return out;
+}
+function _makeTpl(name, levelNames) {
+  const n = levelNames.length;
+  const skills = {};
+  levelNames.forEach((lv, i) => {
+    skills[lv] = SKILL_PROGRESSION[i % SKILL_PROGRESSION.length] + (i >= SKILL_PROGRESSION.length ? ' 심화' : '');
+  });
+  const criteria = Array.from({length: n}, (_, i) => {
+    const t = n <= 1 ? 1 : i / (n - 1);
+    return { g12:`${Math.round(10+40*t)}개`, g34:`${Math.round(15+45*t)}개`, g5:`${Math.round(20+50*t)}개` };
+  });
+  return { name, levels: levelNames, skills, criteria };
+}
+const _G9  = ['9급','8급','7급','6급','5급','4급','3급','2급','1급'];
+const _G10 = ['10급','9급','8급','7급','6급','5급','4급','3급','2급','1급'];
+const TEMPLATES = {
+  'korea-jumprope': _makeTpl('한국줄넘기협회형', _tplLevels([
+    ['비기너',_G9],['주니어3급',_G9],['주니어2급',_G9],['주니어1급',_G9]
+  ])),
+  'powerjumping': _makeTpl('파워점핑형', _tplLevels([
+    ['파워점핑비기너',_G9],['파워점핑주니어3급',_G9],['파워점핑주니어2급',_G9],['파워점핑주니어1급',_G9]
+  ])),
+  'jumpingclub': _makeTpl('점핑클럽형', _tplLevels([
+    ['베이직',_G9],['엘리트',_G9],['수퍼',_G9]
+  ])),
+  'jumpwings': _makeTpl('점프윙스형', _tplLevels([
+    ['주니어클럽',_G10],['리더스클럽',_G10],['마스터클럽',_G10],['위너스클럽',_G10]
+  ])),
+  'korea-rope': _makeTpl('대한줄넘기협회형', _tplLevels([
+    ['기능급수',_G10]
+  ])),
+};
+window._activeTemplate = null;
+
 // ── 커스텀 급수표 로드 (Firebase → LEVEL/SKILL/CRITERIA 덮어쓰기) ──────
 async function loadCustomLevelTable() {
   if (!academyId) return;
@@ -375,6 +436,9 @@ async function loadCustomLevelTable() {
         SKILL[row.level] = row.skill || '';
         CRITERIA.push({ g12: row.g12 || '', g34: row.g34 || '', g5: row.g5 || '' });
       });
+      window._activeTemplate = data.templateKey || null;
+      const sel = document.getElementById('template-select');
+      if (sel) sel.value = data.templateKey || 'default';
     }
     window._customChartImage = data.chartImage || null;
   } catch(e) { console.warn('loadCustomLevelTable', e); }
@@ -505,12 +569,64 @@ async function resetLevelTable() {
 }
 window.resetLevelTable = resetLevelTable;
 
+// ── 협회별 템플릿 적용 ────────────────────────────────────────────────
+async function applyTemplate(value) {
+  const statusEl = document.getElementById('template-apply-status');
+  if (statusEl) { statusEl.style.display='block'; statusEl.textContent='적용 중...'; }
+  if (!value || value === 'default') {
+    const DL=['10급','9급','8급','7급','6급','5급','4급','3급','2급','1급','특9급','특8급','특7급','특6급','특5급','특4급','특3급','특2급','특1급','특급'];
+    const DS={'10급':'모둠발 앞으로 뛰기','9급':'모둠발 뒤로 뛰기','8급':'한발 번갈아 뛰기','7급':'가위바위보 뛰기','6급':'무릎올리기+엉덩이차기','5급':'엇걸어 뛰기','4급':'엇걸었다 풀어 뛰기','3급':'되돌리기','2급':'되돌리기+다리 들어주기','1급':'2단 뛰기','특9급':'OOO','특8급':'OO+SOC','특7급':'OO+SOO','특6급':'OO+CO+OC+CC','특5급':'OO+CC','특4급':'OO+CO','특3급':'OO+OC','특2급':'SO+SC','특1급':'SC 왕복','특급':'되돌리기+OO'};
+    const DC=[{g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},{g12:'1도약20/2도약20',g34:'1도약40/2도약40',g5:'1도약60/2도약60'},{g12:'오/왼20 왕복15',g34:'오/왼30 왕복20',g5:'오/왼40 왕복30'},{g12:'20개',g34:'40개',g5:'50개'},{g12:'무릎20/엉덩이20',g34:'무릎20/엉덩이20',g5:'무릎20/엉덩이20'},{g12:'20개',g34:'30개',g5:'40개'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'왕복20',g34:'왕복30',g5:'왕복40'},{g12:'15개',g34:'30개',g5:'40개'}];
+    LEVEL.length=0; DL.forEach(l=>LEVEL.push(l));
+    Object.keys(SKILL).forEach(k=>delete SKILL[k]); Object.assign(SKILL,DS);
+    CRITERIA.length=0; DC.forEach(c=>CRITERIA.push(c));
+    window._activeTemplate = null;
+    if (typeof academyId !== 'undefined' && academyId) {
+      try { await set(ref(db, `academies/${academyId}/settings/jumprope/levelTable`), null);
+            await set(ref(db, `academies/${academyId}/settings/jumprope/templateKey`), null); } catch(e){}
+    }
+    renderChartTab(); renderStudents();
+    if (statusEl) statusEl.textContent='✅ 기본형(FILLYO) 급수표로 복원 완료!';
+    return;
+  }
+  const tpl = TEMPLATES[value];
+  if (!tpl) return;
+  LEVEL.length=0; tpl.levels.forEach(l=>LEVEL.push(l));
+  Object.keys(SKILL).forEach(k=>delete SKILL[k]); Object.assign(SKILL, tpl.skills);
+  CRITERIA.length=0; tpl.criteria.forEach(c=>CRITERIA.push(c));
+  window._activeTemplate = value;
+  if (typeof academyId !== 'undefined' && academyId) {
+    try {
+      const rows = tpl.levels.map((lv,i) => ({
+        level:lv, skill:tpl.skills[lv]||'',
+        g12:tpl.criteria[i]?.g12||'', g34:tpl.criteria[i]?.g34||'', g5:tpl.criteria[i]?.g5||''
+      }));
+      await set(ref(db, `academies/${academyId}/settings/jumprope/levelTable`), rows);
+      await set(ref(db, `academies/${academyId}/settings/jumprope/templateKey`), value);
+    } catch(e) { console.warn('template save', e); }
+  }
+  renderChartTab(); renderStudents();
+  if (statusEl) statusEl.textContent=`✅ ${tpl.name} 적용 완료! (${tpl.levels.length}개 급수)`;
+}
+window.applyTemplate = applyTemplate;
+
 // ── 급수표 탭 렌더 (이미지/테이블 전환) ─────────────────────────────
 function renderChartTab() {
   const area = document.getElementById('chart-print-area');
   if (!area) return;
   if (window._customChartImage) {
     area.innerHTML = `<img src="${window._customChartImage}" style="max-width:100%;border-radius:8px">`;
+    return;
+  }
+  if (window._activeTemplate) {
+    const tplName = TEMPLATES[window._activeTemplate]?.name || window._activeTemplate;
+    const rows = LEVEL.map((lv,i) => `
+      <tr><td><span class="badge bg-green">${lv}</span></td>
+      <td>${SKILL[lv]||''}</td>
+      <td>${CRITERIA[i]?.g12||''}</td><td>${CRITERIA[i]?.g34||''}</td><td>${CRITERIA[i]?.g5||''}</td></tr>`).join('');
+    area.innerHTML = `
+      <h2 style="font-size:16px;font-weight:800;margin-bottom:8px">${tplName} (총 ${LEVEL.length}개 급수)</h2>
+      <table><thead><tr><th>급수</th><th>종목 설명</th><th>1~2학년</th><th>3~4학년</th><th>5학년+</th></tr></thead><tbody>${rows}</tbody></table>`;
     return;
   }
   const basicRows = LEVEL.slice(0, 10).map((lv, i) => `
