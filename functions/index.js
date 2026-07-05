@@ -707,6 +707,58 @@ exports.cancelAddon = onCall(
 );
 
 // ──────────────────────────────────────────────────────────────────
+// calculateWithdrawSettlement  (Callable)
+// 회원탈퇴 전 위약금(정산 차액) 계산 — 실제 청구는 하지 않음
+// 입력: { academyId }
+// 반환: { journalPenalty, addonPenalties: [{addonKey, name, amount}], totalPenalty }
+// ──────────────────────────────────────────────────────────────────
+exports.calculateWithdrawSettlement = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId } = request.data;
+    if (!academyId) throw new HttpsError('invalid-argument', 'academyId 필수');
+
+    // 소유권 확인
+    const userSnap = await db.ref(`users/${uid}/academyId`).get();
+    if (!userSnap.exists() || userSnap.val() !== academyId) {
+      throw new HttpsError('permission-denied', '본인 학원만 조회할 수 있습니다');
+    }
+
+    // 업무일지 위약금: 필드가 없으면(기존 고객) 0으로 처리
+    const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
+    const billing = billingSnap.val() || {};
+    let journalPenalty = 0;
+    if (
+      billing.regularAmount != null &&
+      billing.monthlyAmount != null &&
+      billing.paidCount != null
+    ) {
+      journalPenalty = (billing.regularAmount - billing.monthlyAmount) * billing.paidCount;
+    }
+
+    // 애드온 위약금: contract + active 항목만, cancelAddon과 동일한 공식
+    const addonsSnap = await db.ref(`academies/${academyId}/addons`).get();
+    const addonPenalties = [];
+    if (addonsSnap.exists()) {
+      for (const [addonKey, addon] of Object.entries(addonsSnap.val())) {
+        if (addon.billingType === 'contract' && addon.status === 'active') {
+          const paid   = addon.paidCount || 0;
+          const amount = (addon.regularAmount - addon.monthlyAmount) * paid;
+          const name   = ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey;
+          addonPenalties.push({ addonKey, name, amount });
+        }
+      }
+    }
+
+    const totalPenalty = journalPenalty + addonPenalties.reduce((s, a) => s + a.amount, 0);
+    return { journalPenalty, addonPenalties, totalPenalty };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
 // parentDeskAsk
 // 학부모가 질문을 보내면 학원 설정(운영시간/학원비/차량/FAQ)을 바탕으로
 // Anthropic Claude가 자동 응답을 생성해 반환
