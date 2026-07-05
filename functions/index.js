@@ -22,7 +22,7 @@ function apiSecret() {
 const ADDON_PRICE_TABLE = {
   exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사' },
   jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기' },
-  bundle:   { contract: 11760, single: null,  regularAmount: 11760, name: '애드온 묶음 (줄넘기+승급심사+AI성장리포트)' },
+  bundle:   { contract: 13500, single: null,  regularAmount: 13500, name: '애드온 묶음 (줄넘기+승급심사+AI성장리포트)' },
 };
 
 // 다음 달 동일 일자 계산 (월말 보정 포함)
