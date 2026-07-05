@@ -22,6 +22,7 @@ function apiSecret() {
 const ADDON_PRICE_TABLE = {
   exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사' },
   jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기' },
+  report:   { contract: 4900,  single: 9800,  regularAmount: 9800,  name: 'AI성장리포트' },
   bundle:   { contract: 13500, single: null,  regularAmount: 13500, name: '애드온 묶음 (줄넘기+승급심사+AI성장리포트)' },
 };
 

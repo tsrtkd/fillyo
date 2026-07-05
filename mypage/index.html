@@ -351,11 +351,12 @@ let pendingAddonBT    = null;
 let pendingCancelKey  = null;
 
 const ADDON_PRICE = {
-  exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사', icon: '🥋' },
-  jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기',   icon: '🪢' },
+  exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사',    icon: '🥋' },
+  jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기',      icon: '🪢' },
+  report:   { contract: 4900,  single: 9800,  regularAmount: 9800,  name: 'AI성장리포트', icon: '📊' },
   bundle:   { contract: 13500, single: null,  regularAmount: 13500, name: '3종 묶음 (줄넘기+승급심사+AI성장리포트)', icon: '⭐' },
 };
-const addonBillingChoice = { exam: 'contract', jumprope: 'contract', bundle: 'contract' };
+const addonBillingChoice = { exam: 'contract', jumprope: 'contract', report: 'contract', bundle: 'contract' };
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -607,7 +608,7 @@ function renderAddonSection(userData) {
   const bundleActive = currentAddons.bundle?.status === 'active';
 
   let html = '';
-  ['exam', 'jumprope', 'bundle'].forEach(key => {
+  ['exam', 'jumprope', 'report', 'bundle'].forEach(key => {
     const p      = ADDON_PRICE[key];
     const addon  = currentAddons[key];
     const active = addon?.status === 'active';
