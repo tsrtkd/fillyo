@@ -107,13 +107,27 @@ exports.scheduleNextPayment = onRequest(
         }
 
         // academyId별 빌링 정보 저장
-        await db.ref(`academies/${academyId}/billing`).update({
+        const existingBillingSnap = await db.ref(`academies/${academyId}/billing`).get();
+        const existingBilling = existingBillingSnap.val() || {};
+
+        const billingUpdate = {
           billingKey,
           nextPaymentAt:          timeToPay.getTime(),
           lastScheduledPaymentId: paymentId,
           lastScheduledAt:        now,
           paymentFailed:          false,
-        });
+        };
+
+        // 최초 구독 시점에만 결제 추적 필드 초기화 (이미 값이 있으면 유지)
+        // 이 데이터는 중도해지 위약금 = (regularAmount - monthlyAmount) × paidCount 계산에 사용
+        // (애드온의 pendingCharge 계산 방식과 동일한 공식)
+        if (existingBilling.paidCount === undefined || existingBilling.paidCount === null) {
+          billingUpdate.monthlyAmount = amount;   // 실제 납부 금액 (할인가 포함)
+          billingUpdate.regularAmount = 19800;    // 업무일지 정가 (고정)
+          billingUpdate.paidCount     = 0;        // 최초 가입 시 0으로 초기화
+        }
+
+        await db.ref(`academies/${academyId}/billing`).update(billingUpdate);
 
         // paymentId → academy 매핑 (웹훅 조회용)
         await db.ref(`paymentOrders/${paymentId}`).set({
@@ -295,9 +309,17 @@ exports.portoneWebhook = onRequest(
             orderName,
             paidAt:    now,
           });
+
+          // paidCount 갱신 (+1): 중도해지 위약금 계산용 누적 결제 횟수
+          // 위약금 = (regularAmount - monthlyAmount) × paidCount (애드온 pendingCharge와 동일 공식)
+          const billingSnap  = await db.ref(`academies/${academyId}/billing`).get();
+          const billingData  = billingSnap.val() || {};
+          const newPaidCount = (billingData.paidCount || 0) + 1;
+
           await db.ref(`academies/${academyId}/billing`).update({
             paymentFailed: false,
             lastPaidAt:    now,
+            paidCount:     newPaidCount,
           });
 
           // 다음 달 자동 재예약
