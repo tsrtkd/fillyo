@@ -1,6 +1,7 @@
 'use strict';
 
 const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule } = require('firebase-functions/v2/scheduler');
 const admin   = require('firebase-admin');
 const axios   = require('axios');
 const cors    = require('cors')({ origin: true });
@@ -10,6 +11,27 @@ admin.initializeApp();
 const db = admin.database();
 
 const PORTONE_BASE = 'https://api.portone.io';
+
+// ⚠️⚠️⚠️ 매우 중요 - 테스트 작성 규칙 ⚠️⚠️⚠️
+// 이 파일의 함수를 테스트할 땐 반드시 위에 정의된 실제 함수(exports.xxx)를
+// 그대로 import해서 호출할 것.
+// 절대로 별도의 스크립트에서 axios로 PortOne API를 직접 재구현하거나,
+// Firebase Admin SDK로 DB를 직접 조작해서 "비슷하게" 테스트하지 말 것.
+// 그렇게 하면 아래 안전장치(assertNotProtectedForTest)를 우회하게 되어
+// 실제 고객 데이터가 위험해짐. (2026-07-06 사고 참고)
+
+const PROTECTED_ACADEMY_IDS = ['ac_mq2avp88kwmd', 'ac_mqeizbqcgyxo'];
+// 태사랑태권도, 오류교회 - 실제 가입 고객. 테스트 절대 금지.
+
+function assertNotProtectedForTest(academyId, context) {
+  if (PROTECTED_ACADEMY_IDS.includes(academyId)) {
+    throw new Error(
+      `[안전장치] ${academyId}는 보호된 실제 고객 학원입니다. ` +
+      `${context} 작업이 여기서 강제 차단되었습니다. ` +
+      `테스트가 필요하면 반드시 test_로 시작하는 새 academyId를 만들어서 하세요.`
+    );
+  }
+}
 
 function apiSecret() {
   return process.env.PORTONE_API_SECRET;
@@ -62,6 +84,7 @@ exports.scheduleNextPayment = onRequest(
       if (!billingKey || !academyId || !amount || !orderName) {
         return res.status(400).json({ error: 'billingKey, academyId, amount, orderName 필수' });
       }
+      assertNotProtectedForTest(academyId, 'scheduleNextPayment');
 
       const paymentId = `sub_${Date.now()}_${academyId}`;
       const timeToPay = nextMonthSameDay();
@@ -402,6 +425,7 @@ exports.cancelSubscription = onRequest(
       if (!academyId) {
         return res.status(400).json({ error: 'academyId 필수' });
       }
+      assertNotProtectedForTest(academyId, 'cancelSubscription');
 
       // 본인 학원 소유권 확인
       const userSnap = await db.ref(`users/${uid}/academyId`).get();
@@ -524,6 +548,7 @@ exports.subscribeAddon = onCall(
         `${priceInfo.name}은 1년 계약 전용입니다. 1개월 이용권 불가`,
       );
     }
+    assertNotProtectedForTest(academyId, 'subscribeAddon');
 
     // 본인 학원 소유권 확인
     const userSnap = await db.ref(`users/${uid}/academyId`).get();
@@ -631,6 +656,7 @@ exports.cancelAddon = onCall(
     if (!academyId || !addonKey) {
       throw new HttpsError('invalid-argument', 'academyId, addonKey 필수');
     }
+    assertNotProtectedForTest(academyId, 'cancelAddon');
 
     // 소유권 확인
     const userSnap = await db.ref(`users/${uid}/academyId`).get();
@@ -755,6 +781,179 @@ exports.calculateWithdrawSettlement = onCall(
 
     const totalPenalty = journalPenalty + addonPenalties.reduce((s, a) => s + a.amount, 0);
     return { journalPenalty, addonPenalties, totalPenalty };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// executeWithdraw  (Callable)
+// 회원탈퇴 실행: 위약금 즉시 청구 → 구독 해지 → 데이터 이동
+// 입력: { academyId }
+//
+// ⚠️ 테스트 원칙: 반드시 격리된 가짜 학원(academyId: test_*)으로만 테스트할 것.
+//   - 실제 계정(billingKey 보유)으로 절대 호출 금지 — PortOne billingKey가 삭제되어 정기결제가 즉시 끊김
+//   - 테스트용 학원은 Firebase Emulator 또는 테스트 전용 DB 환경에서만 생성
+//   - 프로덕션 DB에서 테스트가 필요한 경우 반드시 매니저 승인 후 진행
+// 반환: { success, charged, amount? } | { success, charged:false, pendingAmount }
+// ──────────────────────────────────────────────────────────────────
+exports.executeWithdraw = onCall(
+  { region: 'asia-northeast3', timeoutSeconds: 60 },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId } = request.data;
+    if (!academyId) throw new HttpsError('invalid-argument', 'academyId 필수');
+    assertNotProtectedForTest(academyId, 'executeWithdraw');
+
+    // 소유권 확인 + 이메일 조회
+    const userSnap = await db.ref(`users/${uid}`).get();
+    if (!userSnap.exists() || userSnap.val()?.academyId !== academyId) {
+      throw new HttpsError('permission-denied', '본인 학원만 탈퇴할 수 있습니다');
+    }
+    const userEmail = userSnap.val()?.email || '';
+
+    const now = Date.now();
+
+    // ── 1. 학원 설정 · billing · addons 일괄 조회
+    const [settingsSnap, billingSnap, addonsSnap] = await Promise.all([
+      db.ref(`academies/${academyId}/settings`).get(),
+      db.ref(`academies/${academyId}/billing`).get(),
+      db.ref(`academies/${academyId}/addons`).get(),
+    ]);
+    const settings  = settingsSnap.val() || {};
+    const billing   = billingSnap.val()  || {};
+    const addons    = addonsSnap.val()   || {};
+    const { billingKey } = billing;
+
+    // ── 2. 위약금 계산 (calculateWithdrawSettlement와 동일한 공식)
+    let journalPenalty = 0;
+    if (billing.regularAmount != null && billing.monthlyAmount != null && billing.paidCount != null) {
+      journalPenalty = (billing.regularAmount - billing.monthlyAmount) * billing.paidCount;
+    }
+    const addonPenalties = [];
+    for (const [addonKey, addon] of Object.entries(addons)) {
+      if (addon.billingType === 'contract' && addon.status === 'active') {
+        const paid   = addon.paidCount || 0;
+        const amount = (addon.regularAmount - addon.monthlyAmount) * paid;
+        addonPenalties.push({ addonKey, name: ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey, amount });
+      }
+    }
+    const totalPenalty = journalPenalty + addonPenalties.reduce((s, a) => s + a.amount, 0);
+
+    // ── 3. 즉시 청구 (totalPenalty > 0이고 billingKey 있을 때)
+    let charged     = totalPenalty === 0; // 0원이면 청구 불필요 → charged=true 처리
+    let chargeError = null;
+
+    if (totalPenalty > 0 && billingKey) {
+      const paymentId = `withdraw_settlement_${academyId}_${now}`;
+      const orderName = 'FILLYO 중도해지 정산금';
+      try {
+        const chargeResp = await axios.post(
+          `${PORTONE_BASE}/payments/${paymentId}/billing-key`,
+          {
+            billingKey,
+            orderName,
+            customer: {
+              customerId:  academyId,
+              name:        { full: (settings.academyName || settings.name || 'Withdraw').replace(/[^\x00-\x7F]/g, '').trim() || 'Academy' },
+              email:       userEmail || 'noreply@fillyo.kr',
+              phoneNumber: (settings.phone || '00000000000').replace(/[^0-9]/g, ''),
+            },
+            amount:   { total: totalPenalty },
+            currency: 'KRW',
+          },
+          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+        );
+        // PortOne V2 빌링키 즉시결제 성공 시 응답: { payment: { pgTxId, paidAt } }
+        // status 필드가 없는 경우 paidAt 존재 여부로 성공 판별
+        const payData    = chargeResp.data?.payment ?? chargeResp.data;
+        const payStatus  = chargeResp.data?.status ?? payData?.status;
+        const isPaid     = payStatus === 'PAID' || (payData?.paidAt && !payData?.failedAt);
+        if (isPaid) {
+          charged = true;
+          await db.ref(`paymentOrders/${paymentId}`).set({
+            type:      'withdraw_settlement',
+            academyId,
+            amount:    totalPenalty,
+            orderName,
+            billingKey,
+            status:    'PAID',
+            paidAt:    now,
+          });
+          console.log(`[executeWithdraw] 정산금 청구 성공: ${totalPenalty}원 (${academyId})`);
+        } else {
+          chargeError = `결제 상태: ${payStatus ?? JSON.stringify(chargeResp.data)}`;
+          console.warn(`[executeWithdraw] 예상치 못한 결제 상태:`, chargeResp.data);
+        }
+      } catch (e) {
+        chargeError = e.response?.data?.message ?? e.message;
+        console.error('[executeWithdraw] 즉시 청구 실패:', e.response?.data ?? e.message);
+      }
+    } else if (totalPenalty > 0 && !billingKey) {
+      chargeError = 'billingKey 없음 — 카드 정보 없어 청구 불가';
+      console.warn(`[executeWithdraw] billingKey 없음, settlementDue 기록 (${academyId})`);
+    }
+
+    // ── 4. 청구 실패 시 settlementDue 기록 (학원 데이터 삭제 후에도 잔존)
+    if (!charged && totalPenalty > 0) {
+      await db.ref(`settlementDue/${academyId}`).set({
+        academyName:    settings.academyName || settings.name || academyId,
+        amount:         totalPenalty,
+        reason:         chargeError || '청구 실패',
+        failedAt:       now,
+        contactPhone:   settings.phone || '',
+        journalPenalty,
+        addonPenalties,
+      });
+      console.log(`[executeWithdraw] settlementDue 기록: ${totalPenalty}원 (${academyId})`);
+    }
+
+    // ── 5. 결제 예약 전체 취소 (billingKey 기준 일괄 — 청구 완료 후)
+    if (billingKey) {
+      try {
+        await axios.delete(
+          `${PORTONE_BASE}/payment-schedules`,
+          {
+            headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+            data:    { billingKey },
+          },
+        );
+      } catch (e) {
+        console.error('[executeWithdraw] 결제 예약 취소 실패:', e.response?.data ?? e.message);
+      }
+
+      // ── 6. 빌링키 삭제 (청구 완료 후)
+      try {
+        await axios.delete(
+          `${PORTONE_BASE}/billing-keys/${billingKey}`,
+          { headers: { Authorization: `PortOne ${apiSecret()}` } },
+        );
+      } catch (e) {
+        console.error('[executeWithdraw] 빌링키 삭제 실패:', e.response?.data ?? e.message);
+      }
+    }
+
+    // ── 7. academies 데이터를 withdrawnAcademies로 복사 후 원본 삭제
+    const academySnap = await db.ref(`academies/${academyId}`).get();
+    if (academySnap.exists()) {
+      await db.ref(`withdrawnAcademies/${academyId}`).set({
+        ...academySnap.val(),
+        _withdrawnAt:    now,
+        _withdrawnByUid: uid,
+        _totalPenalty:   totalPenalty,
+        _charged:        charged,
+      });
+      await db.ref(`academies/${academyId}`).remove();
+    }
+
+    // ── 8. users 상태 갱신
+    await db.ref(`users/${uid}`).update({ planType: 'withdrawn', withdrawnAt: now });
+
+    console.log(`[executeWithdraw] 완료: ${academyId} charged=${charged} totalPenalty=${totalPenalty}`);
+
+    return charged
+      ? { success: true, charged: true,  amount: totalPenalty }
+      : { success: true, charged: false, pendingAmount: totalPenalty };
   },
 );
 
@@ -956,5 +1155,23 @@ exports.parentDeskKakao = onRequest(
       console.error('[parentDeskKakao] 처리 오류:', e.message);
       await sendResult(toKakao('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.')).catch(() => {});
     }
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// dailyRtdbBackup
+// 매일 새벽 3시(한국 시각) 전체 RTDB 스냅샷을 GCS에 저장
+// 저장 경로: gs://{default-bucket}/rtdb-backups/fillyo-YYYY-MM-DD.json
+// ──────────────────────────────────────────────────────────────────
+exports.dailyRtdbBackup = onSchedule(
+  { schedule: '0 3 * * *', timeZone: 'Asia/Seoul', region: 'asia-northeast3' },
+  async () => {
+    const snapshot = await db.ref('/').get();
+    const json     = JSON.stringify(snapshot.val());
+    const date     = new Date().toISOString().slice(0, 10);
+    const fileName = `rtdb-backups/fillyo-${date}.json`;
+    const bucket   = admin.storage().bucket();
+    await bucket.file(fileName).save(json, { contentType: 'application/json' });
+    console.log(`[dailyRtdbBackup] 완료: ${fileName} (${(json.length / 1024).toFixed(1)} KB)`);
   },
 );

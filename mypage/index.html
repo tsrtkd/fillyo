@@ -341,6 +341,7 @@ const fns  = getFunctions(app, 'asia-northeast3');
 const fnSubscribeAddon              = httpsCallable(fns, 'subscribeAddon');
 const fnCancelAddon                 = httpsCallable(fns, 'cancelAddon');
 const fnCalculateWithdrawSettlement = httpsCallable(fns, 'calculateWithdrawSettlement');
+const fnExecuteWithdraw             = httpsCallable(fns, 'executeWithdraw', { timeout: 60000 });
 
 const CANCEL_SUB_URL = 'https://asia-northeast3-fillyo-journal.cloudfunctions.net/cancelSubscription';
 
@@ -602,33 +603,29 @@ window.doWithdraw = async () => {
   const btn = document.getElementById('btnWithdrawOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    const uid = currentUser.uid;
+    // 서버 함수가 위약금 청구 + 구독 해지 + 데이터 이동을 한번에 처리
+    const result = await fnExecuteWithdraw({ academyId: currentAcadId });
+    const { charged, amount, pendingAmount } = result.data;
 
-    // 구독 중이면 탈퇴 전 먼저 정기결제 해지
-    if (currentAcadId && currentBillingKey) {
-      try {
-        const idToken = await currentUser.getIdToken();
-        const resp = await fetch(CANCEL_SUB_URL, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-          body: JSON.stringify({ academyId: currentAcadId }),
-        });
-        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      } catch (e) {
-        console.error('[doWithdraw] 정기결제 해지 실패:', e);
-        alert('정기결제 해지에 실패했습니다. 카카오톡 채널로 별도 문의해주세요.');
-      }
+    let msg;
+    if (charged && amount > 0) {
+      msg = `정산금 ₩${amount.toLocaleString()}원이 정상 청구되었고 탈퇴가 완료되었습니다.`;
+    } else if (charged) {
+      msg = '정산금 없이 탈퇴가 완료되었습니다.';
+    } else {
+      msg = `탈퇴는 완료되었으나 정산금(₩${(pendingAmount||0).toLocaleString()}원) 청구에 실패했습니다. 별도로 안내드리겠습니다.`;
     }
 
-    if (currentAcadId) await remove(ref(db, `academies/${currentAcadId}`));
-    await remove(ref(db, `users/${uid}`));
+    closeWithdrawModal();
+    alert(msg);
+    // Firebase Auth 로그인 계정만 삭제 (academies 데이터는 서버 함수가 처리)
     await deleteUser(currentUser);
     location.href = '/login/';
   } catch (e) {
-    console.error(e);
+    console.error('[doWithdraw]', e);
     const msg = e.code === 'auth/requires-recent-login'
       ? '보안을 위해 재로그인 후 다시 시도해주세요.'
-      : ('탈퇴 실패: ' + e.message);
+      : ('탈퇴 실패: ' + (e.message || '오류가 발생했습니다.'));
     showToast(msg, 'err');
     btn.disabled = false; btn.classList.remove('loading');
     closeWithdrawModal();

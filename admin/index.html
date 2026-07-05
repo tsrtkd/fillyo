@@ -307,6 +307,18 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       </div>
     </div>
 
+    <!-- ── 정산 미수금 목록 ──────────────────────────────────────── -->
+    <div class="alert-card" id="settlementDueCard">
+      <div class="alert-card-hdr">
+        <span class="alert-card-title">💸 정산 미수금 목록 <small style="font-size:11px;color:var(--gray);font-weight:500;">— 탈퇴 시 청구 실패</small></span>
+        <span class="alert-cnt none" id="settlementDueCnt">0</span>
+        <button class="btn-refresh" onclick="loadSettlementDue()" style="margin-left:8px;">↻ 새로고침</button>
+      </div>
+      <div id="settlementDueList">
+        <div class="req-empty"><div class="req-empty-icon">⏳</div><div class="req-empty-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
     <!-- ── 공지 작성 ──────────────────────────────────────────────── -->
     <div class="card" style="margin-bottom:20px;">
       <div class="card-header">
@@ -522,6 +534,7 @@ onAuthStateChanged(auth, async (user) => {
   await loadData();
   await loadNotices();
   await loadCurated();
+  await loadSettlementDue();
 });
 
 window.doLogout = () => signOut(auth).then(() => location.href = '/login/');
@@ -1031,6 +1044,52 @@ window.deleteCurated = async (id) => {
     showToast('삭제되었습니다.', 'ok');
     await loadCurated();
   } catch (e) { showToast('삭제 실패: ' + e.message, 'err'); }
+};
+
+// ── 정산 미수금 로드 ──────────────────────────────────────────────
+window.loadSettlementDue = async () => {
+  const listEl = document.getElementById('settlementDueList');
+  const cntEl  = document.getElementById('settlementDueCnt');
+  if (!listEl) return;
+  try {
+    const snap = await get(ref(db, 'settlementDue'));
+    if (!snap.exists()) {
+      cntEl.textContent = '0';
+      cntEl.className   = 'alert-cnt none';
+      listEl.innerHTML  = `<div class="req-empty"><div class="req-empty-icon">✅</div><div class="req-empty-text">미수금이 없습니다.</div></div>`;
+      return;
+    }
+    const entries = Object.entries(snap.val())
+      .map(([aid, v]) => ({ aid, ...v }))
+      .sort((a, b) => (b.failedAt || 0) - (a.failedAt || 0));
+
+    cntEl.textContent = entries.length;
+    cntEl.className   = `alert-cnt ${entries.length > 0 ? 'has' : 'none'}`;
+
+    listEl.innerHTML = `
+      <div class="tbl-wrap">
+        <table style="min-width:600px;">
+          <thead><tr>
+            <th>학원명</th>
+            <th>미수금액</th>
+            <th>사유</th>
+            <th>연락처</th>
+            <th>발생일</th>
+          </tr></thead>
+          <tbody>
+            ${entries.map(e => `<tr>
+              <td class="td-academy">${esc(e.academyName || e.aid)}</td>
+              <td class="td-amt" style="color:var(--red);">₩${Number(e.amount || 0).toLocaleString()}</td>
+              <td style="font-size:12px;color:var(--text2);">${esc(e.reason || '—')}</td>
+              <td style="font-size:12px;">${e.contactPhone ? `<a href="tel:${esc(e.contactPhone)}" style="color:var(--navy);text-decoration:none;">${esc(e.contactPhone)}</a>` : '<span style="color:var(--border);">미입력</span>'}</td>
+              <td class="td-date">${fmt(e.failedAt)}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    listEl.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패: ${esc(e.message)}</div></div>`;
+  }
 };
 
 // ── 구독 구성 텍스트 ──────────────────────────────────────────────
