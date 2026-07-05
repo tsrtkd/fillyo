@@ -358,7 +358,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <script type="module">
 import { initializeApp }                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, get, set, push, remove, onValue }
+import { getDatabase, ref, get, set, push, remove, onValue, runTransaction }
                                                       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── Firebase ──────────────────────────────────────────────────────────
@@ -920,7 +920,7 @@ window.generateReport = async function(){
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 2048,
-        system: `당신은 태권도장 원장님을 도와 학부모에게 보낼 학생 성장 리포트 문구를 작성하는 전문 도우미입니다.
+        system: [{ type: 'text', cache_control: { type: 'ephemeral' }, text: `당신은 태권도장 원장님을 도와 학부모에게 보낼 학생 성장 리포트 문구를 작성하는 전문 도우미입니다.
 
 [작성 원칙]
 - 주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
@@ -1008,7 +1008,7 @@ window.generateReport = async function(){
 - 민감한 내용(싸움, 갈등 등)은 직접 언급하지 말고 "친구들과의 관계에서 배려와 대화를 배우고 있습니다" 처럼 긍정적으로 순화하세요.
 
 [마지막 문단 - 항상 포함]
-- "저희 지도진은 앞으로 ~에 더욱 신경 쓰겠습니다" 형식으로 지도진의 다짐을 자연스럽게 포함하세요.`,
+- "저희 지도진은 앞으로 ~에 더욱 신경 쓰겠습니다" 형식으로 지도진의 다짐을 자연스럽게 포함하세요.` }],
         messages: [{ role: 'user', content: userContent }],
       }),
     });
@@ -1020,6 +1020,30 @@ window.generateReport = async function(){
 
     const json = await res.json();
     const text = json.content?.[0]?.text || '';
+
+    // 토큰 사용량 로깅
+    const usage = json.usage || {};
+    console.log('[AI 리포트 usage]', usage);
+    const estimatedCostUsd =
+      (usage.input_tokens                 || 0) * 0.000003   +
+      (usage.cache_creation_input_tokens  || 0) * 0.00000375 +
+      (usage.cache_read_input_tokens      || 0) * 0.0000003  +
+      (usage.output_tokens                || 0) * 0.000015;
+    const yearMonth = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()).slice(0, 7);
+    await Promise.all([
+      push(ref(db, `academies/${academyId}/aiUsage`), {
+        studentId:   selStudent.id,
+        studentName: selStudent.name,
+        timestamp:   Date.now(),
+        model:       'claude-sonnet-4-6',
+        usage,
+        estimatedCostUsd,
+      }),
+      runTransaction(ref(db, `academies/${academyId}/aiUsageSummary/${yearMonth}`), current => {
+        const prev = current || { reportCount: 0, totalCostUsd: 0 };
+        return { reportCount: prev.reportCount + 1, totalCostUsd: prev.totalCostUsd + estimatedCostUsd };
+      }),
+    ]);
 
     document.getElementById('rptResult').textContent = text;
     document.getElementById('rptEditHint').style.display = 'block';

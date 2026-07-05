@@ -55,6 +55,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 table{width:100%;border-collapse:collapse;min-width:1100px;}
 .td-sub{color:var(--text);font-size:12px;white-space:nowrap;}
 .td-amt{font-size:13px;font-weight:700;color:var(--navy);white-space:nowrap;}
+.td-ai{font-size:12px;color:var(--text2);white-space:nowrap;}
 thead th{background:var(--bg);padding:10px 16px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
 tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
 tbody tr:last-child{border-bottom:none;}
@@ -393,12 +394,13 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
               <th>구독 만료일</th>
               <th>구독 구성</th>
               <th>월 결제금액</th>
+              <th>AI리포트 (이번달)</th>
               <th>관리</th>
             </tr>
           </thead>
           <tbody id="tbody">
             <tr>
-              <td colspan="10" class="empty">
+              <td colspan="11" class="empty">
                 <div class="empty-icon">⏳</div>
                 <div class="empty-text">불러오는 중...</div>
               </td>
@@ -507,6 +509,7 @@ const db   = getDatabase(app);
 let allData    = [];
 let target     = null;
 let modalPlan  = 'free';
+const thisMonth = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date()).slice(0, 7);
 
 // ── 인증 & 관리자 체크 ────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -548,11 +551,13 @@ window.loadData = async () => {
       let phone         = u.phone    || '';
       let address       = '';
       let addons        = null;
+      let aiUsage       = null;
       try {
-        const [settingsSnap, contractsSnap, addonsSnap] = await Promise.all([
+        const [settingsSnap, contractsSnap, addonsSnap, aiSummarySnap] = await Promise.all([
           get(ref(db, `academies/${u.academyId}/settings`)),
           get(ref(db, `academies/${u.academyId}/contracts`)),
           get(ref(db, `academies/${u.academyId}/addons`)),
+          get(ref(db, `academies/${u.academyId}/aiUsageSummary/${thisMonth}`)),
         ]);
         if (settingsSnap.exists()) {
           const s   = settingsSnap.val();
@@ -570,6 +575,7 @@ window.loadData = async () => {
           monthlyAmount = u.lastPayment.amount;
         }
         addons = addonsSnap.exists() ? addonsSnap.val() : null;
+        aiUsage = aiSummarySnap.exists() ? aiSummarySnap.val() : null;
       } catch (_) { /* 읽기 권한 없을 수 있음 */ }
       return {
         uid,
@@ -585,6 +591,7 @@ window.loadData = async () => {
         ownerName,
         phone,
         address,
+        aiUsage,
       };
     }));
 
@@ -623,7 +630,7 @@ window.renderTable = () => {
   const tbody = document.getElementById('tbody');
 
   if (rows.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" class="empty">
+    tbody.innerHTML = `<tr><td colspan="11" class="empty">
       <div class="empty-icon">${q ? '🔍' : '📋'}</div>
       <div class="empty-text">${q ? '검색 결과가 없습니다.' : '등록된 학원이 없습니다.'}</div>
     </td></tr>`;
@@ -659,6 +666,7 @@ window.renderTable = () => {
       <td class="td-date">${expiry}</td>
       <td class="td-sub">${buildSubText(a)}</td>
       <td class="td-amt">${buildAmtText(a)}</td>
+      <td class="td-ai">${a.aiUsage ? `${a.aiUsage.reportCount}건 / 약 $${a.aiUsage.totalCostUsd.toFixed(2)}` : '<span style="color:var(--border);">-</span>'}</td>
       <td>
         <div class="act-row">
           <button class="btn-act btn-plan" onclick="openPlanModal('${a.uid}')">플랜 변경</button>
