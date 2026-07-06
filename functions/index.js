@@ -767,7 +767,7 @@ exports.subscribeAddon = onCall(
 
 // ──────────────────────────────────────────────────────────────────
 // cancelAddon  (Callable)
-// 특정 애드온만 해지: 해당 예약건만 취소 (업무일지 예약은 건드리지 않음)
+// 특정 애드온 해지 또는 번들에서 하나만 분리
 // 입력: { academyId, addonKey }
 // ──────────────────────────────────────────────────────────────────
 exports.cancelAddon = onCall(
@@ -794,9 +794,6 @@ exports.cancelAddon = onCall(
       throw new HttpsError('not-found', `addons/${addonKey} 데이터가 없습니다`);
     }
     const addon = addonSnap.val();
-    if (addon.status !== 'active') {
-      throw new HttpsError('failed-precondition', '활성 상태의 애드온만 해지할 수 있습니다');
-    }
 
     // billingKey 조회
     const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
@@ -805,11 +802,143 @@ exports.cancelAddon = onCall(
       throw new HttpsError('failed-precondition', 'billingKey가 없습니다');
     }
 
-    const now    = Date.now();
-    const paid   = addon.paidCount || 0;
+    const BUNDLE_KEYS = ['exam', 'jumprope', 'report'];
+    const now = Date.now();
+
+    // ── 번들 분해 경로: 통합 결제 중인 개별 애드온을 하나만 빼는 경우
+    if (BUNDLE_KEYS.includes(addonKey) && addon.status === 'merged') {
+      const bundleSnap = await db.ref(`academies/${academyId}/addons/bundle`).get();
+      const bundle = bundleSnap.val();
+      if (!bundle || bundle.status !== 'active') {
+        throw new HttpsError('failed-precondition', '번들이 활성 상태가 아닙니다');
+      }
+
+      const bundlePaidCount = bundle.paidCount || 0;
+
+      // a) 번들 PortOne 스케줄 취소
+      if (bundle.currentScheduleId) {
+        try {
+          await axios.delete(
+            `${PORTONE_BASE}/payment-schedules`,
+            {
+              headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+              data:    { billingKey, scheduleIds: [bundle.currentScheduleId] },
+            },
+          );
+          console.log(`[cancelAddon/unbundle] 번들 스케줄 취소: ${bundle.currentScheduleId}`);
+        } catch (e) {
+          const detail = e.response?.data ?? e.message;
+          console.error('[cancelAddon/unbundle] 번들 스케줄 취소 실패:', detail);
+          throw new HttpsError('internal', '번들 스케줄 취소 실패: ' + JSON.stringify(detail));
+        }
+      }
+
+      // b) 남은 2개 개별 스케줄 재생성 + active 복원
+      const remainingKeys = BUNDLE_KEYS.filter(k => k !== addonKey);
+      for (const k of remainingKeys) {
+        const remainSnap = await db.ref(`academies/${academyId}/addons/${k}`).get();
+        const remainAddon = remainSnap.val() || {};
+        const resumedPaidCount = (remainAddon.frozenPaidCount ?? 0) + bundlePaidCount;
+        const kPriceInfo  = ADDON_PRICE_TABLE[k];
+        const ts          = Date.now();
+        const paymentId   = `addon_${k}_${academyId}_${ts}`;
+        const timeToPay   = nextMonthSameDay(new Date(ts));
+        const orderName   = `FILLYO ${kPriceInfo.name} 1년 계약`;
+
+        let scheduleId = null;
+        try {
+          const schedResp = await axios.post(
+            `${PORTONE_BASE}/payments/${paymentId}/schedule`,
+            {
+              payment: {
+                billingKey,
+                orderName,
+                customer: { id: academyId },
+                amount:   { total: kPriceInfo.contract },
+                currency: 'KRW',
+              },
+              timeToPay: timeToPay.toISOString(),
+            },
+            { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+          );
+          scheduleId = schedResp.data?.scheduleId
+            ?? schedResp.data?.schedule?.id
+            ?? schedResp.data?.schedule?.scheduleId
+            ?? null;
+        } catch (e) {
+          const detail = e.response?.data ?? e.message;
+          console.error(`[cancelAddon/unbundle] ${k} 스케줄 재생성 실패:`, detail);
+          throw new HttpsError('internal', `${k} 스케줄 재생성 실패: ` + JSON.stringify(detail));
+        }
+
+        await db.ref(`academies/${academyId}/addons/${k}`).update({
+          status:            'active',
+          paidCount:         resumedPaidCount,
+          currentPaymentId:  paymentId,
+          currentScheduleId: scheduleId,
+          unbundledAt:       now,
+        });
+        await db.ref(`paymentOrders/${paymentId}`).set({
+          type:        'addon',
+          academyId,
+          addonKey:    k,
+          billingType: 'contract',
+          amount:      kPriceInfo.contract,
+          orderName,
+          billingKey,
+          scheduledAt: ts,
+        });
+        console.log(`[cancelAddon/unbundle] ${k} 복원: paidCount=${resumedPaidCount} scheduleId=${scheduleId}`);
+      }
+
+      // c) 빼려는 애드온 위약금 계산 + cancelled
+      const removedPriceInfo  = ADDON_PRICE_TABLE[addonKey];
+      const totalPaid         = (addon.frozenPaidCount ?? 0) + bundlePaidCount;
+      const pendingCharge     = (removedPriceInfo.regularAmount - removedPriceInfo.contract) * totalPaid;
+
+      if (pendingCharge > 0) {
+        await db.ref(`academies/${academyId}/addons/${addonKey}/pendingCharge`).set({
+          amount:        pendingCharge,
+          paidCount:     totalPaid,
+          monthlyAmount: removedPriceInfo.contract,
+          regularAmount: removedPriceInfo.regularAmount,
+          calculatedAt:  now,
+          reason:        `번들 분해 중도 해지: ${totalPaid}회 결제분 할인 차액 환수 (회당 ${removedPriceInfo.regularAmount - removedPriceInfo.contract}원 × ${totalPaid}회)`,
+        });
+        console.log(`[cancelAddon/unbundle] 위약금 저장: ${pendingCharge}원 (${academyId}/${addonKey})`);
+      }
+      await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+        status:      'cancelled',
+        cancelledAt: now,
+        paidCount:   totalPaid,
+      });
+
+      // d) bundle dissolved (이력 보존)
+      await db.ref(`academies/${academyId}/addons/bundle`).update({
+        status:      'dissolved',
+        dissolvedAt: now,
+        dissolvedBy: addonKey,
+      });
+
+      console.log(`[cancelAddon/unbundle] 분해 완료: ${academyId} 제거=${addonKey} 복원=${remainingKeys.join(',')}`);
+      return {
+        ok:           true,
+        unbundled:    true,
+        removedKey:   addonKey,
+        restoredKeys: remainingKeys,
+        penalty:      pendingCharge,
+        cancelledAt:  now,
+      };
+    }
+
+    // ── 개별 해지 (기존 로직 — 번들 상태 아닐 때)
+    if (addon.status !== 'active') {
+      throw new HttpsError('failed-precondition', '활성 상태의 애드온만 해지할 수 있습니다');
+    }
+
+    const paid = addon.paidCount || 0;
 
     // ── 1년 약정 중도해지: 차액 계산·저장 (카드 청구 X, 관리자 수동 확인 후 청구)
-    //    업무일지 중도해지와 동일한 방식
     if (addon.billingType === 'contract' && paid < 12) {
       const pendingCharge = (addon.regularAmount - addon.monthlyAmount) * paid;
       if (pendingCharge > 0) {

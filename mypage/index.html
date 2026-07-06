@@ -314,6 +314,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<!-- ── 번들 분해 확인 모달 ──────────────────────────────────────── -->
+<div class="modal-bg" id="addonUnbundleModal">
+  <div class="modal">
+    <div class="modal-title" id="addonUnbundleModalTitle">묶음에서 빼기</div>
+    <div class="modal-sub" id="addonUnbundleModalSub"></div>
+    <div class="modal-warn" id="addonUnbundleWarnBox" style="display:none">
+      <p id="addonUnbundleWarnText"></p>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeAddonUnbundleModal()">돌아가기</button>
+      <button class="btn-ok danger" id="btnAddonUnbundleOk" onclick="doAddonUnbundle()">빼기 확인</button>
+    </div>
+  </div>
+</div>
+
 <div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
 
 <!-- ── TOAST ─────────────────────────────────────────────────────── -->
@@ -354,9 +369,10 @@ let currentUser       = null;
 let currentAcadId     = null;
 let currentBillingKey = null;
 let currentAddons     = {};
-let pendingAddonKey   = null;
-let pendingAddonBT    = null;
-let pendingCancelKey  = null;
+let pendingAddonKey    = null;
+let pendingAddonBT     = null;
+let pendingCancelKey   = null;
+let pendingUnbundleKey = null;
 
 const ADDON_PRICE = {
   exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사',    icon: '🥋' },
@@ -683,7 +699,7 @@ function renderAddonSection(userData) {
       html += `<span class="addon-badge-merged">묶음 포함</span>`;
       html += `</div>`;
       html += `<div class="addon-merged-msg">3종 묶음에 포함되어 통합 결제 중입니다.<br>개별 해지 대신 묶음에서 이 항목만 빼실 수 있습니다.</div>`;
-      html += `<button class="btn-addon-unbundle" disabled title="준비 중">묶음에서 이 항목만 빼기</button>`;
+      html += `<button class="btn-addon-unbundle" onclick="openAddonUnbundleModal('${key}')">묶음에서 이 항목만 빼기</button>`;
       html += `</div>`;
       return;
     }
@@ -832,6 +848,56 @@ window.doAddonCancel = async () => {
   }
 };
 
+// ── 번들 분해 모달 ────────────────────────────────────────────────
+window.openAddonUnbundleModal = (key) => {
+  const p      = ADDON_PRICE[key];
+  const addon  = currentAddons[key];
+  const bundle = currentAddons.bundle;
+  if (!addon || !bundle) return;
+  pendingUnbundleKey = key;
+
+  const BUNDLE_KEYS = ['exam', 'jumprope', 'report'];
+  const remaining = BUNDLE_KEYS.filter(k => k !== key).map(k => ADDON_PRICE[k].name).join('·');
+  const bundlePaid   = bundle.paidCount || 0;
+  const totalPaid    = (addon.frozenPaidCount ?? 0) + bundlePaid;
+  const penalty      = (p.regularAmount - p.contract) * totalPaid;
+
+  document.getElementById('addonUnbundleModalTitle').textContent = `${p.name} 묶음에서 빼기`;
+  document.getElementById('addonUnbundleModalSub').innerHTML =
+    `${p.name}을(를) 3종 묶음에서 빼면<br>` +
+    `<strong>${remaining}</strong>는 각각 <strong>₩4,900/월</strong> 개별 결제로 전환됩니다.`;
+
+  const warnBox  = document.getElementById('addonUnbundleWarnBox');
+  const warnText = document.getElementById('addonUnbundleWarnText');
+  if (penalty > 0) {
+    warnBox.style.display = 'block';
+    warnText.innerHTML = `⚠️ ${p.name}에 대한 위약금 <strong>₩${penalty.toLocaleString()}원</strong>이 별도 청구될 수 있습니다.<br>(₩${(p.regularAmount - p.contract).toLocaleString()} × ${totalPaid}회)`;
+  } else {
+    warnBox.style.display = 'none';
+  }
+  document.getElementById('addonUnbundleModal').classList.add('show');
+};
+
+window.closeAddonUnbundleModal = () => document.getElementById('addonUnbundleModal').classList.remove('show');
+
+window.doAddonUnbundle = async () => {
+  const btn = document.getElementById('btnAddonUnbundleOk');
+  btn.disabled = true; btn.classList.add('loading');
+  try {
+    await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingUnbundleKey });
+    closeAddonUnbundleModal();
+    showToast('묶음이 분해되었습니다. 남은 2종은 개별 결제로 전환됩니다.', 'ok');
+    const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
+    if (addonsSnap.exists()) currentAddons = addonsSnap.val();
+    const snap = await get(ref(db, `users/${currentUser.uid}`));
+    renderAddonSection(snap.val());
+  } catch (e) {
+    console.error('[doAddonUnbundle]', e);
+    showToast('빼기 실패: ' + (e.message || '오류가 발생했습니다.'), 'err');
+    btn.disabled = false; btn.classList.remove('loading');
+  }
+};
+
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
@@ -842,7 +908,7 @@ window.doLogout = async () => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCancelSubModal(); closeWithdrawModal();
-    closeAddonSubModal(); closeAddonCancelModal();
+    closeAddonSubModal(); closeAddonCancelModal(); closeAddonUnbundleModal();
   }
 });
 document.getElementById('cancelSubModal').addEventListener('click', (e) => {
@@ -856,6 +922,9 @@ document.getElementById('addonSubModal').addEventListener('click', (e) => {
 });
 document.getElementById('addonCancelModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('addonCancelModal')) closeAddonCancelModal();
+});
+document.getElementById('addonUnbundleModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('addonUnbundleModal')) closeAddonUnbundleModal();
 });
 
 // ── 유틸 ──────────────────────────────────────────────────────────
