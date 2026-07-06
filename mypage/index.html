@@ -616,17 +616,23 @@ window.doWithdraw = async () => {
       msg = `탈퇴는 완료되었으나 정산금(₩${(pendingAmount||0).toLocaleString()}원) 청구에 실패했습니다. 별도로 안내드리겠습니다.`;
     }
 
+    // 서버 탈퇴가 완료된 시점 — 사용자에게 먼저 완료 안내
     closeWithdrawModal();
     alert(msg);
-    // Firebase Auth 로그인 계정만 삭제 (academies 데이터는 서버 함수가 처리)
-    await deleteUser(currentUser);
+
+    // Firebase Auth 클라이언트 계정 삭제 — 실패해도 서버 탈퇴는 이미 완료됨
+    try {
+      await deleteUser(currentUser);
+    } catch (authErr) {
+      // requires-recent-login 등 Auth 삭제 실패 → 사용자에게 표시하지 않음
+      // 미삭제 Auth 계정은 관리자가 나중에 정리 (users.planType=withdrawn으로 식별 가능)
+      console.warn('[doWithdraw] Auth 계정 삭제 실패 (탈퇴는 이미 완료됨):', authErr.code, authErr.message);
+    }
+
     location.href = '/login/';
   } catch (e) {
-    console.error('[doWithdraw]', e);
-    const msg = e.code === 'auth/requires-recent-login'
-      ? '보안을 위해 재로그인 후 다시 시도해주세요.'
-      : ('탈퇴 실패: ' + (e.message || '오류가 발생했습니다.'));
-    showToast(msg, 'err');
+    console.error('[doWithdraw] 탈퇴 처리 실패:', e);
+    showToast('탈퇴 처리 중 오류가 발생했습니다: ' + (e.message || ''), 'err');
     btn.disabled = false; btn.classList.remove('loading');
     closeWithdrawModal();
   }
