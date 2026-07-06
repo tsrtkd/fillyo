@@ -766,6 +766,81 @@ exports.subscribeAddon = onCall(
 );
 
 // ──────────────────────────────────────────────────────────────────
+// chargeAddonPenalty — 애드온 위약금 즉시 청구 (내부 헬퍼)
+// 성공: { charged: true }  /  실패 or billingKey 없음: settlementDue 기록 후 { charged: false }
+// ──────────────────────────────────────────────────────────────────
+async function chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, settings }) {
+  if (penalty <= 0) return { charged: true };
+
+  let charged = false;
+  let chargeError = null;
+  const ts = Date.now();
+  const paymentId = `addon_settlement_${academyId}_${addonKey}_${ts}`;
+  const addonName = ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey;
+  const orderName = `FILLYO ${addonName} 중도해지 정산금`;
+
+  if (billingKey) {
+    try {
+      const chargeResp = await axios.post(
+        `${PORTONE_BASE}/payments/${paymentId}/billing-key`,
+        {
+          billingKey,
+          orderName,
+          customer: {
+            customerId:  academyId,
+            name:        { full: (settings.academyName || settings.name || 'Academy').replace(/[^\x00-\x7F]/g, '').trim() || 'Academy' },
+            email:       settings.email || 'noreply@fillyo.kr',
+            phoneNumber: (settings.phone || '00000000000').replace(/[^0-9]/g, ''),
+          },
+          amount:   { total: penalty },
+          currency: 'KRW',
+        },
+        { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+      );
+      const payData   = chargeResp.data?.payment ?? chargeResp.data;
+      const payStatus = chargeResp.data?.status ?? payData?.status;
+      const isPaid    = payStatus === 'PAID' || (payData?.paidAt && !payData?.failedAt);
+      if (isPaid) {
+        charged = true;
+        await db.ref(`paymentOrders/${paymentId}`).set({
+          type:      'addon_settlement',
+          academyId,
+          addonKey,
+          amount:    penalty,
+          orderName,
+          billingKey,
+          status:    'PAID',
+          paidAt:    ts,
+        });
+        console.log(`[chargeAddonPenalty] 청구 성공: ${penalty}원 (${academyId}/${addonKey})`);
+      } else {
+        chargeError = `결제 상태: ${payStatus ?? JSON.stringify(chargeResp.data)}`;
+        console.warn(`[chargeAddonPenalty] 예상치 못한 결제 상태:`, chargeResp.data);
+      }
+    } catch (e) {
+      chargeError = e.response?.data?.message ?? e.message;
+      console.error('[chargeAddonPenalty] 즉시 청구 실패:', e.response?.data ?? e.message);
+    }
+  } else {
+    chargeError = 'billingKey 없음 — 카드 정보 없어 청구 불가';
+    console.warn(`[chargeAddonPenalty] billingKey 없음 (${academyId}/${addonKey})`);
+  }
+
+  if (!charged) {
+    await db.ref(`settlementDue/${academyId}_${addonKey}_${ts}`).set({
+      academyName: settings.academyName || settings.name || academyId,
+      addonName,
+      amount:      penalty,
+      reason:      chargeError || '청구 실패',
+      failedAt:    ts,
+    });
+    console.log(`[chargeAddonPenalty] settlementDue 기록: ${penalty}원 (${academyId}/${addonKey})`);
+  }
+
+  return { charged };
+}
+
+// ──────────────────────────────────────────────────────────────────
 // cancelAddon  (Callable)
 // 특정 애드온 해지 또는 번들에서 하나만 분리
 // 입력: { academyId, addonKey }
@@ -795,12 +870,14 @@ exports.cancelAddon = onCall(
     }
     const addon = addonSnap.val();
 
-    // billingKey 조회
-    const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
+    // billing · settings 조회
+    const [billingSnap, settingsSnap] = await Promise.all([
+      db.ref(`academies/${academyId}/billing`).get(),
+      db.ref(`academies/${academyId}/settings`).get(),
+    ]);
     const { billingKey } = billingSnap.val() || {};
-    if (!billingKey) {
-      throw new HttpsError('failed-precondition', 'billingKey가 없습니다');
-    }
+    const settings = settingsSnap.val() || {};
+    // billingKey 없어도 계속 진행 — 위약금 청구는 실패 처리
 
     const BUNDLE_KEYS = ['exam', 'jumprope', 'report'];
     const now = Date.now();
@@ -896,17 +973,7 @@ exports.cancelAddon = onCall(
       const totalPaid         = (addon.frozenPaidCount ?? 0) + bundlePaidCount;
       const pendingCharge     = (removedPriceInfo.regularAmount - removedPriceInfo.contract) * totalPaid;
 
-      if (pendingCharge > 0) {
-        await db.ref(`academies/${academyId}/addons/${addonKey}/pendingCharge`).set({
-          amount:        pendingCharge,
-          paidCount:     totalPaid,
-          monthlyAmount: removedPriceInfo.contract,
-          regularAmount: removedPriceInfo.regularAmount,
-          calculatedAt:  now,
-          reason:        `번들 분해 중도 해지: ${totalPaid}회 결제분 할인 차액 환수 (회당 ${removedPriceInfo.regularAmount - removedPriceInfo.contract}원 × ${totalPaid}회)`,
-        });
-        console.log(`[cancelAddon/unbundle] 위약금 저장: ${pendingCharge}원 (${academyId}/${addonKey})`);
-      }
+      const chargeResult = await chargeAddonPenalty({ academyId, addonKey, penalty: pendingCharge, billingKey, settings });
       await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
         status:      'cancelled',
         cancelledAt: now,
@@ -928,6 +995,9 @@ exports.cancelAddon = onCall(
         restoredKeys: remainingKeys,
         penalty:      pendingCharge,
         cancelledAt:  now,
+        success:      true,
+        charged:      chargeResult.charged,
+        ...(chargeResult.charged ? { amount: pendingCharge } : { pendingAmount: pendingCharge }),
       };
     }
 
@@ -938,20 +1008,12 @@ exports.cancelAddon = onCall(
 
     const paid = addon.paidCount || 0;
 
-    // ── 1년 약정 중도해지: 차액 계산·저장 (카드 청구 X, 관리자 수동 확인 후 청구)
+    // ── 1년 약정 중도해지: 위약금 즉시 청구 시도
+    let penalty = 0;
+    let chargeResult = { charged: true };
     if (addon.billingType === 'contract' && paid < 12) {
-      const pendingCharge = (addon.regularAmount - addon.monthlyAmount) * paid;
-      if (pendingCharge > 0) {
-        await db.ref(`academies/${academyId}/addons/${addonKey}/pendingCharge`).set({
-          amount:        pendingCharge,
-          paidCount:     paid,
-          monthlyAmount: addon.monthlyAmount,
-          regularAmount: addon.regularAmount,
-          calculatedAt:  now,
-          reason:        `1년 약정 중도 해지: ${paid}회 결제분 할인 차액 환수 (회당 ${addon.regularAmount - addon.monthlyAmount}원 × ${paid}회)`,
-        });
-        console.log(`[cancelAddon] 중도해지 차액 저장: ${pendingCharge}원 (${academyId}/${addonKey})`);
-      }
+      penalty = (addon.regularAmount - addon.monthlyAmount) * paid;
+      chargeResult = await chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, settings });
     }
 
     // ── PortOne 예약 취소: 이 애드온의 schedule만 (업무일지 예약은 건드리지 않음)
@@ -981,7 +1043,13 @@ exports.cancelAddon = onCall(
     });
 
     console.log(`[cancelAddon] 해지 완료: ${academyId}/${addonKey}`);
-    return { ok: true, cancelledAt: now };
+    return {
+      ok:          true,
+      cancelledAt: now,
+      success:     true,
+      charged:     chargeResult.charged,
+      ...(chargeResult.charged ? { amount: penalty } : { pendingAmount: penalty }),
+    };
   },
 );
 

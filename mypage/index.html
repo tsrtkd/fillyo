@@ -121,6 +121,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .toast.show{display:block;}
 .toast.ok{background:var(--green);}
 .toast.err{background:var(--red);}
+.toast.warn{background:#d97706;}
 
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:480px){
@@ -835,10 +836,17 @@ window.doAddonCancel = async () => {
   const btn = document.getElementById('btnAddonCancelOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingCancelKey });
+    const result = await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingCancelKey });
     if (currentAddons[pendingCancelKey]) currentAddons[pendingCancelKey].status = 'cancelled';
     closeAddonCancelModal();
-    showToast('애드온이 해지되었습니다.', 'ok');
+    const d = result?.data;
+    if (d?.charged === false) {
+      showToast('해지는 완료되었으나 위약금 청구에 실패했습니다. 별도로 안내드리겠습니다.', 'warn');
+    } else if (d?.amount > 0) {
+      showToast(`위약금 ${d.amount.toLocaleString()}원이 정상 청구되고 해지가 완료되었습니다.`, 'ok');
+    } else {
+      showToast('위약금 없이 해지가 완료되었습니다.', 'ok');
+    }
     const snap = await get(ref(db, `users/${currentUser.uid}`));
     renderAddonSection(snap.val());
   } catch (e) {
@@ -884,9 +892,17 @@ window.doAddonUnbundle = async () => {
   const btn = document.getElementById('btnAddonUnbundleOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingUnbundleKey });
+    const result = await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingUnbundleKey });
     closeAddonUnbundleModal();
-    showToast('묶음이 분해되었습니다. 남은 2종은 개별 결제로 전환됩니다.', 'ok');
+    const d = result?.data;
+    const baseMsg = '묶음이 분해되었습니다. 남은 2종은 개별 결제로 전환됩니다.';
+    if (d?.charged === false) {
+      showToast(`${baseMsg} 위약금 청구에 실패했습니다. 별도로 안내드리겠습니다.`, 'warn');
+    } else if (d?.amount > 0) {
+      showToast(`${baseMsg} 위약금 ${d.amount.toLocaleString()}원이 정상 청구되었습니다.`, 'ok');
+    } else {
+      showToast(baseMsg, 'ok');
+    }
     const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
     if (addonsSnap.exists()) currentAddons = addonsSnap.val();
     const snap = await get(ref(db, `users/${currentUser.uid}`));
