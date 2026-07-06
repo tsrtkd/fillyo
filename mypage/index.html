@@ -161,6 +161,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-addon-sub.loading::after{content:'';position:absolute;right:14px;top:50%;margin-top:-7px;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
 .btn-addon-cancel{background:none;border:1.5px solid var(--border);color:var(--text2);border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;}
 .btn-addon-cancel:hover{border-color:var(--red);color:var(--red);}
+.addon-card.merged{border-color:#c5a200;background:#fffbeb;}
+.addon-badge-merged{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fffbeb;color:#b45309;border:1px solid #c5a200;}
+.addon-merged-msg{background:#fffde7;border:1px solid #c5a200;border-radius:9px;padding:10px 12px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:8px;}
+.btn-addon-unbundle{background:none;border:1.5px solid #c5a200;color:#92400e;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;}
+.btn-addon-unbundle:hover{border-color:#b45309;color:#78350f;}
 </style>
 </head>
 <body>
@@ -666,8 +671,22 @@ function renderAddonSection(userData) {
   ['exam', 'jumprope', 'report', 'bundle'].forEach(key => {
     const p      = ADDON_PRICE[key];
     const addon  = currentAddons[key];
-    const active = addon?.status === 'active';
+    const active  = addon?.status === 'active';
+    const merged  = addon?.status === 'merged';
     const blocked = key === 'bundle' && (examActive || jumpActive) && !bundleActive;
+
+    // merged 상태: 3종 묶음에 포함된 개별 항목
+    if (merged) {
+      html += `<div class="addon-card merged">`;
+      html += `<div class="addon-card-top">`;
+      html += `<span class="addon-card-name">${p.icon} ${p.name}</span>`;
+      html += `<span class="addon-badge-merged">묶음 포함</span>`;
+      html += `</div>`;
+      html += `<div class="addon-merged-msg">3종 묶음에 포함되어 통합 결제 중입니다.<br>개별 해지 대신 묶음에서 이 항목만 빼실 수 있습니다.</div>`;
+      html += `<button class="btn-addon-unbundle" disabled title="준비 중">묶음에서 이 항목만 빼기</button>`;
+      html += `</div>`;
+      return;
+    }
 
     html += `<div class="addon-card${active ? ' active' : ''}">`;
     html += `<div class="addon-card-top">`;
@@ -744,16 +763,23 @@ window.doAddonSubscribe = async () => {
   const btn = document.getElementById('btnAddonSubOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey, billingType: pendingAddonBT });
-    const p = ADDON_PRICE[pendingAddonKey];
-    currentAddons[pendingAddonKey] = {
-      status: 'active', billingType: pendingAddonBT,
-      monthlyAmount: pendingAddonBT === 'contract' ? p.contract : p.single,
-      regularAmount: p.regularAmount,
-      paidCount: 0, createdAt: Date.now(),
-    };
+    const result = await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey, billingType: pendingAddonBT });
     closeAddonSubModal();
-    showToast('애드온이 신청되었습니다.', 'ok');
+    if (result?.data?.bundled) {
+      // 번들 통합 완료 → addons 전체 다시 로드
+      const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
+      if (addonsSnap.exists()) currentAddons = addonsSnap.val();
+      showToast('3종 묶음으로 자동 통합되었습니다 (₩13,500/월)', 'ok');
+    } else {
+      const p = ADDON_PRICE[pendingAddonKey];
+      currentAddons[pendingAddonKey] = {
+        status: 'active', billingType: pendingAddonBT,
+        monthlyAmount: pendingAddonBT === 'contract' ? p.contract : p.single,
+        regularAmount: p.regularAmount,
+        paidCount: 0, createdAt: Date.now(),
+      };
+      showToast('애드온이 신청되었습니다.', 'ok');
+    }
     const snap = await get(ref(db, `users/${currentUser.uid}`));
     renderAddonSection(snap.val());
   } catch (e) {
