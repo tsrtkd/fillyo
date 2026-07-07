@@ -252,6 +252,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
                 <input type="month" class="rpt-month-inp" id="rptEnd" style="width:100%;">
               </div>
             </div>
+            <div style="margin-bottom:10px;">
+              <div style="font-size:11px;color:#6b7280;margin-bottom:4px;">이번 달 우리 도장 키워드 <span style="color:#9ca3af;font-weight:400">(선택)</span></div>
+              <div style="display:flex;gap:6px;">
+                <input type="text" id="rptKeyword" placeholder="예: 성실, 예의, 책임감"
+                  style="flex:1;padding:9px 12px;border:1px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;color:var(--text);">
+                <button class="btn-gen" id="btnSaveKeyword" onclick="saveKeyword()" style="padding:9px 14px;">저장</button>
+              </div>
+            </div>
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()" style="width:100%;">리포트 생성</button>
           </div>
           <div id="dataSummary" style="display:none;margin-bottom:12px;">
@@ -531,6 +539,10 @@ onAuthStateChanged(auth, async user => {
     document.getElementById('rptEnd').value = thisMonth;
     document.getElementById('rptStart').value = startMonth;
 
+    // 종료월 변경 시 키워드 자동 로드
+    document.getElementById('rptEnd').addEventListener('change', e => loadKeyword(e.target.value));
+    loadKeyword(thisMonth);
+
     loadStudents();
   } catch(e) {
     console.error('auth error:', e);
@@ -724,6 +736,34 @@ window._saveTrait = async function(key, val) {
   setTimeout(() => { msg.textContent = ''; }, 1500);
 };
 
+// ── 도장 키워드 ──────────────────────────────────────────────────────
+async function loadKeyword(yearMonth) {
+  if (!academyId || !yearMonth) return;
+  const snap = await get(ref(db, `academies/${academyId}/reportKeywords/${yearMonth}`));
+  document.getElementById('rptKeyword').value = snap.val()?.keyword || '';
+}
+
+window.saveKeyword = async function() {
+  const btn   = document.getElementById('btnSaveKeyword');
+  const input = document.getElementById('rptKeyword');
+  const yearMonth = document.getElementById('rptEnd').value;
+  if (!yearMonth || !academyId) { alert('종료월을 먼저 선택하세요.'); return; }
+
+  btn.disabled = true;
+  const keyword = input.value.trim();
+  try {
+    await set(
+      ref(db, `academies/${academyId}/reportKeywords/${yearMonth}`),
+      keyword ? { keyword, updatedAt: Date.now() } : null,
+    );
+    btn.textContent = '저장됨 ✓';
+    setTimeout(() => { btn.textContent = '저장'; btn.disabled = false; }, 1500);
+  } catch(e) {
+    alert('저장 실패: ' + e.message);
+    btn.disabled = false;
+  }
+};
+
 // ── Tab3: 리포트 생성 ─────────────────────────────────────────────────
 window.generateReport = async function(){
   if (!selStudent){ alert('수련생을 선택하세요.'); return; }
@@ -742,6 +782,10 @@ window.generateReport = async function(){
   resultWrap.style.display = 'none';
 
   try {
+    // 도장 키워드 (종료월 기준)
+    const keywordSnap = await get(ref(db, `academies/${academyId}/reportKeywords/${endVal}`));
+    const dojanKeyword = keywordSnap.val()?.keyword?.trim() || '';
+
     // A. 출석 데이터 수집 (시작월~종료월 전체)
     statusEl.innerHTML = '<div class="rpt-loading"><div class="spinner"></div>출석 데이터 수집 중...</div>';
     let totalDays = 0, absentDays = 0;
@@ -1009,6 +1053,15 @@ window.generateReport = async function(){
 - 성장이 필요한(neg) 특성은 아이를 탓하는 말투 대신 "~을 배워가는 시기입니다"처럼 성장 중심 어조로 서술하고, 그 가치가 왜 중요한지 짧게 설명한 뒤 도장의 지도 노력과 가정에서 도와줄 수 있는 구체적 방법을 한 줄 제안하세요.
 - 이미 잘하는(pos) 특성은 그 가치를 실천하고 있음을 전문가적으로 인정하고 칭찬하세요.
 - 성격/태도 특성이 없으면 이 섹션 전체를 생략하세요.
+${dojanKeyword ? `
+[이번 달 도장 키워드 반영 방식]
+- 이번 달 도장 전체가 강조하는 가치: "${dojanKeyword}"
+- 키워드가 있으면, 전체 리포트 중 "성격/태도 가치 코칭" 문단 앞에 이 키워드만을 위한 짧은 독립 문단을 하나 추가하세요. 이 문단은:
+  1) "이번 달 저희 도장은 '${dojanKeyword}'을(를) 핵심 가치로 강조하고 있습니다" 같은 문장으로 시작해서
+  2) 이 학생의 실제 데이터(출석, 성격/태도 특성, 심사 결과 등) 중 이 키워드와 자연스럽게 연결되는 구체적인 모습을 1~2문장으로 보여주세요
+- 이 독립 문단은 다른 문단들과 분리된 별도 문단으로 작성하세요 (기존 문단 안에 한 문장으로 섞어 넣지 마세요)
+- 학생 데이터와 전혀 관련 없는 키워드라면, 이 독립 문단 자체를 생략하고 억지로 만들지 마세요
+- 이후 이어지는 "성격/태도 가치 코칭" 문단에서 이미 이 키워드 문단에서 다룬 내용을 중복해서 다시 쓰지 마세요` : ''}
 
 [업무일지 메모 작성 방식]
 - 민감한 내용(싸움, 갈등 등)은 직접 언급하지 말고 "친구들과의 관계에서 배려와 대화를 배우고 있습니다" 처럼 긍정적으로 순화하세요.
