@@ -8,3 +8,5 @@ node_modules/
 images/node_modules/
 response.json
 firebase-debug.log
+.firebase/
+screenshots/
