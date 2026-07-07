@@ -297,6 +297,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="top-tab" onclick="switchTab('status')">📊 현황</button>
   <button class="top-tab" onclick="switchTab('grade')">📜 교육과정</button>
   <button class="top-tab" onclick="switchTab('settings')">⚙️ 설정</button>
+  <button class="top-tab" onclick="switchTab('curriculum')">✏️ 커리큘럼</button>
 </div>
 
   <!-- 수련생 탭 -->
@@ -503,6 +504,16 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
     </div>
   </div>
 
+  <!-- 커리큘럼 편집 탭 -->
+  <div id="tab-curriculum" class="tab-content">
+    <div style="padding:16px">
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:13px;color:#1e40af;line-height:1.6">
+        이 내용은 국기원 표준 교육과정을 기본으로 하되, 우리 도장에 맞게 자유롭게 수정할 수 있습니다.
+      </div>
+      <div id="curriculumEditorList"></div>
+    </div>
+  </div>
+
 </div><!-- /main -->
 
 <!-- BOTTOM TAB BAR -->
@@ -526,6 +537,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">
     <span class="tab-icon">⚙️</span>
     <span class="tab-label">설정</span>
+  </button>
+  <button class="tab-btn" data-tab="curriculum" onclick="switchTab('curriculum')">
+    <span class="tab-icon">✏️</span>
+    <span class="tab-label">커리큘럼</span>
   </button>
 </div>
 
@@ -679,7 +694,8 @@ let _editPassed         = null;
 let academyName         = '';
 let academyPhone        = '';
 let academyPhoneDisplay = '';
-let academyExamSettings = {};
+let academyExamSettings     = {};
+let examCurriculumOverride  = {};
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -807,6 +823,11 @@ const EXAM_ITEM_LABELS = {
   '4품단':    { poomsae: '평원',             kick: '가위차기' },
 };
 
+function getCurriculum(belt) {
+  const base = BELT_CURRICULUM[belt] || BELT_CURRICULUM['흰띠'];
+  return { ...base, ...(examCurriculumOverride[belt] || {}) };
+}
+
 const KICK_SUBS = ['완성도','겨루기 공방능력','겨루기 기술 다양성'];
 const CHARACTER_ITEMS = ['수련 태도 및 예의','집중력 및 성실성','인성교육교재 수행'];
 
@@ -871,7 +892,7 @@ function getExamGroup(belt, age) {
 }
 
 function getItemDesc(key, belt) {
-  const crr = BELT_CURRICULUM[belt] || {};
+  const crr = getCurriculum(belt);
   const kickName  = (crr.kick    || [])[0] || '';
   const demo1Name = (crr.extreme || [])[0] || kickName;
   const demo2Name = (crr.extreme || [])[1] || '';
@@ -1092,6 +1113,10 @@ onAuthStateChanged(auth, async (user) => {
   const examSettingsSnap = await get(ref(db, `academies/${academyId}/settings/exam`));
   academyExamSettings = examSettingsSnap.val() || {};
 
+  const curriculumSnap = await get(ref(db, `academies/${academyId}/settings/examCurriculum`));
+  examCurriculumOverride = curriculumSnap.val() || {};
+  renderGradeChart();
+
   onValue(ref(db, `academies/${academyId}/exam/students`), snap => {
     students = snap.val() || {};
     renderStudentList();
@@ -1136,7 +1161,9 @@ window.switchTab = (tab) => {
     b.classList.toggle('active', b.getAttribute('onclick').includes(`'${tab}'`));
   });
   document.getElementById('fab').classList.toggle('hidden', tab !== 'students');
-  if (tab === 'settings') loadExamSettings();
+  if (tab === 'settings')   loadExamSettings();
+  if (tab === 'curriculum') loadCurriculumEditor();
+  if (tab === 'grade')      renderGradeChart();
 };
 document.getElementById('tab-students').classList.add('active');
 
@@ -1178,6 +1205,80 @@ async function loadExamSettings() {
   document.getElementById('chkManner2').checked = items.manner2 !== false;
 }
 
+// ── 커리큘럼 편집 ─────────────────────────────────────────────────────
+async function loadCurriculumEditor() {
+  const snap = await get(ref(db, `academies/${academyId}/settings/examCurriculum`));
+  examCurriculumOverride = snap.val() || {};
+
+  const belts = Object.keys(BELT_CURRICULUM);
+  const rows = belts.map(belt => {
+    const base = BELT_CURRICULUM[belt];
+    const over = examCurriculumOverride[belt] || {};
+    const crr  = { ...base, ...over };
+    const sid  = 'crr_' + belt;
+    const hasOverride = !!examCurriculumOverride[belt];
+    return `
+      <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          <div style="font-size:14px;font-weight:700">${belt}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="saveBeltCurriculum('${belt}')" style="padding:5px 14px;background:var(--blue);color:#fff;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:inherit">저장</button>
+            <button id="${sid}_reset" onclick="resetBeltCurriculum('${belt}')" style="display:${hasOverride?'inline-block':'none'};padding:5px 14px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">기본값으로 되돌리기</button>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="min-width:52px;font-size:12px;color:var(--text2);font-weight:600">품새</label>
+            <input id="${sid}_poomsae" value="${(crr.poomsae||[]).join(', ')}" style="flex:1;border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit" placeholder="쉼표로 구분">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="min-width:52px;font-size:12px;color:var(--text2);font-weight:600">발차기</label>
+            <input id="${sid}_kick" value="${(crr.kick||[]).join(', ')}" style="flex:1;border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit" placeholder="쉼표로 구분">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <label style="min-width:52px;font-size:12px;color:var(--text2);font-weight:600">익스트림</label>
+            <input id="${sid}_extreme" value="${(crr.extreme||[]).join(', ')}" style="flex:1;border:1px solid #d1d5db;border-radius:6px;padding:6px 10px;font-size:13px;font-family:inherit" placeholder="쉼표로 구분">
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('curriculumEditorList').innerHTML = rows;
+}
+
+window.saveBeltCurriculum = async function(belt) {
+  const sid     = 'crr_' + belt;
+  const poomsae = document.getElementById(sid + '_poomsae').value.split(',').map(s => s.trim()).filter(Boolean);
+  const kick    = document.getElementById(sid + '_kick').value.split(',').map(s => s.trim()).filter(Boolean);
+  const extreme = document.getElementById(sid + '_extreme').value.split(',').map(s => s.trim()).filter(Boolean);
+
+  await set(ref(db, `academies/${academyId}/settings/examCurriculum/${belt}`), { poomsae, kick, extreme });
+  examCurriculumOverride[belt] = { poomsae, kick, extreme };
+
+  const resetBtn = document.getElementById(sid + '_reset');
+  if (resetBtn) resetBtn.style.display = 'inline-block';
+
+  const toast = document.createElement('div');
+  toast.textContent = `${belt} 저장됨`;
+  toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--blue);color:#fff;padding:8px 18px;border-radius:20px;font-size:13px;font-weight:600;z-index:9999;pointer-events:none;opacity:1;transition:opacity 0.4s 0s';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 400); }, 1500);
+};
+
+window.resetBeltCurriculum = async function(belt) {
+  const sid  = 'crr_' + belt;
+  await remove(ref(db, `academies/${academyId}/settings/examCurriculum/${belt}`));
+  delete examCurriculumOverride[belt];
+
+  const base = BELT_CURRICULUM[belt];
+  document.getElementById(sid + '_poomsae').value = (base.poomsae||[]).join(', ');
+  document.getElementById(sid + '_kick').value    = (base.kick||[]).join(', ');
+  document.getElementById(sid + '_extreme').value = (base.extreme||[]).join(', ');
+
+  const resetBtn = document.getElementById(sid + '_reset');
+  if (resetBtn) resetBtn.style.display = 'none';
+};
+
 // ── 급수표 탭 ─────────────────────────────────────────────────────────
 const BELT_HEADER_STYLE = {
   '흰띠':   { bg:'#e5e7eb', text:'#374151' },
@@ -1194,7 +1295,7 @@ const BELT_HEADER_STYLE = {
   '4품단':  { bg:'#030712', text:'#fecaca' },
 };
 
-(function renderGradeChart() {
+function renderGradeChart() {
   const generalGroups = [
     { label:'흰띠 / 흰검띠',    rep:'흰띠' },
     { label:'노란띠 / 노검띠',   rep:'노란띠' },
@@ -1213,7 +1314,7 @@ const BELT_HEADER_STYLE = {
   ];
 
   function buildCard(g) {
-    const crr = BELT_CURRICULUM[g.rep] || {};
+    const crr = getCurriculum(g.rep);
     const h   = BELT_HEADER_STYLE[g.rep] || { bg:'#9ca3af', text:'#ffffff' };
     const p   = (crr.poomsae || []).join(' · ');
     const k   = [...(crr.kick || []), ...KICK_SUBS].join(' · ');
@@ -1249,7 +1350,7 @@ const BELT_HEADER_STYLE = {
       <div class="grade-col">${generalGroups.map(buildCard).join('')}</div>
       <div class="grade-col">${danGroups.map(buildCard).join('')}</div>
     </div>`;
-})();
+}
 
 // ── 수련생 탭 ─────────────────────────────────────────────────────────
 const BELT_ORDER_LIST = [...BELTS_JUNIOR, ...DAN_BELTS];
@@ -1761,7 +1862,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
         <div class="exam-cell row-header exam-cell-header">
           <div style="font-size:14px;font-weight:700">${ss.name}</div>
           ${beltBadge(ss.belt, ss.grade)}
-          <div style="font-size:11px;color:#6b7280">품새: ${EXAM_ITEM_LABELS[ss.belt]?.poomsae || '-'} | 발차기: ${EXAM_ITEM_LABELS[ss.belt]?.kick || '-'}</div>
+          <div style="font-size:11px;color:#6b7280">품새: ${getCurriculum(ss.belt).poomsae[0] || '-'} | 발차기: ${getCurriculum(ss.belt).kick[0] || '-'}</div>
           ${ss.done ? '<span style="font-size:12px;color:var(--green)">✅ 완료</span>' : ''}
         </div>
         ${scoreCells}
@@ -2250,7 +2351,7 @@ window.imageCard = async (evalId) => {
   const belt  = e.belt || '흰띠';
   const grade = e.grade || '';
   const sc    = e.scores || { poomsae:[], kick:[], extreme:[], character:[] };
-  const crr   = BELT_CURRICULUM[belt] || BELT_CURRICULUM['흰띠'];
+  const crr   = getCurriculum(belt);
 
   // flat 평균 (2D 배열 대응)
   function flatAvg(arr) {
