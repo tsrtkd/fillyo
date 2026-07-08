@@ -236,19 +236,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div class="sec-card">
       <div class="sec-title">💳 구독 현황</div>
       <div class="sub-box" id="subBox"><!-- JS로 채움 --></div>
+      <div id="cancelSubRow" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
+        <p class="cancel-sub-desc">계정은 유지하고 정기결제만 중단합니다.<br>취소 후에도 이번 달 결제된 서비스는 결제일까지 이용 가능합니다.</p>
+        <button class="btn-cancel-sub" onclick="openCancelSubModal()">구독 취소</button>
+      </div>
     </div>
 
     <!-- ── 애드온 관리 ──────────────────────────────────────────────── -->
     <div class="sec-card" id="addonSection" style="display:none">
       <div class="sec-title">🔌 애드온 관리</div>
       <div id="addonContent"></div>
-    </div>
-
-    <!-- ── 구독 취소 ──────────────────────────────────────────────── -->
-    <div class="sec-card" id="cancelSubRow" style="display:none">
-      <div class="sec-title">🚫 구독 취소</div>
-      <p class="cancel-sub-desc">계정은 유지하고 정기결제만 중단합니다.<br>취소 후에도 이번 달 결제된 서비스는 결제일까지 이용 가능합니다.</p>
-      <button class="btn-cancel-sub" onclick="openCancelSubModal()">구독 취소</button>
     </div>
 
     <!-- ── 회원 탈퇴 ──────────────────────────────────────────────── -->
