@@ -445,6 +445,31 @@ onAuthStateChanged(auth, async user => {
       const s = JSON.parse(stateStr);
       sessionStorage.removeItem('fillyo_billing_state');
       try {
+        // ── 정기결제 첫 회차 예약 (먼저 확인) ──
+        const idToken = await user.getIdToken();
+        const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+          body: JSON.stringify({
+            billingKey,
+            academyId: s.academyId,
+            amount: s.displayAmount,
+            orderName: `FILLYO 업무일지 정기구독 (월 ₩${Number(s.displayAmount).toLocaleString()})`,
+          }),
+        });
+        if (!scheduleRes.ok) {
+          const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
+          const failTarget = s.academyId || user.uid;
+          try {
+            await set(ref(db, `failedSubscriptions/${failTarget}`), {
+              uid: user.uid, academyId: s.academyId || null, billingKey,
+              failedAt: Date.now(), reason: errText,
+            });
+          } catch(dbErr) { console.warn('failedSubscriptions 저장 오류:', dbErr); }
+          alert('카드 등록은 완료됐으나 구독 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
+          return;
+        }
+        // ── scheduleNextPayment 성공 후 users/{uid} 업데이트 ──
         await update(ref(db, 'users/' + user.uid), {
           planType:        'pro',
           billingCycle:    s.selectedPlan === 'early' ? 'early' : 'yearly',
@@ -474,35 +499,6 @@ onAuthStateChanged(auth, async user => {
           await set(ref(db, `academies/${s.academyId}/contracts/${rcId}`), rContract);
         }
         try { await generateContractPDF(rContract); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
-        // ── 정기결제 첫 회차 예약 ──
-        try {
-          const idToken = await user.getIdToken();
-          const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-            body: JSON.stringify({
-              billingKey,
-              academyId: s.academyId,
-              amount: s.displayAmount,
-              orderName: `FILLYO 업무일지 정기구독 (월 ₩${Number(s.displayAmount).toLocaleString()})`,
-            }),
-          });
-          if (!scheduleRes.ok) {
-            const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
-            throw new Error(errText);
-          }
-        } catch(fnErr) {
-          console.warn('결제 예약 오류:', fnErr);
-          if (s.academyId) {
-            try {
-              await update(ref(db, `academies/${s.academyId}/contracts/${rcId}`), {
-                scheduleFailed: true,
-                scheduleError: fnErr.message || '알 수 없는 오류',
-              });
-            } catch(dbErr) { console.warn('scheduleFailed 저장 오류:', dbErr); }
-          }
-          showToast('카드 등록은 완료됐습니다. 정기결제 자동 예약 중 문제가 발생했으니 카카오톡 채널로 문의해 주세요.', 'error');
-        }
         document.getElementById('modalPlanName').textContent = s.planName;
         document.getElementById('modalAmount').textContent   = s.modalAmount;
         const note = document.getElementById('modalBillingNote');
@@ -519,13 +515,9 @@ onAuthStateChanged(auth, async user => {
   } else {
     // ── 이미 구독 중인 사용자 감지 ──
     const userSnap = await get(ref(db, `users/${user.uid}`));
-    const academyId = userSnap.exists() ? userSnap.val().academyId : null;
-    if (academyId) {
-      const planSnap = await get(ref(db, `academies/${academyId}/settings/planType`));
-      if (planSnap.exists() && planSnap.val() === 'pro') {
-        document.getElementById('subscriberBanner').style.display = 'block';
-        document.getElementById('planSelectionUI').style.display = 'none';
-      }
+    if (userSnap.exists() && userSnap.val().planType === 'pro') {
+      document.getElementById('subscriberBanner').style.display = 'block';
+      document.getElementById('planSelectionUI').style.display = 'none';
     }
   }
 });
@@ -888,6 +880,28 @@ window.startPayment = async function() {
   }
 
   try {
+    // ── 정기결제 첫 회차 예약 (먼저 확인) ──
+    const idToken = await currentUser.getIdToken();
+    const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+      body: JSON.stringify({ billingKey: issueResponse.billingKey, academyId, amount: displayAmount, orderName: issueName }),
+    });
+    if (!scheduleRes.ok) {
+      const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
+      const failTarget = academyId || user.uid;
+      try {
+        await set(ref(db, `failedSubscriptions/${failTarget}`), {
+          uid: user.uid, academyId: academyId || null, billingKey: issueResponse.billingKey,
+          failedAt: Date.now(), reason: errText,
+        });
+      } catch(dbErr) { console.warn('failedSubscriptions 저장 오류:', dbErr); }
+      alert('카드 등록은 완료됐으나 구독 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
+      btn.disabled = false;
+      btn.textContent = '결제하기';
+      return;
+    }
+    // ── scheduleNextPayment 성공 후 users/{uid} 업데이트 ──
     await update(ref(db, 'users/' + user.uid), {
       planType:     'pro',
       billingCycle: selectedPlan === 'early' ? 'early' : 'yearly',
@@ -917,30 +931,6 @@ window.startPayment = async function() {
       await set(ref(db, `academies/${academyId}/contracts/${contractId}`), contractData);
     }
     try { await generateContractPDF(contractData); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
-    // ── 정기결제 첫 회차 예약 ──
-    try {
-      const idToken = await currentUser.getIdToken();
-      const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-        body: JSON.stringify({ billingKey: issueResponse.billingKey, academyId, amount: displayAmount, orderName: issueName }),
-      });
-      if (!scheduleRes.ok) {
-        const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
-        throw new Error(errText);
-      }
-    } catch(fnErr) {
-      console.warn('결제 예약 오류:', fnErr);
-      if (academyId) {
-        try {
-          await update(ref(db, `academies/${academyId}/contracts/${contractId}`), {
-            scheduleFailed: true,
-            scheduleError: fnErr.message || '알 수 없는 오류',
-          });
-        } catch(dbErr) { console.warn('scheduleFailed 저장 오류:', dbErr); }
-      }
-      showToast('카드 등록은 완료됐습니다. 정기결제 자동 예약 중 문제가 발생했으니 카카오톡 채널로 문의해 주세요.', 'error');
-    }
     document.getElementById('modalPlanName').textContent = planName;
     document.getElementById('modalAmount').textContent = modalAmount;
     const note = document.getElementById('modalBillingNote');
