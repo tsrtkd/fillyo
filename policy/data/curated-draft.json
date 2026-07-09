@@ -1,0 +1,56 @@
+{
+  "VOUCHER2026": {
+    "pblancNm": "2026년 소상공인 경영안정 바우처 지원사업",
+    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
+    "pblancUrl": "https://voucher.sbiz24.kr/",
+    "reqstEndDt": "2026-12-18",
+    "reqstBeginEndDe": "2026.02.09 ~ 2026.12.18",
+    "tag": "고정비 지원",
+    "pinned": true
+  },
+  "DJ_LABORCOST2026": {
+    "pblancNm": "2026년 대전시 소상공인 신규고용 인건비 지원사업",
+    "jrsdInsttNm": "대전일자리경제진흥원 (DJBEA)",
+    "pblancUrl": "https://www.djbea.or.kr/menu?menuId=MENU00393",
+    "reqstEndDt": "2026-11-30",
+    "reqstBeginEndDe": "2026.01.21 ~ 2026.11.30 (예산 소진 시까지)",
+    "tag": "인건비",
+    "pinned": true
+  },
+  "MSS_POLICYFUND2026": {
+    "pblancNm": "2026년 소상공인 정책자금 융자사업 (일반·특별 경영안정자금 등)",
+    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
+    "pblancUrl": "https://www.mss.go.kr/site/smba/ex/bbs/View.do?cbIdx=310&bcIdx=1064354&parentSeq=1064354",
+    "reqstEndDt": "",
+    "reqstBeginEndDe": "2026년 연중 (예산 소진 시까지)",
+    "tag": "대출/보증",
+    "pinned": true
+  },
+  "DJ_SINBO_GUARANTEE2026": {
+    "pblancNm": "2026년 대전 소상공인 경영위기극복 특례보증",
+    "jrsdInsttNm": "대전신용보증재단",
+    "pblancUrl": "https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=PBLN_000000000117221",
+    "reqstEndDt": "",
+    "reqstBeginEndDe": "2026년 예산 소진 시까지 (3,150억 규모)",
+    "tag": "대출/보증",
+    "pinned": false
+  },
+  "MOEL_JOBCREATION2026": {
+    "pblancNm": "2026년 고용창출장려금 및 고용안정장려금 지원사업",
+    "jrsdInsttNm": "고용노동부",
+    "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117059",
+    "reqstEndDt": "",
+    "reqstBeginEndDe": "2026년 연중 상시",
+    "tag": "인건비",
+    "pinned": false
+  },
+  "MSS_INTG2026": {
+    "pblancNm": "2026년 중소벤처기업부 소상공인 지원사업 통합 공고",
+    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
+    "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117016",
+    "reqstEndDt": "",
+    "reqstBeginEndDe": "2026년 각 사업별 공고 일정 참조",
+    "tag": "통합공고",
+    "pinned": false
+  }
+}
