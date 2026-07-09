@@ -1147,7 +1147,7 @@ window.fetchDraft = async () => {
       </tr>`;
     }).join('');
 
-    document.getElementById('draftPreviewSection').style.display = '';
+    document.getElementById('draftPreviewSection').style.display = 'block';
   } catch (e) {
     showToast('초안 불러오기 실패: ' + e.message, 'err');
   } finally {
