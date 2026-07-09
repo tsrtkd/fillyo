@@ -189,6 +189,23 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 .notice-item-preview{font-size:12px;color:var(--text2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
 .notice-item-footer{display:flex;justify-content:flex-end;margin-top:10px;}
 
+/* ── GITHUB DRAFT IMPORT ────────────────────────────────────────── */
+.draft-preview-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:12px;}
+.draft-tbl{width:100%;border-collapse:collapse;min-width:700px;font-size:12px;}
+.draft-tbl thead th{background:var(--bg);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.draft-tbl tbody tr{border-bottom:1px solid var(--border);}
+.draft-tbl tbody tr:last-child{border-bottom:none;}
+.draft-tbl td{padding:9px 12px;vertical-align:middle;}
+.draft-pin{font-size:10px;font-weight:900;padding:2px 7px;border-radius:4px;background:#fff7e0;color:#b36200;white-space:nowrap;}
+.draft-link{color:var(--blue);font-size:11px;text-decoration:none;white-space:nowrap;}
+.draft-link:hover{text-decoration:underline;}
+.draft-actions{display:flex;gap:8px;padding:4px 0;}
+.btn-import{background:var(--navy);color:white;border:none;border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:opacity 0.15s;}
+.btn-import:hover{opacity:0.85;}
+.btn-import-cancel{background:var(--bg);border:1.5px solid var(--border);color:var(--gray);border-radius:8px;padding:8px 18px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;transition:background 0.15s;}
+.btn-import-cancel:hover{background:#dde4ee;}
+#draftPreviewSection{display:none;}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
@@ -341,6 +358,43 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       </div>
       <div id="noticeList">
         <div class="req-empty"><div class="req-empty-icon">⏳</div><div class="req-empty-text">불러오는 중...</div></div>
+      </div>
+    </div>
+
+    <!-- ── GitHub 정책 초안 가져오기 ────────────────────────────── -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">🔄 GitHub에서 정책 초안 가져오기</span>
+        <button class="btn-refresh" onclick="fetchDraft()">↓ 초안 불러오기</button>
+      </div>
+      <div style="padding:12px 20px 4px;">
+        <p style="font-size:12px;color:var(--text2);line-height:1.6;">
+          <code style="font-size:11px;background:var(--bg);padding:2px 6px;border-radius:4px;">policy/data/curated-draft.json</code> 의 최신 내용을 가져와 미리 확인한 뒤 반영합니다.<br>
+          반영 시 기존에 수동으로 📌 고정된 항목(pinned:true, 초안에 없는 항목)은 유지됩니다.
+        </p>
+      </div>
+
+      <div id="draftPreviewSection" style="padding:0 20px 16px;">
+        <div style="margin:12px 0 8px;font-size:13px;font-weight:700;color:var(--navy);" id="draftPreviewTitle"></div>
+        <div class="draft-preview-wrap">
+          <table class="draft-tbl">
+            <thead>
+              <tr>
+                <th>공고명</th>
+                <th>기관</th>
+                <th>신청기간</th>
+                <th>태그</th>
+                <th>고정</th>
+                <th>링크</th>
+              </tr>
+            </thead>
+            <tbody id="draftTbody"></tbody>
+          </table>
+        </div>
+        <div class="draft-actions">
+          <button class="btn-import" onclick="applyDraft()">✅ 이 내용으로 반영</button>
+          <button class="btn-import-cancel" onclick="cancelDraft()">취소</button>
+        </div>
       </div>
     </div>
 
@@ -499,7 +553,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, get, update, remove, push }
+import { getDatabase, ref, get, update, remove, push, set }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const ADMIN_EMAIL = 'audtls2g@gmail.com';
@@ -1016,22 +1070,31 @@ window.loadCurated = async () => {
     const list = Object.entries(snap.val())
       .map(([id, v]) => ({ id, ...v }))
       .sort((a, b) => {
-        if (!a.endDate) return 1;
-        if (!b.endDate) return -1;
-        return a.endDate.localeCompare(b.endDate);
+        const ea = a.endDate || a.reqstEndDt || '';
+        const eb = b.endDate || b.reqstEndDt || '';
+        if (!ea) return 1;
+        if (!eb) return -1;
+        return ea.localeCompare(eb);
       });
-    el.innerHTML = list.map(p => `
+    el.innerHTML = list.map(p => {
+      const nm  = p.title      || p.pblancNm     || '(제목 없음)';
+      const org = p.org        || p.jrsdInsttNm  || '';
+      const end = p.endDate    || p.reqstEndDt   || '';
+      const per = p.reqstBeginEndDe || (p.startDate && p.endDate ? p.startDate + ' ~ ' + p.endDate : '');
+      const endTxt = per || (end ? `~ ${end}` : '상시');
+      return `
       <div class="notice-item">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
           ${p.pinned ? '<span style="font-size:11px;font-weight:900;background:#fff7e0;color:#b36200;padding:2px 8px;border-radius:5px;">📌 고정</span>' : ''}
-          <div class="notice-item-title" style="margin-bottom:0;">${esc(p.title)}</div>
+          <div class="notice-item-title" style="margin-bottom:0;">${esc(nm)}</div>
         </div>
-        <div class="notice-item-date">${esc(p.org || '')}${p.org ? ' · ' : ''}마감 ${esc(p.endDate || '—')}</div>
+        <div class="notice-item-date">${esc(org)}${org ? ' · ' : ''}${esc(endTxt)}</div>
         <div class="notice-item-preview">${esc(p.tag || '')}</div>
         <div class="notice-item-footer">
           <button class="btn-act btn-del" onclick="deleteCurated('${p.id}')">삭제</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch (e) {
     el.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패</div></div>`;
   }
@@ -1044,6 +1107,97 @@ window.deleteCurated = async (id) => {
     showToast('삭제되었습니다.', 'ok');
     await loadCurated();
   } catch (e) { showToast('삭제 실패: ' + e.message, 'err'); }
+};
+
+// ── GitHub 정책 초안 가져오기 ──────────────────────────────────────
+const DRAFT_URL = 'https://raw.githubusercontent.com/tsrtkd/fillyo/main/policy/data/curated-draft.json';
+let pendingDraft = null;
+
+window.fetchDraft = async () => {
+  const btn = document.querySelector('.btn-refresh[onclick="fetchDraft()"]');
+  if (btn) { btn.textContent = '불러오는 중...'; btn.disabled = true; }
+  try {
+    const res = await fetch(DRAFT_URL + '?t=' + Date.now());
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+
+    pendingDraft = json;
+    const entries = Object.entries(json);
+
+    document.getElementById('draftPreviewTitle').textContent =
+      `총 ${entries.length}건 — 아래 내용을 확인하고 반영하세요`;
+
+    document.getElementById('draftTbody').innerHTML = entries.map(([id, p]) => {
+      const name    = esc(p.pblancNm     || p.title || id);
+      const org     = esc(p.jrsdInsttNm  || p.org   || '');
+      const period  = esc(p.reqstBeginEndDe || (p.startDate && p.endDate ? p.startDate + ' ~ ' + p.endDate : '상시'));
+      const tag     = esc(p.tag || '');
+      const pinMark = p.pinned ? '<span class="draft-pin">📌 고정</span>' : '';
+      const href    = p.pblancUrl || p.url || '';
+      const link    = href
+        ? `<a href="${esc(href)}" target="_blank" rel="noopener" class="draft-link">바로가기</a>`
+        : '<span style="color:var(--border);">—</span>';
+      return `<tr>
+        <td style="font-weight:700;color:var(--text);">${name}</td>
+        <td style="color:var(--text2);">${org}</td>
+        <td style="color:var(--text2);">${period}</td>
+        <td><span style="font-size:11px;background:var(--sky);color:var(--blue);padding:2px 7px;border-radius:4px;">${tag}</span></td>
+        <td>${pinMark}</td>
+        <td>${link}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('draftPreviewSection').style.display = '';
+  } catch (e) {
+    showToast('초안 불러오기 실패: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = '↓ 초안 불러오기'; btn.disabled = false; }
+  }
+};
+
+window.cancelDraft = () => {
+  pendingDraft = null;
+  document.getElementById('draftPreviewSection').style.display = 'none';
+};
+
+window.applyDraft = async () => {
+  if (!pendingDraft) return;
+  const btn = document.querySelector('.btn-import');
+  btn.disabled = true;
+  btn.textContent = '반영 중...';
+
+  try {
+    const draftKeys = new Set(Object.keys(pendingDraft));
+
+    // 기존 curated 읽기 — pinned:true이면서 draft에 없는 항목은 보존
+    const existingSnap = await get(ref(db, 'policy/curated'));
+    const existingPinned = {};
+    if (existingSnap.exists()) {
+      for (const [k, v] of Object.entries(existingSnap.val())) {
+        if (v.pinned === true && !draftKeys.has(k)) {
+          existingPinned[k] = v;
+        }
+      }
+    }
+
+    // policy/curated 전체를 새로 씀 (보존 항목 + draft 항목)
+    const newData = { ...existingPinned };
+    for (const [k, v] of Object.entries(pendingDraft)) {
+      newData[k] = v;
+    }
+
+    await set(ref(db, 'policy/curated'), newData);
+
+    const total = Object.keys(newData).length;
+    showToast(`${total}건 반영 완료`, 'ok');
+    cancelDraft();
+    await loadCurated();
+  } catch (e) {
+    showToast('반영 실패: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✅ 이 내용으로 반영';
+  }
 };
 
 // ── 정산 미수금 로드 ──────────────────────────────────────────────
