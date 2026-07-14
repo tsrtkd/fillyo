@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
 <title>FILLYO — 오늘의 기록이, 아이의 성장이 됩니다</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -148,12 +149,19 @@
   .center{text-align:center;margin-left:auto;margin-right:auto;}
 
   /* ── 문제 제시 ── */
+  .problem-roll{
+    position:relative;max-width:760px;
+  }
   .problem-quote{
     font-family:'Gowun Batang',serif;
-    font-size:24px;font-weight:700;line-height:1.7;
-    max-width:720px;color:var(--ink);
+    font-size:24px;font-weight:700;line-height:1.7;color:var(--ink);
+    position:absolute;top:0;left:0;width:100%;
+    opacity:0;transition:opacity .5s ease;
   }
-  .problem-quote .fade{color:var(--ink-faint);font-weight:400;font-family:'Pretendard';font-size:15px;display:block;margin-top:14px;}
+  .problem-quote.active{opacity:1;}
+  .problem-caption{
+    font-size:15px;color:var(--ink-faint);margin-top:18px;
+  }
 
   /* ── 우리가 하는 일: 3단 흐름 (경쟁사 언급 없이) ── */
   .flow{background:var(--paper-2);}
@@ -253,6 +261,33 @@
   }
   .total-example-note{font-size:13px;color:var(--ink-soft);line-height:1.7;}
 
+  .free-note{
+    display:flex;align-items:center;gap:10px;
+    margin-top:16px;padding:14px 18px;
+    background:var(--sun-bg);border:1px solid rgba(184,134,11,0.25);border-radius:14px;
+  }
+  .free-note svg{color:#B8860B;flex-shrink:0;}
+  .free-note p{font-size:13.5px;color:var(--ink);}
+  .free-note b{color:#B8860B;}
+
+  .program-list{margin-top:40px;}
+  .program-list-label{font-size:13px;font-weight:800;color:var(--ink-faint);margin-bottom:14px;}
+  .program-chips{display:flex;flex-wrap:wrap;gap:10px;}
+  .chip{
+    display:flex;align-items:center;gap:8px;
+    background:#fff;border:1px solid var(--line);border-radius:100px;
+    padding:9px 16px 9px 16px;font-size:13.5px;font-weight:700;color:var(--ink);
+  }
+  .chip span{
+    font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:100px;
+    background:var(--paper-2);color:var(--ink-soft);
+  }
+  .chip-base{border-color:var(--primary);}
+  .chip-base span{background:var(--primary-bg);color:var(--primary-deep);}
+  .chip-free span{background:var(--sun-bg);color:#B8860B;}
+  .chip-soon{opacity:0.65;}
+  .chip-soon span{background:var(--paper-2);color:var(--ink-faint);}
+
   /* ── 레퍼런스 ── */
   .ref-box{
     display:grid;grid-template-columns:auto 1fr;gap:28px;
@@ -276,7 +311,9 @@
   .final-cta p{font-size:16px;color:var(--ink-soft);margin-bottom:34px;}
 
   footer{border-top:1px solid var(--line);padding:30px 0;}
-  .foot-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-faint);}
+  .foot-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-faint);flex-wrap:wrap;gap:10px;}
+  .foot-links a{color:var(--ink-soft);}
+  .foot-links a:hover{color:var(--primary-deep);}
 
   @media(max-width:860px){
     .hero-grid{grid-template-columns:1fr;}
@@ -294,7 +331,7 @@
 <header>
   <div class="nav">
     <div class="logo">FILL<span>YO</span></div>
-    <a href="#cta" class="nav-cta">무료로 시작하기</a>
+    <a href="/login/" class="nav-cta">무료로 시작하기</a>
   </div>
 </header>
 
@@ -307,7 +344,7 @@
       <h1>오늘의 기록이,<br><em>아이의 성장</em>이 됩니다.</h1>
       <p class="lead">오늘 수업 기록은 FILLYO가 합니다. 그 기록들이 모여 아이의 성장리포트가 완성되고, 학부모의 신뢰가 쌓입니다.</p>
       <div class="cta-row">
-        <a href="#cta" class="btn-primary">무료로 시작하기</a>
+        <a href="/login/" class="btn-primary">무료로 시작하기</a>
         <a href="#ref" class="btn-ghost">실사용 도장 보기</a>
       </div>
     </div>
@@ -346,12 +383,44 @@
 
 <section>
   <div class="wrap">
-    <p class="problem-quote">
-      "오늘 누가 결석했더라, 지난달 승급심사 결과가 뭐였더라"
-      <span class="fade">— 수업이 끝나면 기억에만 의존하게 되는 하루들이 있습니다.</span>
-    </p>
+    <div class="problem-roll" id="problemRoll">
+      <p class="problem-quote active">"오늘 누가 결석했더라, 지난달 승급심사 결과가 뭐였더라"</p>
+      <p class="problem-quote">"어제 수업에서 무슨 일이 있었는지 기억하고 계세요?"</p>
+      <p class="problem-quote">"업무일지, 아직도 종이에 쓰세요?"</p>
+      <p class="problem-quote">"강사가 세 명인데, 오늘 수업 내용 공유되고 있나요?"</p>
+      <p class="problem-quote">"승급심사 기록, 아직도 엑셀로 관리하세요?"</p>
+    </div>
+    <p class="problem-caption">— 수업이 끝나면 기억에만 의존하게 되는 하루들이 있습니다.</p>
   </div>
 </section>
+<script>
+(function(){
+  var wrap = document.getElementById('problemRoll');
+  var slides = wrap.querySelectorAll('.problem-quote');
+  var cur = 0;
+
+  function setHeight(){
+    var maxH = 0;
+    slides.forEach(function(s){
+      var was = s.classList.contains('active');
+      s.classList.add('active');
+      s.style.position = 'relative';
+      if (s.offsetHeight > maxH) maxH = s.offsetHeight;
+      s.style.position = '';
+      if (!was) s.classList.remove('active');
+    });
+    wrap.style.minHeight = maxH + 'px';
+  }
+  setHeight();
+  window.addEventListener('resize', setHeight);
+
+  setInterval(function(){
+    slides[cur].classList.remove('active');
+    cur = (cur + 1) % slides.length;
+    slides[cur].classList.add('active');
+  }, 3200);
+})();
+</script>
 
 <section class="flow">
   <div class="wrap">
@@ -393,31 +462,32 @@
       <div class="feat-card c1">
         <div class="feat-tag">기본 · 업무일지</div>
         <h3>종이가 아닌, 실시간 공유 기록</h3>
-        <p class="feat-lead">수업 직후 3분이면 기록이 끝나고, 그 순간 도장 전체가 공유합니다.</p>
+        <p class="feat-lead">수업 직후 3분이면 기록이 끝나고, 팀원과 실시간으로 공유됩니다.</p>
         <ul class="feat-why">
-          <li>관장님과 사범님이 같은 기록을 실시간으로 보고 공유합니다 — 한 아이에 대해 누가 뭘 남겼는지 한 곳에서 확인</li>
-          <li>종이 출석부와 다르게, 지난 기록을 언제 어디서든 다시 열어서 점검할 수 있습니다</li>
-          <li>새로 온 사범님도 지난 기록만 보면 그 아이의 히스토리를 바로 파악합니다</li>
-          <li>도장에 안 계셔도, 오늘 수업에서 무슨 일이 있었는지 휴대폰으로 바로 확인됩니다</li>
+          <li>관장님과 강사님이 같은 업무일지를 실시간으로 함께 봅니다 (팀원 동기화)</li>
+          <li>종이 출석부와 달리, 날짜별로 지난 기록을 달력에서 바로 다시 열어볼 수 있습니다</li>
+          <li>도장에 안 계셔도, 강사님이 남긴 오늘 기록을 휴대폰으로 바로 확인할 수 있습니다</li>
+          <li>부별 출석·결석이 자동으로 집계되고, 월별 결산도 CSV로 바로 내보낼 수 있습니다</li>
         </ul>
       </div>
       <div class="feat-card c2">
         <div class="feat-tag">애드온 · 학부모 소통</div>
         <h3>승급심사 · 줄넘기</h3>
-        <p class="feat-lead">"우리 아이 지금 뭘 배우고 있나요?"에 근거로 답합니다.</p>
+        <p class="feat-lead">우리 아이가 얼마나 성장했는지, 학부모님이 신뢰하는 방식으로 보여줍니다.</p>
         <ul class="feat-why">
-          <li>지금 어떤 급수를, 어떤 과정으로 배우고 있는지 학부모에게 기록으로 보여줄 수 있습니다</li>
-          <li>협회별 템플릿으로 측정하니, 심사 결과를 "감"이 아니라 "기준"으로 설명하게 됩니다</li>
-          <li>지난 심사 이력이 그대로 남아있어, 얼마나 늘었는지 한눈에 보여줄 수 있습니다</li>
+          <li>채점부터 승급, 결과카드 저장까지 한 번에 끝납니다</li>
+          <li>협회 표준과정을 참고한 심사표로 진행하니 기준이 흔들리지 않습니다</li>
+          <li>결과카드는 이미지로 저장해 학부모님께 바로 공유할 수 있습니다</li>
+          <li>줄넘기는 급수별 기준 동작이 자동 적용되고, 급수증까지 발급됩니다</li>
         </ul>
       </div>
       <div class="feat-card c3">
         <div class="feat-tag">애드온 · 학부모 소통</div>
         <h3>AI 성장리포트</h3>
-        <p class="feat-lead">쌓인 기록이, 학부모가 매달 받아보는 성장 증거가 됩니다.</p>
+        <p class="feat-lead">업무일지·승급심사·줄넘기 데이터가 자동 연동되어 리포트가 완성됩니다.</p>
         <ul class="feat-why">
           <li>매달 리포트를 직접 작성하던 시간이 통째로 사라집니다</li>
-          <li>학부모는 "우리 아이가 뭘 잘하고 뭘 배우고 있나" 궁금할 때마다 확인할 수 있습니다</li>
+          <li>학부모 카카오톡 발송용 문구까지 함께 제공됩니다</li>
           <li>재등록 상담할 때 보여줄 근거 자료가 자동으로 쌓여 있습니다</li>
         </ul>
       </div>
@@ -513,6 +583,24 @@
       </div>
       <p class="total-example-note">업무일지만 쓰신다면 얼리버드 ₩9,900/월이 전부입니다. 애드온은 필요할 때 골라서 추가하시면 됩니다.</p>
     </div>
+
+    <div class="free-note">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+      <p><b>슬로우모션 분석</b>과 <b>소상공인 지원정책</b>은 업무일지 구독 고객 전원에게 <b>무료</b>로 제공됩니다.</p>
+    </div>
+
+    <div class="program-list">
+      <p class="program-list-label">FILLYO 전체 프로그램 한눈에 보기</p>
+      <div class="program-chips">
+        <div class="chip chip-base">업무일지 <span>기본</span></div>
+        <div class="chip">줄넘기 관리·평가 <span>애드온</span></div>
+        <div class="chip">승급심사 <span>애드온</span></div>
+        <div class="chip">AI 성장리포트 <span>애드온</span></div>
+        <div class="chip chip-free">슬로우모션 분석 <span>무료</span></div>
+        <div class="chip chip-free">소상공인 지원정책 <span>무료</span></div>
+        <div class="chip chip-soon">AI 안내데스크 <span>출시예정</span></div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -536,16 +624,44 @@
   <div class="wrap">
     <h2>오늘부터, 기록을 남기세요.</h2>
     <p>회원가입 후 업무일지부터 무료로 체험할 수 있습니다.</p>
-    <a href="#" class="btn-primary">무료로 시작하기</a>
+    <a href="/login/" class="btn-primary">무료로 시작하기</a>
   </div>
 </section>
 
 <footer>
   <div class="wrap foot-row">
     <span>FILLYO — 필요(FILLYO) · 대전 서구</span>
-    <span>실험용 시안 · 실제 사이트 아님</span>
+    <span class="foot-links">
+      <a href="/pricing/">요금제</a> · <a href="/guide/">사용설명서</a> · <a href="/terms/">이용약관</a> · <a href="/privacy/">개인정보처리방침</a> · <a href="/refund/">환불정책</a>
+    </span>
+  </div>
+  <div class="wrap" style="margin-top:8px;">
+    <span style="font-size:11.5px;color:var(--ink-faint);">🔒 테스트 페이지 — 검색엔진에 노출되지 않으며, 확인 후 정식 반영 여부를 결정합니다.</span>
   </div>
 </footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+const auth = getAuth(initializeApp({
+  apiKey: "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
+  authDomain: "fillyo-journal.firebaseapp.com",
+  projectId: "fillyo-journal",
+  storageBucket: "fillyo-journal.firebasestorage.app",
+  messagingSenderId: "594047356761",
+  appId: "1:594047356761:web:bfd402441d83eedf63c648",
+  databaseURL: "https://fillyo-journal-default-rtdb.asia-southeast1.firebasedatabase.app",
+}));
+onAuthStateChanged(auth, (user) => {
+  if (!user) return;
+  document.querySelectorAll('a[href="/login/"]').forEach(a => {
+    a.href = '/dashboard/';
+    if (a.classList.contains('nav-cta')) {
+      a.textContent = '대시보드 →';
+    }
+  });
+});
+</script>
 
 </body>
 </html>
