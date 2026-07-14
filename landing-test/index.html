@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FILLYO — 오늘의 기록이, 아이의 성장이 됩니다</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+<style>
+  :root{
+    --paper:#FFFFFF;
+    --paper-2:#F7F9FB;
+    --ink:#171923;
+    --ink-soft:#5B6472;
+    --ink-faint:#98A1AC;
+    --mint:#00C2B0;
+    --mint-deep:#008F82;
+    --mint-bg:#E3FAF6;
+    --coral:#FF4D6D;
+    --coral-deep:#E23155;
+    --coral-bg:#FFE8ED;
+    --primary:#3A6BFF;
+    --primary-deep:#2648CC;
+    --primary-bg:#EAF0FF;
+    --sun:#FFB800;
+    --sun-bg:#FFF6DF;
+    --line:#EDEFF3;
+    --shadow-sm:0 4px 16px rgba(23,25,35,0.04);
+    --shadow-md:0 14px 34px rgba(23,25,35,0.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Pretendard',-apple-system,sans-serif;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .voice{font-family:'Gowun Batang',serif;}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 32px;}
+  a{color:inherit;text-decoration:none;}
+  ul{list-style:none;}
+
+  header{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,0.85);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:22px 32px;max-width:1120px;margin:0 auto;}
+  .logo{font-weight:900;font-size:21px;letter-spacing:-0.02em;}
+  .logo span{color:var(--mint);}
+  .nav-cta{
+    background:var(--ink);color:#fff;
+    padding:12px 22px;border-radius:100px;font-size:14px;font-weight:700;
+    box-shadow:var(--shadow-sm);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .nav-cta:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+
+  /* ── 히어로 ── */
+  .hero{padding:88px 0 60px;position:relative;overflow:hidden;}
+  .blob{
+    position:absolute;border-radius:50%;filter:blur(60px);opacity:0.5;z-index:0;
+  }
+  .blob1{width:420px;height:420px;background:var(--mint-bg);top:-140px;right:-100px;}
+  .blob2{width:280px;height:280px;background:var(--coral-bg);bottom:-80px;left:-60px;opacity:0.6;}
+  .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;position:relative;z-index:1;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:13px;font-weight:800;letter-spacing:0.02em;
+    color:var(--mint-deep);background:var(--mint-bg);
+    padding:8px 16px;border-radius:100px;margin-bottom:24px;
+  }
+  .hero h1{
+    font-weight:900;
+    font-size:50px;
+    line-height:1.32;
+    letter-spacing:-0.025em;
+    margin-bottom:22px;
+  }
+  .hero h1 em{
+    font-style:normal;
+    background:linear-gradient(90deg, var(--primary), var(--mint));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .hero p.lead{
+    font-size:17px;color:var(--ink-soft);
+    line-height:1.75;margin-bottom:36px;max-width:460px;
+  }
+  .cta-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .btn-primary{
+    background:var(--coral);color:#fff;
+    padding:17px 32px;border-radius:100px;
+    font-size:16px;font-weight:800;
+    box-shadow:0 12px 28px -8px rgba(255,77,109,0.5);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .btn-primary:hover{transform:translateY(-3px);box-shadow:0 16px 32px -8px rgba(255,77,109,0.6);}
+  .btn-ghost{
+    background:#fff;color:var(--ink);
+    border:1px solid var(--line);
+    padding:16px 28px;border-radius:100px;
+    font-size:16px;font-weight:700;
+    box-shadow:var(--shadow-sm);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .btn-ghost:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+
+  /* ── 성장 곡선 카드 (시그니처) ── */
+  .growth-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:28px;
+    padding:30px 30px 22px;
+    box-shadow:var(--shadow-md);
+  }
+  .growth-card .cap{font-size:13px;font-weight:800;color:var(--ink-soft);margin-bottom:18px;}
+  .pipe-list{display:flex;flex-direction:column;gap:10px;}
+  .pipe-row{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
+    background:var(--paper-2);border:1px solid var(--line);border-left:4px solid;
+    border-radius:14px;padding:14px 16px;
+    transition:transform .18s,box-shadow .18s,background .18s;
+  }
+  .pipe-row:hover{background:#fff;transform:translateX(4px);box-shadow:var(--shadow-sm);}
+  .pipe-icon{
+    width:36px;height:36px;border-radius:10px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .pipe-text .t{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:2px;}
+  .pipe-text .s{font-size:12.5px;color:var(--ink-soft);}
+  .pipe-tag{
+    font-size:11.5px;font-weight:800;padding:6px 12px;border-radius:100px;white-space:nowrap;
+  }
+
+  section{padding:100px 0;}
+  .section-head{max-width:600px;margin-bottom:52px;}
+  .section-head .eyebrow{margin-bottom:18px;}
+  .section-head h2{
+    font-weight:900;
+    font-size:32px;line-height:1.4;margin-bottom:16px;letter-spacing:-0.02em;
+  }
+  .section-head p{font-size:16px;color:var(--ink-soft);line-height:1.75;}
+  .center{text-align:center;margin-left:auto;margin-right:auto;}
+
+  /* ── 문제 제시 ── */
+  .problem-quote{
+    font-family:'Gowun Batang',serif;
+    font-size:24px;font-weight:700;line-height:1.7;
+    max-width:720px;color:var(--ink);
+  }
+  .problem-quote .fade{color:var(--ink-faint);font-weight:400;font-family:'Pretendard';font-size:15px;display:block;margin-top:14px;}
+
+  /* ── 우리가 하는 일: 3단 흐름 (경쟁사 언급 없이) ── */
+  .flow{background:var(--paper-2);}
+  .flow-row{display:flex;align-items:stretch;gap:0;}
+  .flow-card{
+    flex:1;background:#fff;border:1px solid var(--line);border-radius:22px;
+    padding:30px 26px;position:relative;
+    box-shadow:var(--shadow-sm);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .flow-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+  .flow-arrow{
+    display:flex;align-items:center;justify-content:center;
+    width:56px;flex-shrink:0;color:var(--ink-faint);font-size:22px;
+  }
+  .flow-icon{
+    width:44px;height:44px;border-radius:14px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:20px;margin-bottom:18px;
+  }
+  .flow-card.f1 .flow-icon{background:var(--mint-bg);color:var(--mint-deep);}
+  .flow-card.f2 .flow-icon{background:var(--sun-bg);color:#B8860B;}
+  .flow-card.f3 .flow-icon{background:var(--coral-bg);color:var(--coral-deep);}
+  .flow-card h3{font-size:18px;font-weight:800;margin-bottom:10px;}
+  .flow-card p{font-size:14px;color:var(--ink-soft);line-height:1.7;}
+  .flow-quote{
+    text-align:center;margin-top:48px;font-size:19px;font-weight:800;
+    color:var(--ink);
+  }
+  .flow-quote .mint{color:var(--mint-deep);}
+  .flow-quote .coral{color:var(--coral-deep);}
+
+  /* ── 기능 카드 ── */
+  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .feat-card{
+    border-radius:22px;padding:30px 24px;
+  }
+  .feat-card.c1{background:var(--mint-bg);}
+  .feat-card.c2{background:var(--sun-bg);}
+  .feat-card.c3{background:var(--coral-bg);}
+  .feat-tag{font-size:12px;font-weight:800;margin-bottom:14px;}
+  .feat-card.c1 .feat-tag{color:var(--mint-deep);}
+  .feat-card.c2 .feat-tag{color:#B8860B;}
+  .feat-card.c3 .feat-tag{color:var(--coral-deep);}
+  .feat-card h3{font-size:19px;font-weight:800;margin-bottom:10px;}
+  .feat-card p.feat-lead{font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,0.08);}
+  .feat-why li{font-size:13px;color:var(--ink-soft);line-height:1.6;padding-left:16px;position:relative;margin-bottom:10px;}
+  .feat-why li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.5;}
+
+  /* ── 가격 ── */
+  .tier-label{
+    display:flex;align-items:center;gap:10px;
+    font-size:15px;font-weight:800;margin-bottom:18px;
+  }
+  .tier-num{
+    width:24px;height:24px;border-radius:50%;
+    background:var(--ink);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12.5px;font-weight:900;flex-shrink:0;
+  }
+  .tier-plus{
+    text-align:center;font-size:22px;font-weight:900;
+    color:var(--ink-faint);margin:36px 0;
+  }
+  .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .price-card{
+    background:#fff;border:1.5px solid var(--line);border-radius:24px;
+    padding:32px 26px;
+    box-shadow:var(--shadow-sm);
+    transition:transform .2s,box-shadow .2s;
+  }
+  .price-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);}
+  .price-card.feat{border:2px solid var(--mint);position:relative;background:var(--mint-bg);box-shadow:var(--shadow-md);}
+  .price-card.feat .badge{
+    position:absolute;top:-14px;left:26px;
+    background:var(--mint);color:#fff;
+    font-size:11.5px;font-weight:800;padding:6px 14px;border-radius:100px;
+  }
+  .price-card h4{font-size:14.5px;font-weight:800;color:var(--ink-soft);margin-bottom:16px;}
+  .price-card .amt{font-size:29px;font-weight:900;margin-bottom:2px;letter-spacing:-0.02em;}
+  .price-card .unit{font-size:13px;color:var(--ink-faint);margin-bottom:22px;}
+  .price-card ul{font-size:13.5px;color:var(--ink-soft);line-height:2.2;}
+  .price-card ul li::before{content:'✓ ';color:var(--mint-deep);font-weight:800;}
+
+  .total-example{
+    margin-top:36px;background:var(--mint-bg);border:1.5px solid var(--mint);border-radius:24px;
+    padding:32px 36px;
+  }
+  .total-example-label{font-size:13px;font-weight:700;color:var(--mint-deep);margin-bottom:14px;}
+  .total-example-row{
+    display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;
+    font-size:16px;font-weight:700;color:var(--ink);margin-bottom:16px;
+  }
+  .total-example-row .plus,.total-example-row .eq{color:var(--ink-faint);font-weight:900;}
+  .total-example-row .total-amt{
+    font-size:22px;font-weight:900;color:var(--coral-deep);margin-left:auto;
+  }
+  .total-example-note{font-size:13px;color:var(--ink-soft);line-height:1.7;}
+
+  /* ── 레퍼런스 ── */
+  .ref-box{
+    display:grid;grid-template-columns:auto 1fr;gap:28px;
+    background:var(--paper-2);border:1.5px solid var(--line);border-radius:28px;
+    padding:40px;align-items:center;
+    box-shadow:var(--shadow-sm);
+  }
+  .ref-badge{
+    width:80px;height:80px;border-radius:50%;
+    background:var(--mint);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:900;font-size:20px;
+    flex-shrink:0;
+  }
+  .ref-box blockquote{font-family:'Gowun Batang',serif;font-size:18px;font-weight:700;line-height:1.75;margin-bottom:12px;color:var(--ink);}
+  .ref-box cite{font-style:normal;font-size:13px;color:var(--ink-faint);}
+
+  /* ── 최종 CTA ── */
+  .final-cta{text-align:center;padding:96px 0;}
+  .final-cta h2{font-weight:900;font-size:34px;margin-bottom:16px;letter-spacing:-0.02em;}
+  .final-cta p{font-size:16px;color:var(--ink-soft);margin-bottom:34px;}
+
+  footer{border-top:1px solid var(--line);padding:30px 0;}
+  .foot-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--ink-faint);}
+
+  @media(max-width:860px){
+    .hero-grid{grid-template-columns:1fr;}
+    .hero h1{font-size:34px;}
+    .feat-grid,.price-grid{grid-template-columns:1fr;}
+    .flow-row{flex-direction:column;}
+    .flow-arrow{transform:rotate(90deg);width:100%;height:36px;}
+    .ref-box{grid-template-columns:1fr;text-align:center;}
+    .ref-badge{margin:0 auto;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <div class="logo">FILL<span>YO</span></div>
+    <a href="#cta" class="nav-cta">무료로 시작하기</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="blob blob1"></div>
+  <div class="blob blob2"></div>
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">예체능 학원 · 체육도장을 위한 기록 서비스</div>
+      <h1>오늘의 기록이,<br><em>아이의 성장</em>이 됩니다.</h1>
+      <p class="lead">오늘 수업 기록은 FILLYO가 합니다. 그 기록들이 모여 아이의 성장리포트가 완성되고, 학부모의 신뢰가 쌓입니다.</p>
+      <div class="cta-row">
+        <a href="#cta" class="btn-primary">무료로 시작하기</a>
+        <a href="#ref" class="btn-ghost">실사용 도장 보기</a>
+      </div>
+    </div>
+    <div class="growth-card">
+      <div class="cap">FILLYO 기록 파이프라인</div>
+      <div class="pipe-list">
+        <div class="pipe-row" style="border-left-color:var(--line)">
+          <div class="pipe-icon" style="background:var(--paper-2);color:var(--ink-soft)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="pipe-text"><div class="t">업무일지</div><div class="s">출석과 특이사항, 터치 몇 번으로 기록</div></div>
+          <div class="pipe-tag" style="background:var(--paper-2);color:var(--ink-soft)">기록</div>
+        </div>
+        <div class="pipe-row" style="border-left-color:var(--sun)">
+          <div class="pipe-icon" style="background:var(--sun-bg);color:#B8860B"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div>
+          <div class="pipe-text"><div class="t">줄넘기 급수</div><div class="s">협회별 템플릿으로 급수를 측정</div></div>
+          <div class="pipe-tag" style="background:var(--sun-bg);color:#B8860B">측정</div>
+        </div>
+        <div class="pipe-row" style="border-left-color:var(--mint)">
+          <div class="pipe-icon" style="background:var(--mint-bg);color:var(--mint-deep)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M9 14 6.5 22l5.5-3 5.5 3L15 14"/></svg></div>
+          <div class="pipe-text"><div class="t">승급심사</div><div class="s">심사 결과와 이력을 누적 관리</div></div>
+          <div class="pipe-tag" style="background:var(--mint-bg);color:var(--mint-deep)">심사</div>
+        </div>
+        <div class="pipe-row" style="border-left-color:var(--coral)">
+          <div class="pipe-icon" style="background:var(--coral-bg);color:var(--coral-deep)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+          <div class="pipe-text"><div class="t">학부모 공유</div><div class="s">지금 배우고 있는 것을 그대로 전달</div></div>
+          <div class="pipe-tag" style="background:var(--coral-bg);color:var(--coral-deep)">전달</div>
+        </div>
+        <div class="pipe-row" style="border-left-color:var(--primary)">
+          <div class="pipe-icon" style="background:var(--primary-bg);color:var(--primary-deep)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/></svg></div>
+          <div class="pipe-text"><div class="t">AI 성장리포트</div><div class="s">쌓인 기록이 성장의 증거가 됩니다</div></div>
+          <div class="pipe-tag" style="background:var(--primary-bg);color:var(--primary-deep)">증명</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <p class="problem-quote">
+      "오늘 누가 결석했더라, 지난달 승급심사 결과가 뭐였더라"
+      <span class="fade">— 수업이 끝나면 기억에만 의존하게 되는 하루들이 있습니다.</span>
+    </p>
+  </div>
+</section>
+
+<section class="flow">
+  <div class="wrap">
+    <div class="section-head center">
+      <div class="eyebrow">FILLYO가 하는 일</div>
+      <h2>기록이 모여, 신뢰가 됩니다.</h2>
+    </div>
+    <div class="flow-row">
+      <div class="flow-card f1">
+        <div class="flow-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <h3>오늘의 기록</h3>
+        <p>출석과 특이사항, 승급심사와 줄넘기 급수까지. 오늘 수업에서 있었던 일을 FILLYO가 남깁니다.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-card f2">
+        <div class="flow-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/></svg></div>
+        <h3>성장리포트 완성</h3>
+        <p>쌓인 기록이 자동으로 정리되어, 아이가 얼마나 성장했는지 보여주는 리포트가 됩니다.</p>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-card f3">
+        <div class="flow-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78Z"/></svg></div>
+        <h3>신뢰가 쌓입니다</h3>
+        <p>학부모는 우리 아이의 성장을 눈으로 확인하고, 도장에 대한 믿음이 자연스럽게 쌓입니다.</p>
+      </div>
+    </div>
+    <p class="flow-quote">오늘 수업 기록은 <span class="mint">FILLYO</span>가 합니다. 곧 <span class="coral">신뢰</span>가 쌓입니다.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">기능</div>
+      <h2>필요한 기록을 골라 쓰세요</h2>
+      <p>업무일지로 시작해서, 도장 상황에 맞게 하나씩 더할 수 있습니다.</p>
+    </div>
+    <div class="feat-grid">
+      <div class="feat-card c1">
+        <div class="feat-tag">기본 · 업무일지</div>
+        <h3>종이가 아닌, 실시간 공유 기록</h3>
+        <p class="feat-lead">수업 직후 3분이면 기록이 끝나고, 그 순간 도장 전체가 공유합니다.</p>
+        <ul class="feat-why">
+          <li>관장님과 사범님이 같은 기록을 실시간으로 보고 공유합니다 — 한 아이에 대해 누가 뭘 남겼는지 한 곳에서 확인</li>
+          <li>종이 출석부와 다르게, 지난 기록을 언제 어디서든 다시 열어서 점검할 수 있습니다</li>
+          <li>새로 온 사범님도 지난 기록만 보면 그 아이의 히스토리를 바로 파악합니다</li>
+          <li>도장에 안 계셔도, 오늘 수업에서 무슨 일이 있었는지 휴대폰으로 바로 확인됩니다</li>
+        </ul>
+      </div>
+      <div class="feat-card c2">
+        <div class="feat-tag">애드온 · 학부모 소통</div>
+        <h3>승급심사 · 줄넘기</h3>
+        <p class="feat-lead">"우리 아이 지금 뭘 배우고 있나요?"에 근거로 답합니다.</p>
+        <ul class="feat-why">
+          <li>지금 어떤 급수를, 어떤 과정으로 배우고 있는지 학부모에게 기록으로 보여줄 수 있습니다</li>
+          <li>협회별 템플릿으로 측정하니, 심사 결과를 "감"이 아니라 "기준"으로 설명하게 됩니다</li>
+          <li>지난 심사 이력이 그대로 남아있어, 얼마나 늘었는지 한눈에 보여줄 수 있습니다</li>
+        </ul>
+      </div>
+      <div class="feat-card c3">
+        <div class="feat-tag">애드온 · 학부모 소통</div>
+        <h3>AI 성장리포트</h3>
+        <p class="feat-lead">쌓인 기록이, 학부모가 매달 받아보는 성장 증거가 됩니다.</p>
+        <ul class="feat-why">
+          <li>매달 리포트를 직접 작성하던 시간이 통째로 사라집니다</li>
+          <li>학부모는 "우리 아이가 뭘 잘하고 뭘 배우고 있나" 궁금할 때마다 확인할 수 있습니다</li>
+          <li>재등록 상담할 때 보여줄 근거 자료가 자동으로 쌓여 있습니다</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">가격</div>
+      <h2>1단계 업무일지 + 2단계 애드온,<br>더한 만큼만 냅니다</h2>
+      <p>업무일지는 모든 이용의 기본이 되는 구독입니다. 승급심사·줄넘기·AI성장리포트는 업무일지 위에 필요한 만큼 추가하는 애드온입니다.</p>
+    </div>
+
+    <div class="tier-label"><span class="tier-num">1</span>업무일지 — 기본 구독 (필수)</div>
+    <div class="price-grid">
+      <div class="price-card">
+        <h4>얼리버드</h4>
+        <div class="amt">₩9,900</div>
+        <div class="unit">/월 · 1년 고정가 · 2026.8.31까지 한정</div>
+        <ul>
+          <li>출석 · 특이사항 기록</li>
+          <li>관장 · 사범 실시간 공유</li>
+          <li>지난 기록 언제든 재조회</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <h4>1년계약</h4>
+        <div class="amt">₩15,840</div>
+        <div class="unit">/월 · 1년 약정</div>
+        <ul>
+          <li>출석 · 특이사항 기록</li>
+          <li>관장 · 사범 실시간 공유</li>
+          <li>지난 기록 언제든 재조회</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <h4>월정액</h4>
+        <div class="amt">₩19,800</div>
+        <div class="unit">/월 · 약정 없음</div>
+        <ul>
+          <li>출석 · 특이사항 기록</li>
+          <li>관장 · 사범 실시간 공유</li>
+          <li>지난 기록 언제든 재조회</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="tier-plus">+</div>
+
+    <div class="tier-label"><span class="tier-num">2</span>애드온 — 필요한 만큼 추가 (선택)</div>
+    <div class="price-grid">
+      <div class="price-card">
+        <h4>애드온 개별 · 월정액</h4>
+        <div class="amt">₩9,800</div>
+        <div class="unit">/월 · 승급심사 또는 줄넘기 중 택1</div>
+        <ul>
+          <li>필요한 기능 하나만 추가</li>
+          <li>약정 없음</li>
+        </ul>
+      </div>
+      <div class="price-card">
+        <h4>애드온 개별 · 1년계약</h4>
+        <div class="amt">₩4,900</div>
+        <div class="unit">/월 · 승급심사 또는 줄넘기 중 택1</div>
+        <ul>
+          <li>필요한 기능 하나만 추가</li>
+          <li>월정액 대비 절반 가격</li>
+        </ul>
+      </div>
+      <div class="price-card feat">
+        <div class="badge">가장 많이 선택</div>
+        <h4>3종 번들 · 1년계약 전용</h4>
+        <div class="amt">₩13,500</div>
+        <div class="unit">/월 · 개별로 다 더하면 더 비쌈</div>
+        <ul>
+          <li>줄넘기 급수 관리</li>
+          <li>승급심사 관리</li>
+          <li>AI 성장리포트 (번들에서만 이용 가능)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="total-example">
+      <p class="total-example-label">예시로 계산해보면</p>
+      <div class="total-example-row">
+        <span>업무일지 얼리버드 ₩9,900</span>
+        <span class="plus">+</span>
+        <span>3종 번들 ₩13,500</span>
+        <span class="eq">=</span>
+        <span class="total-amt">월 ₩23,400</span>
+      </div>
+      <p class="total-example-note">업무일지만 쓰신다면 얼리버드 ₩9,900/월이 전부입니다. 애드온은 필요할 때 골라서 추가하시면 됩니다.</p>
+    </div>
+  </div>
+</section>
+
+<section id="ref">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">직접 쓰고 있습니다</div>
+      <h2>태사랑태권도가<br>매일 FILLYO를 씁니다.</h2>
+    </div>
+    <div class="ref-box">
+      <div class="ref-badge">태사</div>
+      <div>
+        <blockquote>"제가 직접 운영하는 도장에서, 제가 만든 도구를 매일 씁니다. 관장님이 실제로 겪는 불편함을 가장 먼저 겪어보고 고칩니다."</blockquote>
+        <cite>— 태사랑태권도 · FILLYO 테스트베드</cite>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="final-cta" id="cta">
+  <div class="wrap">
+    <h2>오늘부터, 기록을 남기세요.</h2>
+    <p>회원가입 후 업무일지부터 무료로 체험할 수 있습니다.</p>
+    <a href="#" class="btn-primary">무료로 시작하기</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-row">
+    <span>FILLYO — 필요(FILLYO) · 대전 서구</span>
+    <span>실험용 시안 · 실제 사이트 아님</span>
+  </div>
+</footer>
+
+</body>
+</html>
