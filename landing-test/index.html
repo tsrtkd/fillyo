@@ -330,6 +330,49 @@
   .foot-links a{color:var(--ink-soft);}
   .foot-links a:hover{color:var(--primary-deep);}
 
+  /* ── 문의 폼 ── */
+  .contact{background:var(--paper-2);}
+  .contact-form{
+    max-width:640px;margin:0 auto;
+    background:#fff;border:1px solid var(--line);border-radius:24px;
+    padding:36px;box-shadow:var(--shadow-sm);
+  }
+  .c-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .c-field{margin-bottom:16px;}
+  .c-label{display:block;font-size:13px;font-weight:700;color:var(--ink-soft);margin-bottom:8px;}
+  .c-input,.c-select,.c-textarea{
+    width:100%;padding:13px 14px;border:1.5px solid var(--line);border-radius:12px;
+    font-family:'Pretendard';font-size:14.5px;color:var(--ink);background:var(--paper-2);
+    transition:border-color .15s;
+  }
+  .c-input:focus,.c-select:focus,.c-textarea:focus{outline:none;border-color:var(--mint);background:#fff;}
+  .c-textarea{min-height:90px;resize:vertical;margin-bottom:20px;font-family:'Pretendard';}
+  .c-submit{
+    width:100%;background:var(--ink);color:#fff;border:none;
+    padding:16px;border-radius:100px;font-size:15.5px;font-weight:800;cursor:pointer;
+    transition:transform .15s;
+  }
+  .c-submit:hover{transform:translateY(-2px);}
+  .or-divider{
+    text-align:center;color:var(--ink-faint);font-size:13px;font-weight:600;
+    margin:26px auto 16px;max-width:640px;position:relative;
+  }
+  .or-divider::before,.or-divider::after{
+    content:'';position:absolute;top:50%;width:42%;height:1px;background:var(--line);
+  }
+  .or-divider::before{left:0;} .or-divider::after{right:0;}
+  .kakao-btn{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    max-width:640px;margin:0 auto;
+    background:#FEE500;color:#181600;font-weight:800;font-size:15px;
+    padding:15px;border-radius:100px;
+  }
+  .kakao-k{
+    width:22px;height:22px;border-radius:50%;background:#181600;color:#FEE500;
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;
+  }
+  @media(max-width:600px){.c-row{grid-template-columns:1fr;}}
+
   @media(max-width:860px){
     .hero-grid{grid-template-columns:1fr;}
     .hero h1{font-size:34px;}
@@ -632,6 +675,52 @@
   </div>
 </section>
 
+<section class="contact">
+  <div class="wrap">
+    <div class="section-head center">
+      <div class="eyebrow">아직 결정 전이신가요</div>
+      <h2>궁금한 점, 먼저 물어보세요</h2>
+      <p>서비스 문의 · 맞춤 상담 · 신규 서비스 출시 알림까지 편하게 남겨주세요.</p>
+    </div>
+    <form class="contact-form" id="contactForm" onsubmit="handleContact(event)">
+      <div class="c-row">
+        <div class="c-field">
+          <label class="c-label">원장님 성함</label>
+          <input class="c-input" type="text" name="원장님_성함" placeholder="홍길동" required>
+        </div>
+        <div class="c-field">
+          <label class="c-label">도장 · 학원 이름</label>
+          <input class="c-input" type="text" name="도장_이름" placeholder="FILLYO 태권도장" required>
+        </div>
+      </div>
+      <div class="c-row">
+        <div class="c-field">
+          <label class="c-label">연락처</label>
+          <input class="c-input" type="tel" name="연락처" placeholder="010-0000-0000">
+        </div>
+        <div class="c-field">
+          <label class="c-label">관심 서비스</label>
+          <select class="c-select" name="관심_서비스">
+            <option value="" disabled selected>선택해주세요</option>
+            <option>FILLYO 업무일지</option>
+            <option>승급심사</option>
+            <option>줄넘기</option>
+            <option>AI 성장리포트</option>
+            <option>슬로우모션 분석</option>
+            <option>전부 다 궁금해요</option>
+          </select>
+        </div>
+      </div>
+      <textarea class="c-textarea" name="메시지" placeholder="궁금하신 점이나 요청사항을 자유롭게 적어주세요 (선택)"></textarea>
+      <button type="submit" class="c-submit">문의하기 →</button>
+    </form>
+    <div class="or-divider">또는</div>
+    <a href="https://pf.kakao.com/_xnxicxjX" class="kakao-btn" target="_blank">
+      <span class="kakao-k">K</span>카카오 채널로 바로 문의
+    </a>
+  </div>
+</section>
+
 <footer>
   <div class="wrap foot-row">
     <span>FILLYO — 필요(FILLYO) · 대전 서구</span>
@@ -667,5 +756,35 @@ onAuthStateChanged(auth, (user) => {
 });
 </script>
 
+<script>
+const GAS_URL='https://script.google.com/macros/s/AKfycbxqZnGpH8__UNzdV6w5U30l8C0Z_PLXsoVYftRNjhQ3E7LMQYrV0IWfrTKRcLD-7Sou/exec';
+function handleContact(e){
+  e.preventDefault();
+  const btn=e.target.querySelector('.c-submit');
+  btn.textContent='⏳ 전송 중...';btn.disabled=true;
+  const form=e.target;
+  const data={
+    유형:'문의신청',
+    원장님_성함:form.querySelector('[name="원장님_성함"]').value,
+    도장_이름:form.querySelector('[name="도장_이름"]').value,
+    연락처:form.querySelector('[name="연락처"]').value,
+    업종:'',
+    관심_서비스:form.querySelector('[name="관심_서비스"]').value,
+    메시지:form.querySelector('[name="메시지"]').value,
+    제출시간:new Date().toLocaleString('ko-KR')
+  };
+  fetch(GAS_URL,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)})
+  .then(()=>{
+    btn.textContent='✓ 접수 완료! 곧 연락드릴게요';
+    btn.style.background='var(--mint-deep)';
+    form.reset();
+  })
+  .catch(()=>{
+    btn.textContent='오류가 발생했습니다. 다시 시도해주세요';
+    btn.style.background='var(--coral-deep)';
+    btn.disabled=false;
+  });
+}
+</script>
 </body>
 </html>
