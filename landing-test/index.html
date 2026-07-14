@@ -226,6 +226,21 @@
     text-align:center;font-size:22px;font-weight:900;
     color:var(--ink-faint);margin:36px 0;
   }
+  .tier1-included{
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+    background:var(--paper-2);border:1px solid var(--line);border-radius:14px;
+    padding:14px 18px;margin-bottom:16px;
+  }
+  .tier1-included span{
+    font-size:12px;font-weight:800;color:var(--mint-deep);
+    background:var(--mint-bg);padding:4px 10px;border-radius:100px;flex-shrink:0;
+  }
+  .tier1-included p{font-size:13.5px;color:var(--ink-soft);line-height:1.6;}
+  .price-grid-compact{gap:14px;}
+  .price-card.compact{padding:22px 24px;}
+  .price-card.compact h4{margin-bottom:10px;}
+  .price-card.compact .amt{margin-bottom:2px;}
+  .price-card.compact .unit{margin-bottom:0;}
   .price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
   .price-card{
     background:#fff;border:1.5px solid var(--line);border-radius:24px;
@@ -504,36 +519,25 @@
     </div>
 
     <div class="tier-label"><span class="tier-num">1</span>업무일지 — 기본 구독 (필수)</div>
-    <div class="price-grid">
-      <div class="price-card">
+    <div class="tier1-included">
+      <span>포함 기능</span>
+      <p>출석·특이사항 기록 · 관장·사범 실시간 공유 · 지난 기록 언제든 재조회 — 3가지 요금제 모두 동일하게 포함</p>
+    </div>
+    <div class="price-grid price-grid-compact">
+      <div class="price-card compact">
         <h4>얼리버드</h4>
         <div class="amt">₩9,900</div>
         <div class="unit">/월 · 1년 고정가 · 2026.8.31까지 한정</div>
-        <ul>
-          <li>출석 · 특이사항 기록</li>
-          <li>관장 · 사범 실시간 공유</li>
-          <li>지난 기록 언제든 재조회</li>
-        </ul>
       </div>
-      <div class="price-card">
+      <div class="price-card compact">
         <h4>1년계약</h4>
         <div class="amt">₩15,840</div>
         <div class="unit">/월 · 1년 약정</div>
-        <ul>
-          <li>출석 · 특이사항 기록</li>
-          <li>관장 · 사범 실시간 공유</li>
-          <li>지난 기록 언제든 재조회</li>
-        </ul>
       </div>
-      <div class="price-card">
+      <div class="price-card compact">
         <h4>월정액</h4>
         <div class="amt">₩19,800</div>
         <div class="unit">/월 · 약정 없음</div>
-        <ul>
-          <li>출석 · 특이사항 기록</li>
-          <li>관장 · 사범 실시간 공유</li>
-          <li>지난 기록 언제든 재조회</li>
-        </ul>
       </div>
     </div>
 
