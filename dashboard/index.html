@@ -348,7 +348,8 @@
     /* POLICY BANNER */
     .policy-banner{display:flex;align-items:center;justify-content:space-between;background:#E8F5E9;border:1.5px solid #A5D6A7;border-radius:12px;padding:11px 16px;margin:0 20px 18px;cursor:pointer;transition:background 0.15s;}
     .policy-banner:active{background:#C8E6C9;}
-    .policy-banner-text{font-size:13px;font-weight:700;color:#2E7D32;}
+    .policy-banner-text{font-size:13px;font-weight:700;color:#2E7D32;transition:opacity 0.35s ease;}
+    .policy-banner-text.fade-out{opacity:0;}
     .policy-banner-arrow{font-size:16px;color:#43A047;}
     /* TOAST */
     .toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:#1A2332;color:white;padding:12px 22px;border-radius:24px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;transition:opacity 0.25s,transform 0.25s;z-index:9999;white-space:nowrap;}
@@ -598,8 +599,8 @@
         서비스
       </div>
       <div class="nav-item" id="navPolicy">
-        <div class="nav-icon">📋</div>
-        지원금
+        <div class="nav-icon">📖</div>
+        사용설명서
       </div>
       <div class="nav-item" id="navAlarm">
         <div class="nav-icon"><span class="nav-alarm-wrap">🔔<span id="navDot"></span></span></div>
@@ -851,7 +852,7 @@ function showToast(msg) {
 }
 
 document.getElementById('navPolicy').addEventListener('click', () => {
-  location.href = '/policy/';
+  location.href = '/guide/';
 });
 
 document.getElementById('policyBanner').addEventListener('click', () => {
@@ -983,6 +984,31 @@ function xss(s) {
     .replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+// ── 정책 배너 애니메이션 ──────────────────────────────────────────
+async function loadPolicyBanner() {
+  try {
+    const snap = await get(ref(db, 'policy/curated'));
+    if (!snap.exists()) return;
+    const items = Object.values(snap.val())
+      .filter(v => v && v.pinned === true && v.pblancNm);
+    if (items.length === 0) return;
+    const names = items.slice(0, 4).map(v => `📋 ${v.pblancNm} 보기 →`);
+    const textEl = document.querySelector('.policy-banner-text');
+    textEl.textContent = names[0];
+    if (names.length === 1) return;
+    let idx = 0;
+    setInterval(() => {
+      textEl.classList.add('fade-out');
+      setTimeout(() => {
+        idx = (idx + 1) % names.length;
+        textEl.textContent = names[idx];
+        textEl.classList.remove('fade-out');
+      }, 350);
+    }, 3000);
+  } catch (_) {}
+}
+loadPolicyBanner();
 </script>
 
 <style>
