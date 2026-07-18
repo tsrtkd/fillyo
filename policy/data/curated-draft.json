@@ -52,5 +52,14 @@
     "reqstBeginEndDe": "2026년 각 사업별 공고 일정 참조",
     "tag": "통합공고",
     "pinned": false
+  },
+  "HANA_POWERON2026": {
+    "pblancNm": "2026년 하나 파워 온 스토어 소상공인 지원사업",
+    "jrsdInsttNm": "사회연대은행·하나은행",
+    "pblancUrl": "https://www.hanapoweronstore.com/",
+    "reqstEndDt": "",
+    "reqstBeginEndDe": "2026.06 ~ 2026.12 (고효율기기·온라인판로 지원 6.11 시작, 나머지 항목 7~8월 순차 오픈, 전국 5,300개소 한정)",
+    "tag": "시설·장비, AI/디지털, 소상공인",
+    "pinned": false
   }
 }
