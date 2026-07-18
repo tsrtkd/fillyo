@@ -375,11 +375,16 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       </div>
 
       <div id="draftPreviewSection" style="padding:0 20px 16px;">
-        <div style="margin:12px 0 8px;font-size:13px;font-weight:700;color:var(--navy);" id="draftPreviewTitle"></div>
+        <div style="margin:12px 0 6px;font-size:13px;font-weight:700;color:var(--navy);" id="draftPreviewTitle"></div>
+        <div style="margin-bottom:8px;display:flex;gap:6px;">
+          <button onclick="selectAllDraft(true)"  style="font-size:12px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer;">전체 선택</button>
+          <button onclick="selectAllDraft(false)" style="font-size:12px;padding:3px 10px;border:1px solid var(--border);border-radius:4px;background:var(--bg);cursor:pointer;">전체 해제</button>
+        </div>
         <div class="draft-preview-wrap">
           <table class="draft-tbl">
             <thead>
               <tr>
+                <th style="width:36px;text-align:center;"></th>
                 <th>공고명</th>
                 <th>기관</th>
                 <th>신청기간</th>
@@ -1138,6 +1143,7 @@ window.fetchDraft = async () => {
         ? `<a href="${esc(href)}" target="_blank" rel="noopener" class="draft-link">바로가기</a>`
         : '<span style="color:var(--border);">—</span>';
       return `<tr>
+        <td style="text-align:center;"><input type="checkbox" class="draft-chk" data-id="${esc(id)}" checked></td>
         <td style="font-weight:700;color:var(--text);">${name}</td>
         <td style="color:var(--text2);">${org}</td>
         <td style="color:var(--text2);">${period}</td>
@@ -1160,13 +1166,27 @@ window.cancelDraft = () => {
   document.getElementById('draftPreviewSection').style.display = 'none';
 };
 
+window.selectAllDraft = (checked) => {
+  document.querySelectorAll('.draft-chk').forEach(cb => cb.checked = checked);
+};
+
 window.applyDraft = async () => {
   if (!pendingDraft) return;
+
+  const checkedIds = new Set(
+    [...document.querySelectorAll('.draft-chk:checked')].map(cb => cb.dataset.id)
+  );
+  if (checkedIds.size === 0) {
+    showToast('반영할 항목을 하나 이상 선택하세요.', 'err');
+    return;
+  }
+
   const btn = document.querySelector('.btn-import');
   btn.disabled = true;
   btn.textContent = '반영 중...';
 
   try {
+    // pinned 보존 판단은 pendingDraft 전체 키 기준(초안에 없는 항목)으로 유지
     const draftKeys = new Set(Object.keys(pendingDraft));
 
     // 기존 curated 읽기 — pinned:true이면서 draft에 없는 항목은 보존
@@ -1180,10 +1200,10 @@ window.applyDraft = async () => {
       }
     }
 
-    // policy/curated 전체를 새로 씀 (보존 항목 + draft 항목)
+    // policy/curated 전체를 새로 씀 (보존 항목 + 체크된 draft 항목만)
     const newData = { ...existingPinned };
     for (const [k, v] of Object.entries(pendingDraft)) {
-      newData[k] = v;
+      if (checkedIds.has(k)) newData[k] = v;
     }
 
     await set(ref(db, 'policy/curated'), newData);
