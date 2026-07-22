@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Certificate border — CC0 / Public Domain — Custom design for FILLYO jumprope cert -->
+<!-- Palette: deep green #065a4b (outer), gold #bda06d (accent + inner) -->
+<!-- A4 portrait coordinate space: viewBox 0 0 210 297 (mm units) -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 297" width="210mm" height="297mm">
+
+  <!-- ═══ Triple-line border ═══ -->
+  <!-- Outer: deep green thick line at 8mm inset -->
+  <rect x="8" y="8" width="194" height="281" fill="none" stroke="#065a4b" stroke-width="1.8"/>
+  <!-- Mid: thin gold accent line at 10.8mm inset -->
+  <rect x="10.8" y="10.8" width="188.4" height="275.4" fill="none" stroke="#bda06d" stroke-width="0.4"/>
+  <!-- Inner: gold line at 13mm inset -->
+  <rect x="13" y="13" width="184" height="271" fill="none" stroke="#bda06d" stroke-width="0.9"/>
+
+  <!-- ═══ Corner diamond ornaments ═══ -->
+  <!-- Each corner: large green diamond (r=5) + small gold diamond (r=2.2) centered on outer rect corner -->
+
+  <!-- Top-left (8, 8) -->
+  <polygon points="8,3 13,8 8,13 3,8" fill="#065a4b"/>
+  <polygon points="8,5.8 10.2,8 8,10.2 5.8,8" fill="#bda06d"/>
+
+  <!-- Top-right (202, 8) -->
+  <polygon points="202,3 207,8 202,13 197,8" fill="#065a4b"/>
+  <polygon points="202,5.8 204.2,8 202,10.2 199.8,8" fill="#bda06d"/>
+
+  <!-- Bottom-left (8, 289) -->
+  <polygon points="8,284 13,289 8,294 3,289" fill="#065a4b"/>
+  <polygon points="8,286.8 10.2,289 8,291.2 5.8,289" fill="#bda06d"/>
+
+  <!-- Bottom-right (202, 289) -->
+  <polygon points="202,284 207,289 202,294 197,289" fill="#065a4b"/>
+  <polygon points="202,286.8 204.2,289 202,291.2 199.8,289" fill="#bda06d"/>
+
+  <!-- ═══ Mid-side small gold diamond marks (r=2) ═══ -->
+  <!-- Top center (105, 8) -->
+  <polygon points="105,6 107,8 105,10 103,8" fill="#bda06d"/>
+  <!-- Bottom center (105, 289) -->
+  <polygon points="105,287 107,289 105,291 103,289" fill="#bda06d"/>
+  <!-- Left center (8, 148.5) -->
+  <polygon points="8,146.5 10,148.5 8,150.5 6,148.5" fill="#bda06d"/>
+  <!-- Right center (202, 148.5) -->
+  <polygon points="202,146.5 204,148.5 202,150.5 200,148.5" fill="#bda06d"/>
+
+</svg>
