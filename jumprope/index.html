@@ -126,6 +126,7 @@ tr:hover td{background:#f0faf8}
       </div>
       <div class="fr">
         <div class="sb">🔍 <input type="text" id="s-search" placeholder="이름 검색" oninput="renderStudents()"></div>
+        <select id="s-sort" onchange="renderStudents()" style="font-size:12px;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-family:inherit"><option value="reg">등록순</option><option value="name">이름순</option><option value="grade">학년순</option><option value="level">급수순</option></select>
         <label class="btn btn-gray btn-sm" style="cursor:pointer">📥 엑셀 업로드<input type="file" accept=".xlsx,.xls,.csv" style="display:none" onchange="uploadExcel(this)"></label>
         <button class="btn btn-gray btn-sm" onclick="downloadTemplate()">📋 양식 다운로드</button>
       </div>
@@ -146,6 +147,7 @@ tr:hover td{background:#f0faf8}
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:8px 0;border-bottom:1px solid #f0f0f0">
           <input type="checkbox" id="select-all-eval" onchange="toggleAllStudents(this.checked)" checked>
           <label for="select-all-eval" style="font-size:13px;font-weight:700;cursor:pointer;color:#555">전체 선택</label>
+          <select id="eval-sort" onchange="renderEvalSetup()" style="margin-left:auto;font-size:12px;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-family:inherit"><option value="reg">등록순</option><option value="name">이름순</option><option value="grade">학년순</option><option value="level">급수순</option></select>
         </div>
         <table>
           <thead><tr><th style="width:40px">선택</th><th>이름</th><th>학년</th><th>현재 급수</th><th>도전 급수</th></tr></thead>
@@ -716,8 +718,12 @@ window.addStudent = addStudent;
 
 function renderStudents() {
   const q = document.getElementById('s-search').value.trim();
+  const sortBy = (document.getElementById('s-sort')||{}).value || 'reg';
   let arr = [...students];
   if (q) arr = arr.filter(s => s.name.includes(q));
+  if (sortBy === 'name') arr.sort((a,b) => a.name.localeCompare(b.name,'ko'));
+  else if (sortBy === 'grade') arr.sort((a,b) => (a.grade||0)-(b.grade||0));
+  else if (sortBy === 'level') arr.sort((a,b) => { const o=lv=>{ if(!lv||lv==='미평가')return -1; const i=LEVEL.indexOf(lv); return i===-1?-1:i; }; return o(a.level)-o(b.level); });
   document.getElementById('student-tbody').innerHTML = arr.map(s => `<tr>
     <td style="font-weight:700;text-align:left">${s.name}</td>
     <td>${s.grade}학년</td>
@@ -807,11 +813,19 @@ window.renderEval = renderEval;
 function renderEvalSetup() {
   const di = document.getElementById('session-date');
   if (!di.value) di.value = today;
-  document.getElementById('eval-setup-students').innerHTML = students.map(s => {
+  const sortBy = (document.getElementById('eval-sort')||{}).value || 'reg';
+  const prevChecked = new Set([...document.querySelectorAll('.eval-student-check:checked')].map(c=>parseInt(c.value)));
+  const hasPrev = document.querySelectorAll('.eval-student-check').length > 0;
+  let arr = [...students];
+  if (sortBy === 'name') arr.sort((a,b) => a.name.localeCompare(b.name,'ko'));
+  else if (sortBy === 'grade') arr.sort((a,b) => (a.grade||0)-(b.grade||0));
+  else if (sortBy === 'level') arr.sort((a,b) => { const o=lv=>{ if(!lv||lv==='미평가')return -1; const i=LEVEL.indexOf(lv); return i===-1?-1:i; }; return o(a.level)-o(b.level); });
+  document.getElementById('eval-setup-students').innerHTML = arr.map(s => {
     const nxt = nextLevel(s.level);
     const lvDisp = (s.level === null || s.level === undefined) ? '미평가' : (String(s.level).endsWith('급') ? s.level : s.level + '급');
+    const chk = hasPrev ? prevChecked.has(s.id) : true;
     return `<tr>
-      <td><input type="checkbox" class="eval-student-check" value="${s.id}" checked></td>
+      <td><input type="checkbox" class="eval-student-check" value="${s.id}" ${chk?'checked':''}}></td>
       <td style="font-weight:700;text-align:left">${s.name}</td>
       <td>${s.grade}학년</td>
       <td><span class="badge ${bCls(lvDisp)}">${lvDisp}</span></td>
@@ -1004,8 +1018,12 @@ function renderDash() {
   const sessionList = Object.values(sessions).sort((a,b) => (b.date||'').localeCompare(a.date||''));
   const sel = document.getElementById('dash-session-filter');
   const dashFilter = sel ? sel.value : 'all';
+  const dashSort = (document.getElementById('dash-sort')||{}).value || 'date';
   let hist = [...evalHistory].sort((a,b) => (b.date||'').localeCompare(a.date||''));
   if (dashFilter !== 'all') hist = hist.filter(h => String(h.sessionId) === String(dashFilter));
+  if (dashSort === 'name') hist.sort((a,b) => (a.name||'').localeCompare(b.name||'','ko'));
+  else if (dashSort === 'grade') hist.sort((a,b) => (a.grade||0)-(b.grade||0));
+  else if (dashSort === 'level') hist.sort((a,b) => { const o=lv=>{ if(!lv||lv==='미평가')return -1; const i=LEVEL.indexOf(lv); return i===-1?-1:i; }; return o(a.targetLevel)-o(b.targetLevel); });
   document.getElementById('dash-content').innerHTML = `
     <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px">
       <div style="flex:1;min-width:100px;background:#EBF7F5;border-radius:10px;padding:14px;text-align:center">
@@ -1032,6 +1050,7 @@ function renderDash() {
           <option value="all"${dashFilter==='all'?' selected':''}>전체 회차</option>
           ${sessionList.map(s=>`<option value="${s.id}"${String(dashFilter)===String(s.id)?' selected':''}>${s.name} (${s.date})</option>`).join('')}
         </select>
+        <select id="dash-sort" onchange="renderDash()" style="font-size:12px;padding:6px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-family:inherit"><option value="date"${dashSort==='date'?' selected':''}>날짜순</option><option value="name"${dashSort==='name'?' selected':''}>이름순</option><option value="grade"${dashSort==='grade'?' selected':''}>학년순</option><option value="level"${dashSort==='level'?' selected':''}>도전급수순</option></select>
         ${dashFilter!=='all'?`<button class="btn btn-r btn-sm" onclick="deleteSession('${dashFilter}')">이 회차 삭제</button>`:''}
       </div>
     </div>
