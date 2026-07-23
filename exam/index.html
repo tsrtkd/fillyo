@@ -1078,13 +1078,13 @@ onAuthStateChanged(auth, async (user) => {
           const _adSnap = await get(ref(db, `academies/${_acId}/addons`));
           if (_adSnap.exists()) {
             const _ad = _adSnap.val();
-            _examOk = _ad.exam?.status === 'active' || _ad.bundle?.status === 'active';
+            _examOk = _ad.report?.status === 'active';
           }
         }
       }
       if (!_admin && !_examOk && !_trial) {
         alert(_isPro
-          ? '승급심사 애드온을 구독하면 이용하실 수 있습니다. 마이페이지에서 확인해주세요.'
+          ? 'AI성장리포트 애드온을 구독하면 이용하실 수 있습니다. 마이페이지에서 확인해주세요.'
           : '무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
         location.href = '/dashboard/';
         return;

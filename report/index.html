@@ -502,12 +502,33 @@ onAuthStateChanged(auth, async user => {
     if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
 
     const userData = userSnap.val();
+    const _isAdmin = user.email === 'audtls2g@gmail.com';
     academyId = userData.academyId || null;
 
     if (!academyId) {
       alert('학원 정보가 없습니다. 관리자에게 문의하세요.');
       location.href = '/dashboard/';
       return;
+    }
+
+    // 애드온 접근 제어 (관리자 제외)
+    if (!_isAdmin) {
+      const _isPro = userData.planType === 'pro' && (!userData.planExpiry || userData.planExpiry > Date.now());
+      const _ts    = userData.trialStart || null;
+      const _days  = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 999;
+      const _trial = !_isPro && _ts !== null && _days < 7;
+      let _reportOk = false;
+      if (_isPro) {
+        const _adSnap = await get(ref(db, `academies/${academyId}/addons`));
+        if (_adSnap.exists()) _reportOk = _adSnap.val().report?.status === 'active';
+      }
+      if (!_reportOk && !_trial) {
+        alert(_isPro
+          ? 'AI성장리포트 애드온을 구독하면 이용하실 수 있습니다. 마이페이지에서 확인해주세요.'
+          : '무료 체험이 종료되었습니다. 결제 후 이용해주세요.');
+        location.href = '/dashboard/';
+        return;
+      }
     }
 
     // 학원명
