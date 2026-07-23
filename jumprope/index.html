@@ -825,7 +825,7 @@ function renderEvalSetup() {
     const lvDisp = (s.level === null || s.level === undefined) ? '미평가' : (String(s.level).endsWith('급') ? s.level : s.level + '급');
     const chk = hasPrev ? prevChecked.has(s.id) : true;
     return `<tr>
-      <td><input type="checkbox" class="eval-student-check" value="${s.id}" ${chk?'checked':''}}></td>
+      <td><input type="checkbox" class="eval-student-check" value="${s.id}" ${chk?'checked':''}></td>
       <td style="font-weight:700;text-align:left">${s.name}</td>
       <td>${s.grade}학년</td>
       <td><span class="badge ${bCls(lvDisp)}">${lvDisp}</span></td>
@@ -833,6 +833,8 @@ function renderEvalSetup() {
     </tr>`;
   }).join('');
 }
+
+window.renderEvalSetup = renderEvalSetup;
 
 function toggleAllStudents(checked) {
   document.querySelectorAll('.eval-student-check').forEach(c => c.checked = checked);
