@@ -918,9 +918,12 @@ function renderEvalScore() {
   const s = students.find(x => x.id === scoringStudentId);
   if (!s || !session) { evalState = 'list'; renderEval(); return; }
   const nxt = nextLevel(s.level);
-  const lvIdx = nxt ? LEVEL.indexOf(nxt) : -1;
-  const criteria = nxt ? getStdCriteria(s.grade, lvIdx) : '';
-  const skillDesc = nxt ? (SKILL[nxt] || '') : '';
+  const curIdx = (s.level && s.level !== '미평가') ? LEVEL.indexOf(s.level) : -1;
+  const availableLevels = LEVEL.slice(curIdx + 1);
+  const defaultLv = nxt || (availableLevels[0] || '');
+  const lvIdx = defaultLv ? LEVEL.indexOf(defaultLv) : -1;
+  const criteria = defaultLv ? getStdCriteria(s.grade, lvIdx) : '';
+  const skillDesc = defaultLv ? (SKILL[defaultLv] || '') : '';
   document.getElementById('eval-score-content').innerHTML = `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px">
       <button class="btn btn-gray btn-sm" onclick="backToList()">← 목록</button>
@@ -928,11 +931,11 @@ function renderEvalScore() {
     </div>
     <div style="background:#f5f5f5;border-radius:10px;padding:16px;margin-bottom:20px">
       <div style="font-size:22px;font-weight:900;margin-bottom:10px">${s.name} <span style="font-size:13px;color:#888;font-weight:400">${s.grade}학년</span></div>
-      <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
         <div><div style="font-size:10px;color:#888;margin-bottom:4px">현재 급수</div><span class="badge ${bCls(s.level)}" style="font-size:13px;padding:4px 14px">${s.level}</span></div>
-        ${nxt ? `<div><div style="font-size:10px;color:#888;margin-bottom:4px">도전 급수</div><span class="badge ${bCls(nxt)}" style="font-size:13px;padding:4px 14px">${nxt}</span></div>` : ''}
+        ${nxt ? `<div><div style="font-size:10px;color:#888;margin-bottom:4px">도전 급수</div><select id="target-level-select" onchange="updateEvalCriteria()" style="font-size:13px;padding:4px 10px;border:1.5px solid #e0e0e0;border-radius:8px;font-family:inherit">${availableLevels.map(lv=>`<option value="${lv}"${lv===defaultLv?' selected':''}>${lv}</option>`).join('')}</select></div>` : ''}
       </div>
-      ${nxt ? `<div style="margin-top:12px;background:#fff;border-radius:8px;padding:10px;border-left:3px solid #0B7B6B">
+      ${nxt ? `<div id="eval-criteria-box" style="margin-top:12px;background:#fff;border-radius:8px;padding:10px;border-left:3px solid #0B7B6B">
         <div style="font-size:12px;font-weight:700;color:#0B7B6B;margin-bottom:3px">${skillDesc}</div>
         <div style="font-size:13px;color:#333">합격 기준: <strong>${criteria}</strong></div>
       </div>` : ''}
@@ -951,6 +954,22 @@ function renderEvalScore() {
     <button class="btn btn-gray" style="width:100%" onclick="backToList()">목록으로</button>
     `}`;
 }
+
+function updateEvalCriteria() {
+  const s = students.find(x => x.id === scoringStudentId);
+  if (!s) return;
+  const sel = document.getElementById('target-level-select');
+  if (!sel) return;
+  const targetLv = sel.value;
+  const lvIdx = LEVEL.indexOf(targetLv);
+  const criteria = getStdCriteria(s.grade, lvIdx);
+  const skillDesc = SKILL[targetLv] || '';
+  const box = document.getElementById('eval-criteria-box');
+  if (box) box.innerHTML = `
+    <div style="font-size:12px;font-weight:700;color:#0B7B6B;margin-bottom:3px">${skillDesc}</div>
+    <div style="font-size:13px;color:#333">합격 기준: <strong>${criteria}</strong></div>`;
+}
+window.updateEvalCriteria = updateEvalCriteria;
 
 function setResult(result) {
   scoringResult = result;
@@ -972,13 +991,14 @@ function saveScoring() {
   const session = sessions[activeSessionId];
   const s = students.find(x => x.id === scoringStudentId);
   if (!s || !session) return;
-  const nxt = nextLevel(s.level);
-  if (!nxt) { backToList(); return; }
+  const sel = document.getElementById('target-level-select');
+  const targetLevel = sel ? sel.value : nextLevel(s.level);
+  if (!targetLevel) { backToList(); return; }
   if (!session.results) session.results = {};
-  session.results[scoringStudentId] = {result: scoringResult, targetLevel: nxt};
+  session.results[scoringStudentId] = {result: scoringResult, targetLevel};
   hIdCnt++;
-  evalHistory.push({id:hIdCnt, studentId:s.id, name:s.name, grade:s.grade, sessionId:activeSessionId, sessionName:session.name, targetLevel:nxt, result:scoringResult, date:session.date});
-  if (scoringResult === 'pass') { s.level = nxt; saveStudents(); }
+  evalHistory.push({id:hIdCnt, studentId:s.id, name:s.name, grade:s.grade, sessionId:activeSessionId, sessionName:session.name, targetLevel, result:scoringResult, date:session.date});
+  if (scoringResult === 'pass') { s.level = targetLevel; saveStudents(); }
   saveHistory(); saveSessions();
   scoringStudentId = null; scoringResult = null;
   evalState = 'list'; renderEval();
