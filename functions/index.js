@@ -45,17 +45,19 @@ const ADDON_PRICE_TABLE = {
   report: { regularAmount: 19800, name: 'AI성장리포트 (줄넘기·승급심사 포함)' },
 };
 
-// AI성장리포트 단계별 계약가
-// ADDON_LIVE_DATE: KG이니시스 실연동 전환일 (null = 전환 전 → 얼리버드 9,900원)
-// 전환 후: 0~2개월 9,900원, 3~8개월 13,500원, 9개월~ 정가 19,800원
+// AI성장리포트 가격 단계 (수동 전환 — 대표님 지시 시에만 변경)
+// 'earlybird': 9,900원 / 'discount30': 13,500원 / 'full': 19,800원
+// ※ 전환 조건: ADDON_LIVE_DATE 기준 최소 3개월 이상 경과 후 다음 단계 가능
+const ADDON_PRICE_TIER = 'earlybird';
+
+// 얼리버드 시작일 기록용 (가격 전환 자동계산에 사용하지 않음)
+// KG이니시스 실연동 전환 시 'YYYY-MM-DD' 형식으로 기입
 const ADDON_LIVE_DATE = null;
 
 function reportContractPrice() {
-  if (!ADDON_LIVE_DATE) return 9900;
-  const months = Math.floor((Date.now() - new Date(ADDON_LIVE_DATE).getTime()) / (30 * 24 * 3600 * 1000));
-  if (months < 3) return 9900;
-  if (months < 9) return 13500;
-  return 19800;
+  if (ADDON_PRICE_TIER === 'discount30') return 13500;
+  if (ADDON_PRICE_TIER === 'full') return 19800;
+  return 9900; // 'earlybird'
 }
 
 // 다음 달 동일 일자 계산 (월말 보정 포함)

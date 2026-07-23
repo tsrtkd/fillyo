@@ -372,8 +372,14 @@ let pendingAddonBT     = null;
 let pendingCancelKey   = null;
 let pendingUnbundleKey = null;
 
+// AI성장리포트 가격 단계 (수동 전환 — 대표님 지시 시에만 변경)
+// functions/index.js ADDON_PRICE_TIER와 동일한 값으로 유지
+// 'earlybird': 9,900원 / 'discount30': 13,500원 / 'full': 19,800원
+const ADDON_PRICE_TIER = 'earlybird';
+const ADDON_TIER_PRICES = { earlybird: 9900, discount30: 13500, full: 19800 };
+const ADDON_TIER_LABELS = { earlybird: '얼리버드', discount30: '30% 할인', full: '정가' };
 const ADDON_PRICE = {
-  report: { contract: 9900, regularAmount: 19800, name: 'AI성장리포트', icon: '📊' },
+  report: { contract: ADDON_TIER_PRICES[ADDON_PRICE_TIER], regularAmount: 19800, name: 'AI성장리포트', icon: '📊' },
 };
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
@@ -694,7 +700,7 @@ function renderAddonSection(userData) {
   } else {
     html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;">`;
     html += `<span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>`;
-    html += `<span class="addon-billing-opt-tag">1년 계약 · 얼리버드</span>`;
+    html += `<span class="addon-billing-opt-tag">1년 계약 · ${ADDON_TIER_LABELS[ADDON_PRICE_TIER]}</span>`;
     html += `</div></div>`;
     html += `<button class="btn-addon-sub" onclick="openAddonSubModal('report')">신청하기</button>`;
   }
