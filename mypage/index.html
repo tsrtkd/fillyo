@@ -373,12 +373,8 @@ let pendingCancelKey   = null;
 let pendingUnbundleKey = null;
 
 const ADDON_PRICE = {
-  exam:     { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '승급심사',    icon: '🥋' },
-  jumprope: { contract: 4900,  single: 9800,  regularAmount: 9800,  name: '줄넘기',      icon: '🪢' },
-  report:   { contract: 4900,  single: 9800,  regularAmount: 9800,  name: 'AI성장리포트', icon: '📊' },
-  bundle:   { contract: 13500, single: null,  regularAmount: 13500, name: '3종 묶음 (줄넘기+승급심사+AI성장리포트)', icon: '⭐' },
+  report: { contract: 9900, regularAmount: 19800, name: 'AI성장리포트', icon: '📊' },
 };
-const addonBillingChoice = { exam: 'contract', jumprope: 'contract', report: 'contract', bundle: 'contract' };
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -677,96 +673,43 @@ function renderAddonSection(userData) {
     return;
   }
 
-  const examActive   = currentAddons.exam?.status === 'active';
-  const jumpActive   = currentAddons.jumprope?.status === 'active';
-  const bundleActive = currentAddons.bundle?.status === 'active';
+  const p     = ADDON_PRICE.report;
+  const addon = currentAddons.report;
+  const active = addon?.status === 'active';
 
-  let html = '';
-  ['exam', 'jumprope', 'report', 'bundle'].forEach(key => {
-    const p      = ADDON_PRICE[key];
-    const addon  = currentAddons[key];
-    const active  = addon?.status === 'active';
-    const merged  = addon?.status === 'merged';
-    const blocked = key === 'bundle' && (examActive || jumpActive) && !bundleActive;
+  let html = `<div class="addon-card${active ? ' active' : ''}">`;
+  html += `<div class="addon-card-top">`;
+  html += `<span class="addon-card-name">${p.icon} ${p.name}</span>`;
+  if (active) html += `<span class="addon-badge-active">이용 중</span>`;
+  html += `</div>`;
+  html += `<div class="addon-card-meta" style="color:var(--text2);font-size:12px;line-height:1.6;margin-bottom:8px">줄넘기 기록·승급심사 데이터를 자동으로 모아 AI가 학생별 성장리포트를 생성합니다.</div>`;
 
-    // merged 상태: 3종 묶음에 포함된 개별 항목
-    if (merged) {
-      html += `<div class="addon-card merged">`;
-      html += `<div class="addon-card-top">`;
-      html += `<span class="addon-card-name">${p.icon} ${p.name}</span>`;
-      html += `<span class="addon-badge-merged">묶음 포함</span>`;
-      html += `</div>`;
-      html += `<div class="addon-merged-msg">3종 묶음에 포함되어 통합 결제 중입니다.<br>개별 해지 대신 묶음에서 이 항목만 빼실 수 있습니다.</div>`;
-      html += `<button class="btn-addon-unbundle" onclick="openAddonUnbundleModal('${key}')">묶음에서 이 항목만 빼기</button>`;
-      html += `</div>`;
-      return;
-    }
-
-    html += `<div class="addon-card${active ? ' active' : ''}">`;
-    html += `<div class="addon-card-top">`;
-    html += `<span class="addon-card-name">${p.icon} ${p.name}</span>`;
-    if (active) html += `<span class="addon-badge-active">이용 중</span>`;
-    html += `</div>`;
-
-    if (active) {
-      const btLabel  = addon.billingType === 'contract' ? '1년 계약' : '1개월 이용권';
-      const paid     = addon.paidCount || 0;
-      const paidInfo = addon.billingType === 'contract' ? ` · ${paid}/12회 결제` : '';
-      const amt      = p[addon.billingType] ?? p.contract;
-      let nextTxt;
-      if (addon.billingType === 'single') {
-        nextTxt = paid >= 1 ? '단건 결제 완료 · 자동갱신 없음' : `첫 결제: ${fmtDate(nextMonthSameDayTs(addon.createdAt))}`;
-      } else {
-        const base = addon.lastPaidAt || addon.createdAt;
-        nextTxt = `다음 결제: ${fmtDate(nextMonthSameDayTs(base))}`;
-      }
-      html += `<div class="addon-card-meta"><strong>${btLabel}</strong> · ₩${amt.toLocaleString()}/월${paidInfo}<br>${nextTxt}</div>`;
-      html += `<button class="btn-addon-cancel" onclick="openAddonCancelModal('${key}')">해지</button>`;
-    } else if (blocked) {
-      html += `<div class="addon-block-msg">이미 개별 이용 중인 항목이 있어 묶음을 선택할 수 없습니다.<br>먼저 개별 항목을 해지해주세요.</div>`;
-    } else {
-      if (key === 'bundle') {
-        html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;"><span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span><span class="addon-billing-opt-tag">1년 계약 전용</span></div></div>`;
-      } else {
-        const cSel = addonBillingChoice[key] === 'contract' ? ' sel' : '';
-        const sSel = addonBillingChoice[key] === 'single'   ? ' sel' : '';
-        html += `<div class="addon-billing-opts" id="ao-${key}">
-          <div class="addon-billing-opt${cSel}" data-addon-key="${key}" data-addon-type="contract" onclick="selectAddonBilling('${key}','contract')">
-            <span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>
-            <span class="addon-billing-opt-tag">1년 계약</span>
-          </div>
-          <div class="addon-billing-opt${sSel}" data-addon-key="${key}" data-addon-type="single" onclick="selectAddonBilling('${key}','single')">
-            <span class="addon-billing-opt-price">₩${p.single.toLocaleString()}/월</span>
-            <span class="addon-billing-opt-tag">1개월 이용권</span>
-          </div>
-        </div>`;
-      }
-      html += `<button class="btn-addon-sub" onclick="openAddonSubModal('${key}')">신청하기</button>`;
-    }
-
-    html += `</div>`;
-  });
+  if (active) {
+    const paid     = addon.paidCount || 0;
+    const amt      = addon.monthlyAmount || p.contract;
+    const base     = addon.lastPaidAt || addon.createdAt;
+    const nextTxt  = `다음 결제: ${fmtDate(nextMonthSameDayTs(base))}`;
+    html += `<div class="addon-card-meta"><strong>1년 계약</strong> · ₩${amt.toLocaleString()}/월 · ${paid}/12회 결제<br>${nextTxt}</div>`;
+    html += `<button class="btn-addon-cancel" onclick="openAddonCancelModal('report')">해지</button>`;
+  } else {
+    html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;">`;
+    html += `<span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>`;
+    html += `<span class="addon-billing-opt-tag">1년 계약 · 얼리버드</span>`;
+    html += `</div></div>`;
+    html += `<button class="btn-addon-sub" onclick="openAddonSubModal('report')">신청하기</button>`;
+  }
+  html += `</div>`;
   content.innerHTML = html;
 }
 
-window.selectAddonBilling = (key, type) => {
-  addonBillingChoice[key] = type;
-  document.querySelectorAll(`[data-addon-key="${key}"]`).forEach(el => {
-    el.classList.toggle('sel', el.dataset.addonType === type);
-  });
-};
-
 window.openAddonSubModal = (key) => {
   const p  = ADDON_PRICE[key];
-  const bt = key === 'bundle' ? 'contract' : addonBillingChoice[key];
-  const amt = bt === 'contract' ? p.contract : p.single;
-  const btLabel = bt === 'contract' ? '1년 계약' : '1개월 이용권';
   pendingAddonKey = key;
-  pendingAddonBT  = bt;
+  pendingAddonBT  = 'contract';
   const nextPayDate = fmtDate(nextMonthSameDayTs(Date.now()));
-  document.getElementById('addonSubModalTitle').textContent = `${p.name} 애드온 신청`;
+  document.getElementById('addonSubModalTitle').textContent = `${p.name} 신청`;
   document.getElementById('addonSubModalSub').innerHTML =
-    `${p.name} 애드온을 ${btLabel}(₩${amt.toLocaleString()}/월)으로 신청합니다.<br><br>` +
+    `${p.name}을(를) 1년 계약(₩${p.contract.toLocaleString()}/월)으로 신청합니다.<br><br>` +
     `오늘은 결제되지 않으며, 기존에 등록하신 카드로 다음 결제일(${nextPayDate})부터 자동으로 청구됩니다.`;
   document.getElementById('addonSubModal').classList.add('show');
 };
@@ -777,23 +720,16 @@ window.doAddonSubscribe = async () => {
   const btn = document.getElementById('btnAddonSubOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    const result = await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey, billingType: pendingAddonBT });
+    await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey });
     closeAddonSubModal();
-    if (result?.data?.bundled) {
-      // 번들 통합 완료 → addons 전체 다시 로드
-      const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
-      if (addonsSnap.exists()) currentAddons = addonsSnap.val();
-      showToast('3종 묶음으로 자동 통합되었습니다 (₩13,500/월)', 'ok');
-    } else {
-      const p = ADDON_PRICE[pendingAddonKey];
-      currentAddons[pendingAddonKey] = {
-        status: 'active', billingType: pendingAddonBT,
-        monthlyAmount: pendingAddonBT === 'contract' ? p.contract : p.single,
-        regularAmount: p.regularAmount,
-        paidCount: 0, createdAt: Date.now(),
-      };
-      showToast('애드온이 신청되었습니다.', 'ok');
-    }
+    const p = ADDON_PRICE[pendingAddonKey];
+    currentAddons[pendingAddonKey] = {
+      status: 'active', billingType: 'contract',
+      monthlyAmount: p.contract,
+      regularAmount: p.regularAmount,
+      paidCount: 0, createdAt: Date.now(),
+    };
+    showToast('AI성장리포트 애드온이 신청되었습니다.', 'ok');
     const snap = await get(ref(db, `users/${currentUser.uid}`));
     renderAddonSection(snap.val());
   } catch (e) {
@@ -808,8 +744,7 @@ window.openAddonCancelModal = (key) => {
   const addon = currentAddons[key];
   if (!addon) return;
   pendingCancelKey = key;
-  const btLabel = addon.billingType === 'contract' ? '1년 계약' : '1개월 이용권';
-  document.getElementById('addonCancelModalSub').textContent = `${p.name} 애드온(${btLabel})을 해지하시겠습니까?`;
+  document.getElementById('addonCancelModalSub').textContent = `${p.name} 애드온(1년 계약)을 해지하시겠습니까?`;
   const warnBox  = document.getElementById('addonCancelWarnBox');
   const warnText = document.getElementById('addonCancelWarnText');
   const paid     = addon.paidCount || 0;
@@ -853,62 +788,11 @@ window.doAddonCancel = async () => {
   }
 };
 
-// ── 번들 분해 모달 ────────────────────────────────────────────────
-window.openAddonUnbundleModal = (key) => {
-  const p      = ADDON_PRICE[key];
-  const addon  = currentAddons[key];
-  const bundle = currentAddons.bundle;
-  if (!addon || !bundle) return;
-  pendingUnbundleKey = key;
-
-  const BUNDLE_KEYS = ['exam', 'jumprope', 'report'];
-  const remaining = BUNDLE_KEYS.filter(k => k !== key).map(k => ADDON_PRICE[k].name).join('·');
-  const bundlePaid   = bundle.paidCount || 0;
-  const totalPaid    = (addon.frozenPaidCount ?? 0) + bundlePaid;
-  const penalty      = (p.regularAmount - p.contract) * totalPaid;
-
-  document.getElementById('addonUnbundleModalTitle').textContent = `${p.name} 묶음에서 빼기`;
-  document.getElementById('addonUnbundleModalSub').innerHTML =
-    `${p.name}을(를) 3종 묶음에서 빼면<br>` +
-    `<strong>${remaining}</strong>는 각각 <strong>₩4,900/월</strong> 개별 결제로 전환됩니다.`;
-
-  const warnBox  = document.getElementById('addonUnbundleWarnBox');
-  const warnText = document.getElementById('addonUnbundleWarnText');
-  if (penalty > 0) {
-    warnBox.style.display = 'block';
-    warnText.innerHTML = `⚠️ ${p.name}에 대한 위약금 <strong>₩${penalty.toLocaleString()}원</strong>이 별도 청구될 수 있습니다.<br>(₩${(p.regularAmount - p.contract).toLocaleString()} × ${totalPaid}회)`;
-  } else {
-    warnBox.style.display = 'none';
-  }
-  document.getElementById('addonUnbundleModal').classList.add('show');
-};
-
-window.closeAddonUnbundleModal = () => document.getElementById('addonUnbundleModal').classList.remove('show');
-
+// stub: 번들 분해 모달은 더 이상 사용하지 않음 (하위 호환성 유지)
+window.openAddonUnbundleModal = () => {};
+window.closeAddonUnbundleModal = () => {};
 window.doAddonUnbundle = async () => {
-  const btn = document.getElementById('btnAddonUnbundleOk');
-  btn.disabled = true; btn.classList.add('loading');
-  try {
-    const result = await fnCancelAddon({ academyId: currentAcadId, addonKey: pendingUnbundleKey });
-    closeAddonUnbundleModal();
-    const d = result?.data;
-    const baseMsg = '묶음이 분해되었습니다. 남은 2종은 개별 결제로 전환됩니다.';
-    if (d?.charged === false) {
-      showToast(`${baseMsg} 위약금 청구에 실패했습니다. 별도로 안내드리겠습니다.`, 'warn');
-    } else if (d?.amount > 0) {
-      showToast(`${baseMsg} 위약금 ${d.amount.toLocaleString()}원이 정상 청구되었습니다.`, 'ok');
-    } else {
-      showToast(baseMsg, 'ok');
-    }
-    const addonsSnap = await get(ref(db, `academies/${currentAcadId}/addons`));
-    if (addonsSnap.exists()) currentAddons = addonsSnap.val();
-    const snap = await get(ref(db, `users/${currentUser.uid}`));
-    renderAddonSection(snap.val());
-  } catch (e) {
-    console.error('[doAddonUnbundle]', e);
-    showToast('빼기 실패: ' + (e.message || '오류가 발생했습니다.'), 'err');
-    btn.disabled = false; btn.classList.remove('loading');
-  }
+  // 구 번들 구조 사용자는 더 이상 없음
 };
 
 // ── 로그아웃 ──────────────────────────────────────────────────────

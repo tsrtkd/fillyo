@@ -222,73 +222,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
 
     <div class="section-label" style="margin-top:20px">애드온 <span style="font-size:11px;font-weight:400;color:#9ca3af;letter-spacing:0;text-transform:none">— 선택 추가</span></div>
 
-    <!-- 승급심사 -->
-    <div class="plan-card" id="cardExam" onclick="toggleAddon('exam')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="cb" id="cbExam">
-            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">승급심사</div>
-        </div>
-      </div>
-      <!-- 청구 방식 선택 (항상 표시) -->
-      <div class="addon-billing disabled" id="billingExam">
-        <div class="addon-billing-row" onclick="setAddonBilling('exam','monthly');event.stopPropagation()">
-          <div class="rb" id="billingExamMonthly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">1개월 이용권</span>
-            <span class="addon-billing-desc">₩9,800 · 계약 없음, 필요한 달만</span>
-          </div>
-        </div>
-        <div class="addon-billing-row" onclick="setAddonBilling('exam','yearly');event.stopPropagation()">
-          <div class="rb selected" id="billingExamYearly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">정기구독 (1년 약정)<span class="card-badge" style="font-size:9px;padding:1px 6px">50% 할인</span></span>
-            <span class="addon-billing-desc">₩4,900/월 · 1년 약정 정기결제</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 줄넘기 -->
-    <div class="plan-card" id="cardJump" onclick="toggleAddon('jumprope')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="cb" id="cbJumprope">
-            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">줄넘기</div>
-        </div>
-      </div>
-      <!-- 청구 방식 선택 (항상 표시) -->
-      <div class="addon-billing disabled" id="billingJump">
-        <div class="addon-billing-row" onclick="setAddonBilling('jumprope','monthly');event.stopPropagation()">
-          <div class="rb" id="billingJumpMonthly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">1개월 이용권</span>
-            <span class="addon-billing-desc">₩9,800 · 계약 없음, 필요한 달만</span>
-          </div>
-        </div>
-        <div class="addon-billing-row" onclick="setAddonBilling('jumprope','yearly');event.stopPropagation()">
-          <div class="rb selected" id="billingJumpYearly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">정기구독 (1년 약정)<span class="card-badge" style="font-size:9px;padding:1px 6px">50% 할인</span></span>
-            <span class="addon-billing-desc">₩4,900/월 · 1년 약정 정기결제</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- AI성장리포트 -->
+    <!-- AI성장리포트 (줄넘기·승급심사 포함) -->
     <div class="plan-card" id="cardReport" onclick="toggleAddon('report')">
       <div class="card-row">
         <div class="checkbox-wrap">
@@ -299,51 +233,23 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
           </div>
         </div>
         <div class="card-body">
-          <div class="card-name">AI성장리포트</div>
-        </div>
-      </div>
-      <div class="addon-billing disabled" id="billingReport">
-        <div class="addon-billing-row" onclick="setAddonBilling('report','monthly');event.stopPropagation()">
-          <div class="rb" id="billingReportMonthly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">1개월 이용권</span>
-            <span class="addon-billing-desc">₩9,800 · 계약 없음, 필요한 달만</span>
-          </div>
-        </div>
-        <div class="addon-billing-row" onclick="setAddonBilling('report','yearly');event.stopPropagation()">
-          <div class="rb selected" id="billingReportYearly"></div>
-          <div class="addon-billing-info">
-            <span class="addon-billing-name">정기구독 (1년 약정)<span class="card-badge" style="font-size:9px;padding:1px 6px">50% 할인</span></span>
-            <span class="addon-billing-desc">₩4,900/월 · 1년 약정 정기결제</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 애드온 묶음 (1년 약정 플랜 전용) -->
-    <div class="plan-card" id="cardBundle" onclick="toggleAddon('bundle')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="cb" id="cbBundle">
-            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">애드온 묶음<span class="card-badge" style="background:#F9A825;color:#1A2332">3개 세트</span></div>
+          <div class="card-name">AI성장리포트<span class="card-badge" style="background:#0B7B6B;color:#fff">얼리버드</span></div>
           <div class="price-row">
-            <span class="price-now" style="font-size:18px">₩13,500</span>
+            <span class="price-now" style="font-size:18px">₩9,900</span>
             <span class="price-unit">/월</span>
           </div>
-          <div class="price-note">줄넘기 + 승급심사 + AI 성장리포트 · 1년 약정 플랜 전용</div>
+          <div class="price-note">줄넘기 기록 + 승급심사 평가 포함 · 1년 계약</div>
         </div>
+      </div>
+      <div class="addon-billing" id="billingReport" style="border-top:1px solid #f3f4f6;padding-top:12px;margin-top:10px;font-size:12px;color:#5A6A7A;line-height:1.6">
+        줄넘기 기록과 승급심사 데이터를 자동으로 모아 AI가 학생별 성장리포트를 생성합니다.<br>
+        정가 ₩19,800/월 대비 50% 얼리버드 혜택 제공.
       </div>
     </div>
 
     <!-- 안내 문구 -->
     <div class="info-box">
-      AI 성장리포트는 <strong>단독 구독(₩4,900/월)</strong> 또는 3종 묶음 플랜으로 이용할 수 있습니다.
+      AI성장리포트 애드온 하나로 줄넘기 기록·승급심사 데이터 관리와 AI 리포트 생성을 모두 이용할 수 있습니다.
     </div>
 
     <!-- 1년 계약 동의 체크박스 -->
@@ -532,13 +438,11 @@ const PLAN_PRICES = {
   contract: 15840,
   monthly:  19800,
 };
-const ADDON_PRICES = { yearly: 4900, monthly: 9800 };
-const BUNDLE_PRICE = 13500;
+const REPORT_PRICE = 9900; // 얼리버드
 
 // ── 상태 ──
 let selectedPlan = 'early';
-const addons         = { exam: false, jumprope: false, report: false, bundle: false };
-const addonBillings  = { exam: 'yearly', jumprope: 'yearly', report: 'yearly' };
+const addons = { report: false };
 
 // ── 메인 플랜 선택 ──
 window.selectPlan = function(plan) {
@@ -549,20 +453,6 @@ window.selectPlan = function(plan) {
     document.getElementById('card' + cap).classList.toggle('selected', p === plan);
   });
 
-  const isContract = plan !== 'monthly';
-
-  // 묶음 카드 활성/비활성
-  const bundleCard = document.getElementById('cardBundle');
-  bundleCard.classList.toggle('card-disabled', !isContract);
-  if (!isContract && addons.bundle) {
-    addons.bundle = false;
-    document.getElementById('cbBundle').classList.remove('checked');
-    bundleCard.classList.remove('selected');
-    document.getElementById('cardExam').classList.remove('card-disabled');
-    document.getElementById('cardJump').classList.remove('card-disabled');
-    document.getElementById('cardReport').classList.remove('card-disabled');
-  }
-
   // 정기결제 안내 문구: earlybird/contract 시 표시, monthly 시 숨김
   document.getElementById('contractNotice').style.display = plan === 'monthly' ? 'none' : '';
 
@@ -570,84 +460,19 @@ window.selectPlan = function(plan) {
   renderTotal();
 };
 
-// ── 애드온 청구 방식 선택 ──
-window.setAddonBilling = function(key, cycle) {
-  addonBillings[key] = cycle;
-  const capMap = { exam: 'Exam', jumprope: 'Jump', report: 'Report' };
-  const capKey = capMap[key];
-  document.getElementById('billing' + capKey + 'Yearly').classList.toggle('selected',  cycle === 'yearly');
-  document.getElementById('billing' + capKey + 'Monthly').classList.toggle('selected', cycle === 'monthly');
-  updatePayBtn();
-  renderTotal();
-};
-
 // ── 애드온 토글 ──
 window.toggleAddon = function(key) {
-  if (key === 'bundle' && selectedPlan === 'monthly') return;
-
-  addons[key] = !addons[key];
-
-  const cbId   = 'cb'   + key.charAt(0).toUpperCase() + key.slice(1);
-  const cardId = { exam: 'cardExam', jumprope: 'cardJump', report: 'cardReport', bundle: 'cardBundle' }[key];
-
-  const billingElMap = { exam: 'billingExam', jumprope: 'billingJump', report: 'billingReport' };
-  const capMap       = { exam: 'Exam',        jumprope: 'Jump',        report: 'Report' };
-
-  if (addons[key]) {
-    document.getElementById(cbId).classList.add('checked');
-    document.getElementById(cardId).classList.add('selected');
-    if (key === 'exam' || key === 'jumprope' || key === 'report') {
-      document.getElementById(billingElMap[key]).classList.remove('disabled');
-      // 개별 항목 체크 시 bundle 자동 해제 + 비활성화
-      addons.bundle = false;
-      document.getElementById('cbBundle').classList.remove('checked');
-      document.getElementById('cardBundle').classList.remove('selected');
-      document.getElementById('cardBundle').classList.add('card-disabled');
-    }
-    if (key === 'bundle') {
-      ['exam', 'jumprope', 'report'].forEach(k => {
-        addons[k] = false;
-        const cap   = capMap[k];   // billing ID용: 'Jump' (billingJumpYearly 등)
-        const cbKey = k.charAt(0).toUpperCase() + k.slice(1);  // cb ID용: 'Jumprope' (cbJumprope)
-        const cid   = { exam: 'cardExam', jumprope: 'cardJump', report: 'cardReport' }[k];
-        document.getElementById('cb' + cbKey).classList.remove('checked');
-        document.getElementById(cid).classList.remove('selected');
-        document.getElementById(cid).classList.add('card-disabled');
-        addonBillings[k] = 'yearly';
-        document.getElementById('billing' + cap + 'Yearly').classList.add('selected');
-        document.getElementById('billing' + cap + 'Monthly').classList.remove('selected');
-        document.getElementById(billingElMap[k]).classList.add('disabled');
-      });
-    }
-  } else {
-    document.getElementById(cbId).classList.remove('checked');
-    document.getElementById(cardId).classList.remove('selected');
-    if (key === 'exam' || key === 'jumprope' || key === 'report') {
-      addonBillings[key] = 'yearly';
-      const cap = capMap[key];
-      document.getElementById('billing' + cap + 'Yearly').classList.add('selected');
-      document.getElementById('billing' + cap + 'Monthly').classList.remove('selected');
-      document.getElementById(billingElMap[key]).classList.add('disabled');
-      // 개별 항목이 모두 해제됐으면 bundle 다시 활성화 (contract 플랜에서만)
-      const anyIndividual = addons.exam || addons.jumprope || addons.report;
-      if (!anyIndividual && selectedPlan !== 'monthly') {
-        document.getElementById('cardBundle').classList.remove('card-disabled');
-      }
-    }
-    if (key === 'bundle') {
-      document.getElementById('cardExam').classList.remove('card-disabled');
-      document.getElementById('cardJump').classList.remove('card-disabled');
-      document.getElementById('cardReport').classList.remove('card-disabled');
-    }
-  }
+  if (key !== 'report') return;
+  addons.report = !addons.report;
+  document.getElementById('cbReport').classList.toggle('checked', addons.report);
+  document.getElementById('cardReport').classList.toggle('selected', addons.report);
   updatePayBtn();
   renderTotal();
 };
 
 // ── 계약 동의 필요 여부 ──
 function needsAgreement() {
-  if (selectedPlan !== 'monthly') return true;
-  return ['exam', 'jumprope', 'report'].some(k => addons[k] && addonBillings[k] === 'yearly');
+  return selectedPlan !== 'monthly';
 }
 
 // ── 결제 버튼 상태 갱신 ──
@@ -669,10 +494,7 @@ const NAMES = {
   early:    '업무일지 (얼리버드)',
   contract: '업무일지 (1년 약정)',
   monthly:  '업무일지 (1개월 이용권)',
-  exam:     '승급심사',
-  jumprope: '줄넘기',
-  report:   'AI성장리포트',
-  bundle:   '애드온 묶음 (줄넘기+승급심사+AI리포트)',
+  report:   'AI성장리포트 (얼리버드)',
 };
 
 function renderTotal() {
@@ -682,18 +504,9 @@ function renderTotal() {
   const items = [{ name: NAMES[selectedPlan], price: mainPrice }];
   let total   = mainPrice;
 
-  if (addons.bundle && isContract) {
-    items.push({ name: NAMES.bundle, price: BUNDLE_PRICE });
-    total += BUNDLE_PRICE;
-  } else {
-    ['exam', 'jumprope', 'report'].forEach(k => {
-      if (addons[k]) {
-        const price  = ADDON_PRICES[addonBillings[k]];
-        const suffix = addonBillings[k] === 'yearly' ? ' (1년)' : ' (월)';
-        items.push({ name: NAMES[k] + suffix, price });
-        total += price;
-      }
-    });
+  if (addons.report) {
+    items.push({ name: NAMES.report, price: REPORT_PRICE });
+    total += REPORT_PRICE;
   }
 
   document.getElementById('totalItems').innerHTML = items.map(i =>
@@ -756,11 +569,7 @@ window.startPayment = async function() {
     }
   }
 
-  const subscribedAddons = {
-    exam:     !!(addons.bundle || addons.exam),
-    jumprope: !!(addons.bundle || addons.jumprope),
-    report:   !!(addons.bundle || addons.report),
-  };
+  const subscribedAddons = { report: !!addons.report };
 
   // ── 단건결제 (1개월 이용권) ──
   if (selectedPlan === 'monthly') {
@@ -811,24 +620,12 @@ window.startPayment = async function() {
 
   // ── 얼리버드/약정: 빌키 발급 ──
   const parts = ['업무일지'];
-  if (addons.bundle) {
-    parts.push('줄넘기', '승급심사', 'AI 성장리포트');
-  } else {
-    if (addons.exam)     parts.push('승급심사');
-    if (addons.jumprope) parts.push('줄넘기');
-    if (addons.report)   parts.push('AI 성장리포트');
-  }
+  if (addons.report) parts.push('AI성장리포트');
   const planName    = 'FILLYO ' + parts.join('+');
   const modalAmount = selectedPlan === 'early' ? '₩9,900/월' : '₩15,840/월';
 
   let displayAmount = PLAN_PRICES[selectedPlan];
-  if (addons.bundle) {
-    displayAmount += BUNDLE_PRICE;
-  } else {
-    ['exam', 'jumprope', 'report'].forEach(k => {
-      if (addons[k]) displayAmount += ADDON_PRICES[addonBillings[k]];
-    });
-  }
+  if (addons.report) displayAmount += REPORT_PRICE;
 
   const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
 
@@ -969,15 +766,7 @@ function fmtDateStr(date) {
 
 // ── 선택된 애드온 이름 목록 ──
 function buildAddonNames() {
-  const names = [];
-  if (addons.bundle) {
-    names.push('줄넘기', '승급심사', 'AI 성장리포트');
-  } else {
-    if (addons.exam)     names.push('승급심사');
-    if (addons.jumprope) names.push('줄넘기');
-    if (addons.report)   names.push('AI 성장리포트');
-  }
-  return names;
+  return addons.report ? ['AI성장리포트 (줄넘기·승급심사 포함)'] : [];
 }
 
 // ── 계약서 HTML 생성 ──
