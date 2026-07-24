@@ -514,14 +514,8 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
     <div class="addon-field" id="addonField">
       <span class="addon-field-label">애드온 선택</span>
       <div class="addon-opts">
-        <label class="addon-opt" id="addonOptExam">
-          <input type="checkbox" id="addonExam"> 승급심사
-        </label>
-        <label class="addon-opt" id="addonOptJumprope">
-          <input type="checkbox" id="addonJumprope"> 줄넘기
-        </label>
         <label class="addon-opt" id="addonOptReport">
-          <input type="checkbox" id="addonReport"> AI리포트
+          <input type="checkbox" id="addonReport"> AI성장리포트
         </label>
       </div>
     </div>
@@ -756,9 +750,7 @@ window.openPlanModal = (uid) => {
   document.getElementById('planModalSub').textContent = target.academyName;
 
   // 애드온 체크박스 현재 상태 반영 (selectModalPlan 호출 전에 설정)
-  document.getElementById('addonExam').checked     = target.addons?.exam?.status     === 'active';
-  document.getElementById('addonJumprope').checked = target.addons?.jumprope?.status === 'active';
-  document.getElementById('addonReport').checked   = target.addons?.report?.status   === 'active';
+  document.getElementById('addonReport').checked = target.addons?.report?.status === 'active';
 
   selectModalPlan(target.planType);
   const d = target.planExpiry
@@ -776,13 +768,10 @@ window.selectModalPlan = (plan) => {
 
   // 무료 플랜: 애드온 비활성화 + 체크 해제
   const isFree = plan === 'free';
-  ['addonExam', 'addonJumprope', 'addonReport'].forEach(id => {
-    document.getElementById(id).disabled = isFree;
-    if (isFree) document.getElementById(id).checked = false;
-  });
-  ['addonOptExam', 'addonOptJumprope', 'addonOptReport'].forEach(id => {
-    document.getElementById(id).classList.toggle('disabled', isFree);
-  });
+  const addonReport = document.getElementById('addonReport');
+  addonReport.disabled = isFree;
+  if (isFree) addonReport.checked = false;
+  document.getElementById('addonOptReport').classList.toggle('disabled', isFree);
 };
 
 window.closePlanModal = () => {
@@ -806,9 +795,7 @@ window.savePlan = async () => {
 
     // 애드온 체크 상태 캡처 (await 전에)
     const addonState = {
-      exam:     modalPlan === 'pro' && document.getElementById('addonExam').checked,
-      jumprope: modalPlan === 'pro' && document.getElementById('addonJumprope').checked,
-      report:   modalPlan === 'pro' && document.getElementById('addonReport').checked,
+      report: modalPlan === 'pro' && document.getElementById('addonReport').checked,
     };
 
     const now = Date.now();
@@ -1273,11 +1260,7 @@ function buildSubText(a) {
   if (a.billingCycle === 'early')  base = '업무일지(얼리버드)';
   else if (a.billingCycle === 'yearly') base = '업무일지(1년약정)';
   const parts = [base];
-  if (a.addons) {
-    if (a.addons.exam?.status     === 'active') parts.push('승급심사');
-    if (a.addons.jumprope?.status === 'active') parts.push('줄넘기');
-    if (a.addons.report?.status   === 'active') parts.push('AI리포트');
-  }
+  if (a.addons?.report?.status === 'active') parts.push('AI성장리포트');
   return parts.join(' + ');
 }
 
