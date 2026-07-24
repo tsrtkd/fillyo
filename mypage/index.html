@@ -726,7 +726,7 @@ window.doAddonSubscribe = async () => {
   const btn = document.getElementById('btnAddonSubOk');
   btn.disabled = true; btn.classList.add('loading');
   try {
-    await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey });
+    await fnSubscribeAddon({ academyId: currentAcadId, addonKey: pendingAddonKey, billingType: 'contract' });
     closeAddonSubModal();
     const p = ADDON_PRICE[pendingAddonKey];
     currentAddons[pendingAddonKey] = {
