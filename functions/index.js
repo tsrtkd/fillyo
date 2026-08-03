@@ -287,6 +287,22 @@ exports.portoneWebhook = onRequest(
           if (newPaidCount >= 12) addonUpdate.status = 'completed';
           await db.ref(`academies/${academyId}/addons/${addonKey}`).update(addonUpdate);
 
+        } else if (status === 'CANCELLED') {
+          // 애드온 취소/환불: 이력 저장 + 애드온 상태 cancelled
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            type:        'addon',
+            addonKey,
+            status,
+            amount:      payment.amount?.total ?? amount,
+            orderName,
+            cancelledAt: now,
+          });
+          await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+            status:      'cancelled',
+            cancelledAt: now,
+          });
+
         } else {
           // 애드온 결제 실패: 이력 저장 + 실패 플래그
           await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
@@ -355,6 +371,33 @@ exports.portoneWebhook = onRequest(
           await db.ref(`paymentOrders/${nextId}`).set({
             academyId, amount, orderName, billingKey,
             scheduledAt: now,
+          });
+
+        } else if (status === 'CANCELLED') {
+          // ③-취소/환불: 이력 저장 + users planType → 'free'
+          await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
+            paymentId,
+            status,
+            amount:      payment.amount?.total ?? amount,
+            orderName,
+            cancelledAt: now,
+          });
+
+          // academyId로 uid 조회 후 planType free 처리
+          const usersSnap = await db.ref('users')
+            .orderByChild('academyId').equalTo(academyId).limitToFirst(1).get();
+          if (usersSnap.exists()) {
+            const uid = Object.keys(usersSnap.val())[0];
+            await db.ref(`users/${uid}`).update({ planType: 'free', cancelledAt: now });
+            console.log(`[portoneWebhook] CANCELLED: uid=${uid} planType → free`);
+          } else {
+            console.warn('[portoneWebhook] CANCELLED: academyId로 uid 조회 실패:', academyId);
+          }
+
+          await db.ref(`academies/${academyId}/billing`).update({
+            paymentFailed: false,
+            cancelledAt:   now,
+            status:        'cancelled',
           });
 
         } else {
