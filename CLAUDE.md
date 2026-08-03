@@ -24,9 +24,10 @@
 
 - **Firebase**: 프로젝트 `fillyo-journal`, RTDB `asia-southeast1`, Blaze 요금제
 - **결제**: PortOne V2 + KG이니시스. storeId `store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c`
-  - 실사용 채널(테스트 모드, 아직 실연동 심사 대기 중): `channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e`
+  - 일반결제(단건, requestPayment) 실연동 채널: `channel-key-dab745e0-688d-45e7-b7d2-e648d528b826`
+  - 카드등록/빌링키 발급(issueBillingKey) 실연동 채널: `channel-key-94abf50e-2417-4672-9066-64f782818ffa`
   - 본인인증 전용 채널: `channel-key-23977342-b6d1-4033-a0fe-2149ee43a9e9`
-  - **웹훅 시크릿은 "실연동"과 "테스트" 모드가 서로 다른 값이다.** 지금은 테스트 채널로 결제가 이뤄지므로 테스트 모드 시크릿을 써야 한다. 카드사 심사 통과 후 실연동 전환 시 반드시 웹훅 시크릿을 실연동 모드 값으로 교체해야 한다 (아직 미완료 — 전환 시점에 꼭 처리).
+  - **웹훅 시크릿은 실연동 모드 값을 써야 한다.** 채널이 실연동으로 전환됐으므로 반드시 실연동 웹훅 시크릿으로 교체 확인할 것.
 - **사업자정보**: 상호 필요(FILLYO), 대표 임명신, 사업자등록번호 776-51-01113, 대전광역시 서구 도안동로 77 린풀하우스 1812-2401, 010-6407-6273, audtls2g@gmail.com
 
 ## 가격·정산 구조 (functions/index.js `ADDON_PRICE_TABLE` 기준)
