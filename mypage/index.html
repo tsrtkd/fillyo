@@ -455,7 +455,7 @@ function renderSubBox(userData) {
     const ddayTxt = diff > 0 ? `D-${diff}` : '만료됨';
     el.innerHTML = `
       <div class="sub-row">
-        <span class="sub-plan-name">⭐ Pro 플랜</span>
+        <span class="sub-plan-name">⭐ 업무일지 구독 중</span>
         <span class="sub-badge pro">유료 구독</span>
       </div>
       <div class="sub-expiry">
@@ -468,7 +468,7 @@ function renderSubBox(userData) {
   } else if (planType === 'pro') {
     el.innerHTML = `
       <div class="sub-row">
-        <span class="sub-plan-name">⭐ Pro 플랜</span>
+        <span class="sub-plan-name">⭐ 업무일지 구독 중</span>
         <span class="sub-badge pro">유료 구독</span>
       </div>
       <div class="sub-free-desc">구독 기간 정보가 없습니다.</div>
@@ -480,7 +480,7 @@ function renderSubBox(userData) {
         <span class="sub-plan-name">무료 플랜</span>
         <span class="sub-badge free">무료</span>
       </div>
-      <div class="sub-free-desc">현재 무료 플랜을 사용 중입니다.<br>Pro 플랜으로 업그레이드하면 더 많은 기능을 이용할 수 있습니다.</div>
+      <div class="sub-free-desc">현재 무료 체험 중입니다.<br>업무일지를 구독하면 더 많은 기능을 이용할 수 있습니다.</div>
       <button onclick="location.href='/pricing/'" style="margin-top:14px;width:100%;background:#0B7B6B;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 12px rgba(11,123,107,0.35);transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">💳 구독 시작하기</button>
     `;
   }
