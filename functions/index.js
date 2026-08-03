@@ -510,9 +510,14 @@ exports.cancelSubscription = onRequest(
           },
         );
       } catch (e) {
-        const portoneMsg = e.response?.data?.message ?? e.message;
-        console.error('[cancelSubscription] ① 결제 예약 취소 실패:', portoneMsg);
-        return res.status(500).json({ error: '결제 예약 취소 실패: ' + portoneMsg });
+        if (e.response?.status === 409) {
+          // 이미 취소됐거나 존재하지 않는 스케줄 → 이미 취소된 상태이므로 계속 진행
+          console.warn('[cancelSubscription] ① 결제 예약 이미 취소된 상태 (409) — 계속 진행');
+        } else {
+          const portoneMsg = e.response?.data?.message ?? e.message;
+          console.error('[cancelSubscription] ① 결제 예약 취소 실패:', portoneMsg);
+          return res.status(500).json({ error: '결제 예약 취소 실패: ' + portoneMsg });
+        }
       }
 
       // ② 빌링키 삭제
@@ -831,9 +836,14 @@ exports.cancelAddon = onCall(
         );
         console.log(`[cancelAddon] PortOne 예약 취소 완료: scheduleId=${addon.currentScheduleId}`);
       } catch (e) {
-        const detail = e.response?.data ?? e.message;
-        console.error('[cancelAddon] PortOne 예약 취소 실패:', detail);
-        throw new HttpsError('internal', '예약 취소 실패: ' + JSON.stringify(detail));
+        if (e.response?.status === 409) {
+          // 이미 취소됐거나 존재하지 않는 스케줄 → 이미 취소된 상태이므로 계속 진행
+          console.warn(`[cancelAddon] PortOne 예약 이미 취소된 상태 (409) — 계속 진행: scheduleId=${addon.currentScheduleId}`);
+        } else {
+          const detail = e.response?.data ?? e.message;
+          console.error('[cancelAddon] PortOne 예약 취소 실패:', detail);
+          throw new HttpsError('internal', '예약 취소 실패: ' + JSON.stringify(detail));
+        }
       }
     } else {
       console.warn(`[cancelAddon] currentScheduleId 없음 — 예약 취소 생략 (${academyId}/${addonKey})`);
