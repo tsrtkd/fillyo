@@ -527,8 +527,13 @@ exports.cancelSubscription = onRequest(
           { headers: { Authorization: `PortOne ${apiSecret()}` } },
         );
       } catch (e) {
-        console.error('[cancelSubscription] ② 빌링키 삭제 실패:', e.response?.data ?? e.message);
-        return res.status(500).json({ error: '빌링키 삭제 실패', details: e.response?.data });
+        if (e.response?.status === 409) {
+          // 이미 삭제된 빌링키 → 이미 처리된 상태이므로 계속 진행
+          console.warn('[cancelSubscription] ② 빌링키 이미 삭제된 상태 (409) — 계속 진행');
+        } else {
+          console.error('[cancelSubscription] ② 빌링키 삭제 실패:', e.response?.data ?? e.message);
+          return res.status(500).json({ error: '빌링키 삭제 실패', details: e.response?.data });
+        }
       }
 
       // ③ academies/{academyId}/billing에 해지 상태 기록 (billingKey null로 초기화)
