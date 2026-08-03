@@ -627,10 +627,11 @@ window.startPayment = async function() {
   const parts = ['업무일지'];
   if (addons.report) parts.push('AI성장리포트');
   const planName    = 'FILLYO ' + parts.join('+');
-  const modalAmount = selectedPlan === 'early' ? '₩9,900/월' : '₩15,840/월';
 
   let displayAmount = PLAN_PRICES[selectedPlan];
   if (addons.report) displayAmount += REPORT_PRICE;
+
+  const modalAmount = `₩${displayAmount.toLocaleString()}/월`;
 
   const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
 
