@@ -608,7 +608,7 @@ window.loadData = async () => {
     }
 
     const usersObj = usersSnap.val();
-    const entries  = Object.entries(usersObj).filter(([, u]) => u.academyId);
+    const entries  = Object.entries(usersObj).filter(([, u]) => u.academyId && u.planType !== 'withdrawn');
 
     allData = await Promise.all(entries.map(async ([uid, u]) => {
       let acadName      = '(데이터 없음)';
