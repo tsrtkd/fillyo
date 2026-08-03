@@ -195,7 +195,7 @@
   .flow-quote .coral{color:var(--coral-deep);}
 
   /* ── 기능 카드 ── */
-  .feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;}
+  .feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
   .feat-card{
     border-radius:22px;padding:30px 24px;
   }
@@ -514,7 +514,7 @@
     <div class="section-head">
       <div class="eyebrow">기능</div>
       <h2>필요한 기록을 골라 쓰세요</h2>
-      <p>업무일지로 시작해서, 도장 상황에 맞게 하나씩 더할 수 있습니다.</p>
+      <p>업무일지로 시작해서, 필요하면 AI성장리포트 애드온을 추가할 수 있습니다.</p>
     </div>
     <div class="feat-grid">
       <div class="feat-card c1">
@@ -529,22 +529,12 @@
         </ul>
       </div>
       <div class="feat-card c2">
-        <div class="feat-tag">애드온 · 학부모 소통</div>
-        <h3>승급심사 · 줄넘기</h3>
-        <p class="feat-lead">우리 아이가 얼마나 성장했는지, 학부모님이 신뢰하는 방식으로 보여줍니다.</p>
-        <ul class="feat-why">
-          <li>채점부터 승급, 결과카드 저장까지 한 번에 끝납니다</li>
-          <li>협회 표준과정을 참고한 심사표로 진행하니 기준이 흔들리지 않습니다</li>
-          <li>결과카드는 이미지로 저장해 학부모님께 바로 공유할 수 있습니다</li>
-          <li>줄넘기는 급수별 기준 동작이 자동 적용되고, 급수증까지 발급됩니다</li>
-        </ul>
-      </div>
-      <div class="feat-card c3">
-        <div class="feat-tag">애드온 · 학부모 소통</div>
+        <div class="feat-tag">애드온 · AI성장리포트</div>
         <h3>AI 성장리포트</h3>
-        <p class="feat-lead">업무일지·승급심사·줄넘기 데이터가 자동 연동되어 리포트가 완성됩니다.</p>
+        <p class="feat-lead">줄넘기 기록·승급심사 평가 데이터가 자동 연동되어, AI가 학생별 성장리포트를 완성합니다.</p>
         <ul class="feat-why">
-          <li>매달 리포트를 직접 작성하던 시간이 통째로 사라집니다</li>
+          <li>줄넘기 기록·급수 관리, 승급심사 채점·결과카드까지 한 번에 관리됩니다</li>
+          <li>쌓인 기록을 바탕으로 AI가 학생별 성장리포트를 자동으로 작성합니다</li>
           <li>학부모 카카오톡 발송용 문구까지 함께 제공됩니다</li>
           <li>재등록 상담할 때 보여줄 근거 자료가 자동으로 쌓여 있습니다</li>
         </ul>
@@ -683,9 +673,7 @@
           <select class="c-select" name="관심_서비스">
             <option value="" disabled selected>선택해주세요</option>
             <option>FILLYO 업무일지</option>
-            <option>승급심사</option>
-            <option>줄넘기</option>
-            <option>AI 성장리포트</option>
+            <option>AI성장리포트 애드온</option>
             <option>슬로우모션 분석</option>
             <option>전부 다 궁금해요</option>
           </select>
