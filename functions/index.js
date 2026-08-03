@@ -103,19 +103,18 @@ exports.scheduleNextPayment = onRequest(
       const paymentId = `sub_${now}_${academyId}`;
 
       try {
-        // ── 1. 빌링 초기화 (최초 구독 시에만) ──
-        // 위약금 계산용 필드: (regularAmount - monthlyAmount) × paidCount
+        // ── 1. 빌링 초기화 ──
+        // billingKey는 재구독 시에도 항상 갱신 (취소 후 재구독 시 null 상태 방지)
+        // 위약금 계산용 필드(paidCount 등)는 최초 구독 시에만 초기화
         const existingBillingSnap = await db.ref(`academies/${academyId}/billing`).get();
         const existingBilling = existingBillingSnap.val() || {};
+        const billingInit = { billingKey, paymentFailed: false };
         if (existingBilling.paidCount === undefined || existingBilling.paidCount === null) {
-          await db.ref(`academies/${academyId}/billing`).update({
-            billingKey,
-            monthlyAmount: amount,
-            regularAmount: 19800,
-            paidCount:     0,
-            paymentFailed: false,
-          });
+          billingInit.monthlyAmount = amount;
+          billingInit.regularAmount = 19800;
+          billingInit.paidCount     = 0;
         }
+        await db.ref(`academies/${academyId}/billing`).update(billingInit);
 
         // ── 2. 주문 정보 선저장 (웹훅이 paymentOrders를 참조해 처리하므로 결제 전에 저장) ──
         await db.ref(`paymentOrders/${paymentId}`).set({
