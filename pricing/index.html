@@ -580,7 +580,7 @@ window.startPayment = async function() {
   if (selectedPlan === 'monthly') {
     PortOne.requestPayment({
       storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-      channelKey:  'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+      channelKey:  'channel-key-dab745e0-688d-45e7-b7d2-e648d528b826',
       paymentId:   'fillyo_' + Date.now(),
       orderName:   'FILLYO 업무일지 1개월 사용권',
       totalAmount: 19800,
@@ -659,7 +659,7 @@ window.startPayment = async function() {
   btn.textContent = '카드 등록 중...';
   const billingKeyRequest = {
     storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey: 'channel-key-7e35243f-0b8d-4ff8-9f92-014204dafd2e',
+    channelKey: 'channel-key-94abf50e-2417-4672-9066-64f782818ffa',
     billingKeyMethod: 'CARD',
     issueId: `fb_${Date.now()}`,
     issueName,
