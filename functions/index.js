@@ -141,7 +141,9 @@ exports.scheduleNextPayment = onRequest(
 
         console.log('[scheduleNextPayment] 즉시결제 응답:', JSON.stringify(payRes.data));
 
-        const payStatus = payRes.data?.status;
+        // PortOne V2 billing-key 즉시결제 응답 구조: { payment: { status, paidAt, ... } }
+        const payData   = payRes.data?.payment ?? payRes.data;
+        const payStatus = payData?.status;
         if (payStatus !== 'PAID') {
           console.error('[scheduleNextPayment] 결제 실패 — status:', payStatus, JSON.stringify(payRes.data));
           return res.status(402).json({ error: '결제 실패', status: payStatus, portoneData: payRes.data });
