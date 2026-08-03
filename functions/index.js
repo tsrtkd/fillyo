@@ -72,7 +72,8 @@ function nextMonthSameDay(from = new Date()) {
 
 // ──────────────────────────────────────────────────────────────────
 // scheduleNextPayment
-// 클라이언트가 빌키 발급 직후 호출 → PortOne 결제 예약 + Firebase 저장
+// 클라이언트가 빌키 발급 직후 호출 → 즉시 첫 회차 결제 실행
+// 결제 성공 후 portoneWebhook이 paidCount 갱신 + 다음 달 자동 재예약 처리
 // ──────────────────────────────────────────────────────────────────
 exports.scheduleNextPayment = onRequest(
   { region: 'asia-northeast3', timeoutSeconds: 30 },
@@ -98,88 +99,59 @@ exports.scheduleNextPayment = onRequest(
       }
       assertNotProtectedForTest(academyId, 'scheduleNextPayment');
 
-      const paymentId = `sub_${Date.now()}_${academyId}`;
-      const timeToPay = nextMonthSameDay();
+      const now = Date.now();
+      const paymentId = `sub_${now}_${academyId}`;
 
       try {
-        const portoneRes = await axios.post(
-          `${PORTONE_BASE}/payments/${paymentId}/schedule`,
-          {
-            payment: {
-              billingKey,
-              orderName,
-              customer: { id: academyId },
-              amount:   { total: amount },
-              currency: 'KRW',
-            },
-            timeToPay: timeToPay.toISOString(),
-          },
-          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
-        );
-
-        console.log('[scheduleNextPayment] PortOne 응답:', JSON.stringify(portoneRes.data));
-
-        const scheduleId = portoneRes.data?.scheduleId
-          ?? portoneRes.data?.schedule?.id
-          ?? portoneRes.data?.schedule?.scheduleId
-          ?? null;
-
-        const now = Date.now();
-
-        if (!scheduleId) {
-          console.error('[scheduleNextPayment] scheduleId 없음 — 예약 실패 처리:', JSON.stringify(portoneRes.data));
-          await db.ref(`paymentOrders/${paymentId}`).set({
-            academyId,
-            amount,
-            orderName,
-            billingKey,
-            scheduledAt:        now,
-            scheduleFailed:     true,
-            scheduleFailReason: 'scheduleId 없음',
-            portoneResponse:    JSON.stringify(portoneRes.data),
-          });
-          return res.status(500).json({ error: '결제 예약 실패 (scheduleId 없음)', portoneData: portoneRes.data });
-        }
-
-        // academyId별 빌링 정보 저장
+        // ── 1. 빌링 초기화 (최초 구독 시에만) ──
+        // 위약금 계산용 필드: (regularAmount - monthlyAmount) × paidCount
         const existingBillingSnap = await db.ref(`academies/${academyId}/billing`).get();
         const existingBilling = existingBillingSnap.val() || {};
-
-        const billingUpdate = {
-          billingKey,
-          nextPaymentAt:          timeToPay.getTime(),
-          lastScheduledPaymentId: paymentId,
-          lastScheduledAt:        now,
-          paymentFailed:          false,
-        };
-
-        // 최초 구독 시점에만 결제 추적 필드 초기화 (이미 값이 있으면 유지)
-        // 이 데이터는 중도해지 위약금 = (regularAmount - monthlyAmount) × paidCount 계산에 사용
-        // (애드온의 pendingCharge 계산 방식과 동일한 공식)
         if (existingBilling.paidCount === undefined || existingBilling.paidCount === null) {
-          billingUpdate.monthlyAmount = amount;   // 실제 납부 금액 (할인가 포함)
-          billingUpdate.regularAmount = 19800;    // 업무일지 정가 (고정)
-          billingUpdate.paidCount     = 0;        // 최초 가입 시 0으로 초기화
+          await db.ref(`academies/${academyId}/billing`).update({
+            billingKey,
+            monthlyAmount: amount,
+            regularAmount: 19800,
+            paidCount:     0,
+            paymentFailed: false,
+          });
         }
 
-        await db.ref(`academies/${academyId}/billing`).update(billingUpdate);
-
-        // paymentId → academy 매핑 (웹훅 조회용)
+        // ── 2. 주문 정보 선저장 (웹훅이 paymentOrders를 참조해 처리하므로 결제 전에 저장) ──
         await db.ref(`paymentOrders/${paymentId}`).set({
           academyId,
           amount,
           orderName,
           billingKey,
-          scheduledAt:     now,
-          scheduleId,
-          scheduleStatus:  portoneRes.data?.status ?? portoneRes.data?.schedule?.status ?? null,
-          portoneResponse: JSON.stringify(portoneRes.data),
+          createdAt: now,
         });
 
-        return res.status(200).json({ ok: true, paymentId, scheduleId, timeToPay: timeToPay.toISOString() });
+        // ── 3. 즉시 결제 실행 ──
+        const payRes = await axios.post(
+          `${PORTONE_BASE}/payments/${paymentId}/billing-key`,
+          {
+            billingKey,
+            orderName,
+            customer: { id: academyId },
+            amount:   { total: amount },
+            currency: 'KRW',
+          },
+          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+        );
+
+        console.log('[scheduleNextPayment] 즉시결제 응답:', JSON.stringify(payRes.data));
+
+        const payStatus = payRes.data?.status;
+        if (payStatus !== 'PAID') {
+          console.error('[scheduleNextPayment] 결제 실패 — status:', payStatus, JSON.stringify(payRes.data));
+          return res.status(402).json({ error: '결제 실패', status: payStatus, portoneData: payRes.data });
+        }
+
+        // 결제 성공 — paidCount 갱신·다음 달 예약은 portoneWebhook이 자동 처리
+        return res.status(200).json({ ok: true, paymentId });
       } catch (e) {
-        console.error('[scheduleNextPayment] PortOne API 오류:', e.response?.data ?? e.message);
-        return res.status(500).json({ error: '결제 예약 실패', details: e.response?.data });
+        console.error('[scheduleNextPayment] 오류:', e.response?.data ?? e.message);
+        return res.status(500).json({ error: '결제 실패', details: e.response?.data });
       }
     });
   },

@@ -372,7 +372,7 @@ onAuthStateChanged(auth, async user => {
               failedAt: Date.now(), reason: errText,
             });
           } catch(dbErr) { console.warn('failedSubscriptions 저장 오류:', dbErr); }
-          alert('카드 등록은 완료됐으나 구독 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
+          alert('결제에 실패했습니다. 카드 정보를 확인하시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
           return;
         }
         // ── scheduleNextPayment 성공 후 users/{uid} 업데이트 ──
