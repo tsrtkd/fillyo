@@ -374,7 +374,7 @@ exports.portoneWebhook = onRequest(
           });
 
         } else if (status === 'CANCELLED') {
-          // ③-취소/환불: 이력 저장 + users planType → 'free'
+          // ③-취소/환불: 이력 저장 + 포트원 예약·빌링키 삭제 + users planType → 'free'
           await db.ref(`academies/${academyId}/payments/${paymentId}`).set({
             paymentId,
             status,
@@ -382,6 +382,33 @@ exports.portoneWebhook = onRequest(
             orderName,
             cancelledAt: now,
           });
+
+          // 포트원 결제 예약 전체 취소 (billingKey 기준)
+          if (billingKey) {
+            try {
+              await axios.delete(
+                `${PORTONE_BASE}/payment-schedules`,
+                {
+                  headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+                  data: { billingKey },
+                },
+              );
+              console.log(`[portoneWebhook] CANCELLED: 결제 예약 취소 완료 billingKey=${billingKey}`);
+            } catch (e) {
+              console.error('[portoneWebhook] CANCELLED: 결제 예약 취소 실패:', e.response?.data ?? e.message);
+            }
+
+            // 포트원 빌링키 삭제
+            try {
+              await axios.delete(
+                `${PORTONE_BASE}/billing-keys/${billingKey}`,
+                { headers: { Authorization: `PortOne ${apiSecret()}` } },
+              );
+              console.log(`[portoneWebhook] CANCELLED: 빌링키 삭제 완료`);
+            } catch (e) {
+              console.error('[portoneWebhook] CANCELLED: 빌링키 삭제 실패:', e.response?.data ?? e.message);
+            }
+          }
 
           // academyId로 uid 조회 후 planType free 처리
           const usersSnap = await db.ref('users')
@@ -398,6 +425,7 @@ exports.portoneWebhook = onRequest(
             paymentFailed: false,
             cancelledAt:   now,
             status:        'cancelled',
+            billingKey:    null,
           });
 
         } else {
