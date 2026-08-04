@@ -1328,14 +1328,16 @@ exports.generateGrowthReport = onCall(
       }
     }
 
-    // 일일 사용량 체크 (학원당 50회 한도)
+    // 일일 사용량 체크 (학원당 50회 한도) — orderByChild 인덱스 불필요
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const usageSnap = await db.ref(`academies/${academyId}/aiUsage`)
-      .orderByChild('timestamp')
-      .startAt(todayStart.getTime())
-      .get();
-    const todayCount = usageSnap.exists() ? Object.keys(usageSnap.val()).length : 0;
+    const allUsageSnap = await db.ref(`academies/${academyId}/aiUsage`).get();
+    let todayCount = 0;
+    if (allUsageSnap.exists()) {
+      allUsageSnap.forEach(child => {
+        if ((child.val().timestamp || 0) >= todayStart.getTime()) todayCount++;
+      });
+    }
     if (todayCount >= 50) {
       throw new HttpsError('resource-exhausted', '오늘 AI 리포트 생성 한도(50회)에 도달했습니다. 내일 다시 시도해주세요.');
     }
