@@ -114,17 +114,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .spinner{width:16px;height:16px;border:2px solid var(--sky2);border-top-color:#1e3a5f;border-radius:50%;animation:spin .6s linear infinite;}
 @keyframes spin{to{transform:rotate(360deg)}}
 
-/* ── API Key Modal ── */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px;}
-.modal{background:white;border-radius:18px;padding:24px;max-width:360px;width:100%;}
-.modal h3{font-size:17px;font-weight:900;margin-bottom:6px;}
-.modal p{font-size:13px;color:var(--gray);line-height:1.6;margin-bottom:14px;}
-.modal input{width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:9px;font-family:inherit;font-size:13px;margin-bottom:12px;}
-.modal input:focus{outline:none;border-color:#1e3a5f;}
-.modal-btns{display:flex;gap:8px;}
-.modal-btns button{flex:1;padding:10px;border:none;border-radius:9px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;}
-.btn-cancel{background:var(--bg);color:var(--gray);}
-.btn-save{background:#1e3a5f;color:white;}
 
 /* ── Belt Badge ── */
 .belt-wrap       { display:inline-flex; flex-direction:column; align-items:center; vertical-align:middle; flex-shrink:0; }
@@ -164,7 +153,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <button class="fillyo-icon" onclick="location.href='/dashboard/'">FILLYO</button>
     <div class="hdr-title"><span id="academyName">학원명</span> · 성장 리포트</div>
     <div class="hdr-btns">
-      <button class="hdr-btn" id="btnApiKey">🔑 API키</button>
       <button class="hdr-btn" id="btnLogout" onclick="doLogout()">로그아웃</button>
     </div>
   </header>
@@ -350,24 +338,13 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
-<!-- API Key Modal -->
-<div class="overlay" id="apiKeyOverlay" style="display:none">
-  <div class="modal">
-    <h3>Anthropic API 키 설정</h3>
-    <p>리포트 생성 기능에 Claude AI API 키가 필요합니다.<br>키는 학원 설정에 저장됩니다.</p>
-    <input type="password" id="apiKeyInput" placeholder="sk-ant-..." autocomplete="off">
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeApiKeyModal()">취소</button>
-      <button class="btn-save" onclick="saveApiKey()">저장</button>
-    </div>
-  </div>
-</div>
-
 <script type="module">
 import { initializeApp }                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, get, set, push, remove, onValue, runTransaction }
                                                       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getFunctions, httpsCallable }
+                                                      from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // ── Firebase ──────────────────────────────────────────────────────────
 const FB_CONFIG = {
@@ -382,6 +359,8 @@ const FB_CONFIG = {
 const fbApp = initializeApp(FB_CONFIG);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
+const fns   = getFunctions(fbApp, 'asia-northeast3');
+const fnGenerateGrowthReport = httpsCallable(fns, 'generateGrowthReport', { timeout: 60000 });
 
 function todayKST() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
@@ -390,7 +369,6 @@ function todayKST() {
 // ── 상태 변수 ────────────────────────────────────────────────────────
 let academyId    = null;
 let academyName  = '';
-let apiKey       = '';
 let students     = [];    // [{id, name, belt, grade, ...}]
 let selStudent   = null;  // 현재 선택된 학생
 let currentRptKey = null; // 현재 표시 중인 리포트 키 (blur 자동저장용)
@@ -538,14 +516,6 @@ onAuthStateChanged(auth, async user => {
       academyName = s.academyName || s.name || '학원';
       document.getElementById('academyName').textContent = academyName;
     }
-
-    // API키 Firebase에서 불러오기
-    const apiKeySnap = await get(ref(db, `academies/${academyId}/settings/anthropicApiKey`));
-    apiKey = apiKeySnap.val() || '';
-
-    // admin만 API키 버튼 표시
-    document.getElementById('btnApiKey').style.display =
-      user.email === 'audtls2g@gmail.com' ? '' : 'none';
 
     document.getElementById('loadingScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
@@ -789,8 +759,6 @@ window.saveKeyword = async function() {
 window.generateReport = async function(){
   if (!selStudent){ alert('수련생을 선택하세요.'); return; }
 
-  if (!apiKey){ openApiKeyModal(); return; }
-
   const startVal = document.getElementById('rptStart').value;
   const endVal = document.getElementById('rptEnd').value;
   if (!startVal || !endVal){ alert('시작월과 종료월을 선택하세요.'); return; }
@@ -974,135 +942,18 @@ window.generateReport = async function(){
 
     const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
 
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: [{ type: 'text', cache_control: { type: 'ephemeral' }, text: `당신은 태권도장 원장님을 도와 학부모에게 보낼 학생 성장 리포트 문구를 작성하는 전문 도우미입니다.
-
-[작성 원칙]
-- 주어진 데이터에 있는 항목만 자연스럽게 포함하고, 없는 항목은 절대 언급하지 마세요.
-- 마크다운 문법(**굵게** 등)은 절대 사용하지 마세요. 일반 텍스트로만 작성하세요.
-- 따뜻하고 전문적인 톤으로, 학부모가 카카오톡으로 받았을 때 기분 좋게 읽힐 수 있도록 작성하세요.
-- 400~600자 내외로 작성하세요. 데이터 양에 따라 유연하게 조절하세요.
-- 학원명 태그 없이 바로 인사말로 시작하세요. 아이 이름을 자연스럽게 포함하세요.
-- 문단을 3~4개로 나눠 작성하세요: ①출석/성실도 ②실력(심사/줄넘기) ③성장(신체/성격) ④지도진 다짐
-
-[줄넘기 급수 설명 - 급수 언급 시 반드시 포함]
-10급: 모둠발 앞으로 뛰기 (줄넘기의 첫 걸음)
-9급: 모둠발 뒤로 뛰기
-8급: 한발 번갈아 뛰기
-7급: 가위바위보 뛰기
-6급: 무릎올리기+엉덩이차기
-5급: 엇걸어 뛰기 (줄이 몸 앞에서 교차)
-4급: 엇걸었다 풀어 뛰기
-3급: 되돌리기
-2급: 되돌리기+다리 들어주기
-1급: 2단 뛰기 (줄넘기 최고 기술 중 하나)
-- 현재 급수가 무엇을 완성했는지, 다음 급수에서 무엇에 도전하는지 설명하세요.
-
-[태권도 띠별 심사 내용 - 띠 언급 시 반드시 포함]
-흰띠/흰검띠: 기본 자세와 예절 (태권도의 첫 시작)
-노란띠/노검띠: 태극 1장 + 앞차기
-주황띠/주황검띠: 태극 2장 + 돌려차기
-초록띠/초록검띠: 태극 3장 + 내려차기
-파란띠/파란검띠: 태극 4장 + 옆차기
-보라띠/보라검띠: 태극 5장 + 옆차기(발날)
-밤띠/밤검띠: 태극 6장 + 옆후려차기
-빨간띠: 태극 1장~8장 종합 + 약속겨루기 (국기원 승품단심사 준비 단계)
-1품단: 고려 품새 + 뒤차기, 익스트림: 돌려+돌게+뒤후려차기/에어리얼 (검은띠의 시작, 태권도 수련의 새로운 단계)
-2품단: 금강 품새 + 뛰어뒤차기, 익스트림: 팜턴/핸드스프링
-3품단: 태백 품새 + 뛰어옆차기, 익스트림: 외발턴540도/하우스턴
-4품단: 평원 품새 + 가위차기, 익스트림: 720도이상/뒤공중앞공중
-
-[유급자(흰띠~빨간띠) 작성 방식]
-- 현재 띠에서 배우는 기술이 무엇인지 설명하고, 다음 심사에서 도전할 내용을 언급하세요.
-
-[품단(1~4품단) 작성 방식]
-- 품단은 같은 품새를 더 깊이 익히며 완성도를 높여가는 단계임을 설명하세요.
-- "지난번보다 동작이 더 정확해졌다", "힘과 균형이 발전했다" 등 성숙과 숙달의 언어를 사용하세요.
-- 다음 단계 기술 설명 대신, 현재 수련의 깊이와 성장을 강조하세요.
-
-[신체 기록 작성 방식]
-- 키와 몸무게를 구체적인 숫자로 언급하세요. (예: "키 142.5cm, 몸무게 38kg")
-- 이전 기록이 있으면 변화를 자연스럽게 언급하세요. (예: "지난달보다 키가 0.5cm 자랐어요")
-
-[신체발달 해석 작성 방식]
-- 키/몸무게 수치를 언급한 뒤, 질병관리청 소아청소년 성장도표를 참고하여 또래 평균 범위 안에서 건강하게 잘 자라고 있다는 안심 톤의 해석을 한 문장 자연스럽게 덧붙이세요.
-- 백분위수(%), 순위, 저체중·과체중 같은 판단성 표현은 절대 사용하지 마세요. "또래 성장 곡선 안에서 건강하게 자라고 있어요"처럼 안심을 주는 표현만 사용하세요.
-- 신체 기록이 없으면 이 문단 전체를 생략하세요.
-
-[출석/성실 코칭 작성 방식]
-- 결석이 1일 이상이면: 규칙적으로 도장에 나오는 것 자체가 "성실"이라는 가치를 배우는 과정임을 설명하고, 결석이 이어지면 생활 리듬이 흐트러져 오히려 다니기 더 힘들어질 수 있다는 점을 부드럽게 짚어주세요. 꾸준한 출석이 실력과 자신감의 기초가 된다고 언급한 뒤, 가정에서 규칙적인 등원을 함께 도와달라고 협력적으로 부탁하세요.
-- 아이나 부모를 탓하는 어조는 절대 금지. "함께 만들어가자"는 톤을 유지하세요.
-- 결석이 0일이면 성실함을 짧게 칭찬하는 문장만 쓰고 위 코칭은 생략하세요.
-
-[학습 어려움 안내 작성 방식]
-- 최근 심사 결과가 불합격이거나, 기간 내 특이사항에 품새 암기·발차기·동작 습득 관련 어려움을 암시하는 내용이 있으면 이 섹션을 포함하세요.
-- 이런 어려움은 태권도를 배우는 과정에서 누구나 겪는 정상적인 성장 과정임을 전문가적 어조로 설명하세요. 아이가 "힘들다"고 말하는 것이 그만둬야 할 신호가 아니라 새로운 기술을 익히는 중이라는 증거임을 부모가 이해하도록 안내하세요.
-- 도장에서 구체적으로 어떻게 지도할지(반복 연습, 개별 지도 등) 한 줄 포함하고, 가정에서는 "힘들다"는 말을 들었을 때 다그치지 말고 격려해달라는 부탁으로 마무리하세요.
-- 해당 사항이 없으면 이 섹션 전체를 생략하세요.
-
-[성격/태도 가치 코칭 작성 방식]
-- 성격/태도 특성이 있을 때만 이 섹션을 포함하세요.
-- 체크된 성격/태도 특성이 여러 개이더라도, 모든 특성을 다 언급하지 마세요. 그 중 가장 눈에 띄거나 의미 있는 1~2개만 선택해서 깊이 있게 다루세요. 선택한 특성마다 반드시 아래 4단계 구조를 자연스러운 문장으로 모두 포함하세요:
-  ① 관찰: 아이에게서 실제로 보이는 모습을 구체적으로 서술
-  ② 가치 설명: 그 특성이 왜 중요한 가치인지 짧게 설명
-  ③ 도장의 노력: 도장에서 이 부분을 어떻게 지도할지 한 줄
-  ④ 가정 요청: 부모님이 가정에서 도와줄 수 있는 구체적인 방법 한 줄
-- 나머지 특성들(선택되지 않은 것들)은 언급하지 않거나, 문장 맨 앞에 짧은 관찰 한 줄 정도로만 스치듯 지나가세요. 여러 특성을 나열식으로 쭉 늘어놓는 것은 절대 금지입니다.
-- MBTI, 에니어그램, 혈액형 등 성인용 유형 진단·라벨은 절대 사용하지 마세요.
-- "몇째마당" 같은 목차 번호 표현은 절대 사용하지 말고, 가치 이름(성실, 예의, 인내 등)만 자연스럽게 사용하세요.
-- 활발함/차분함, 외향적/내성적, 긍정적/부정적, 리더형/팔로워형 같은 성격·기질 특성은 옳고 그름 없는 타고난 개성이므로 있는 그대로 관찰 서술만 하고 가치 코칭이나 개선 제안을 붙이지 마세요.
-- 아래 특성에는 전문가적 소견으로 가치 코칭 문장을 덧붙이세요:
-  · 성실함/들쑥날쑥 → 성실 가치
-  · 끝까지 해냄/쉽게 포기 → 인내 가치
-  · 실패 후 재도전/좌절 오래감 → 용기·자신감 가치
-  · 배려심 높음/갈등 잦음 → 배려·예의 가치
-  · 협동 잘함/혼자 노는 편 → 협동 가치
-  · 규칙 잘 지킴/규칙 어기는 편 → 준법정신 가치
-  · 집중력 높음/산만함 → 신중함 가치 (ADHD·주의력 부족 등 의학적 표현 절대 금지, 태도의 문제로만 다룰 것)
-  · 신중함/충동적 → 신중 가치
-  · 스스로 열심히/시키는 것만 → 주도성·책임감 가치
-- 성장이 필요한(neg) 특성은 아이를 탓하는 말투 대신 "~을 배워가는 시기입니다"처럼 성장 중심 어조로 서술하고, 그 가치가 왜 중요한지 짧게 설명한 뒤 도장의 지도 노력과 가정에서 도와줄 수 있는 구체적 방법을 한 줄 제안하세요.
-- 이미 잘하는(pos) 특성은 그 가치를 실천하고 있음을 전문가적으로 인정하고 칭찬하세요.
-- 성격/태도 특성이 없으면 이 섹션 전체를 생략하세요.
-${dojanKeyword ? `
-[이번 달 도장 키워드 반영 방식]
-- 이번 달 도장 전체가 강조하는 가치: "${dojanKeyword}"
-- 키워드가 있으면, 전체 리포트 중 "성격/태도 가치 코칭" 문단 앞에 이 키워드만을 위한 짧은 독립 문단을 하나 추가하세요. 이 문단은:
-  1) "이번 달 저희 도장은 '${dojanKeyword}'을(를) 핵심 가치로 강조하고 있습니다" 같은 문장으로 시작해서
-  2) 이 학생의 실제 데이터(출석, 성격/태도 특성, 심사 결과 등) 중 이 키워드와 자연스럽게 연결되는 구체적인 모습을 1~2문장으로 보여주세요
-- 이 독립 문단은 다른 문단들과 분리된 별도 문단으로 작성하세요 (기존 문단 안에 한 문장으로 섞어 넣지 마세요)
-- 학생 데이터와 전혀 관련 없는 키워드라면, 이 독립 문단 자체를 생략하고 억지로 만들지 마세요
-- 이후 이어지는 "성격/태도 가치 코칭" 문단에서 이미 이 키워드 문단에서 다룬 내용을 중복해서 다시 쓰지 마세요` : ''}
-
-[업무일지 메모 작성 방식]
-- 민감한 내용(싸움, 갈등 등)은 직접 언급하지 말고 "친구들과의 관계에서 배려와 대화를 배우고 있습니다" 처럼 긍정적으로 순화하세요.
-
-[마지막 문단 - 항상 포함]
-- "저희 지도진은 앞으로 ~에 더욱 신경 쓰겠습니다" 형식으로 지도진의 다짐을 자연스럽게 포함하세요.` }],
-        messages: [{ role: 'user', content: userContent }],
-      }),
+    const result = await fnGenerateGrowthReport({
+      academyId,
+      studentId:   selStudent.id,
+      studentName: selStudent.name,
+      userContent,
+      dojanKeyword,
     });
 
-    if (!res.ok){
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err?.error?.message || `API 오류 (${res.status})`);
-    }
-
-    const json = await res.json();
-    const text = json.content?.[0]?.text || '';
+    const text  = result.data.text  || '';
 
     // 토큰 사용량 로깅
-    const usage = json.usage || {};
+    const usage = result.data.usage || {};
     console.log('[AI 리포트 usage]', usage);
     const estimatedCostUsd =
       (usage.input_tokens                 || 0) * 0.000003   +
@@ -1290,25 +1141,6 @@ document.getElementById('rptResult').addEventListener('blur', async () => {
     console.error('리포트 수정 저장 오류:', e);
   }
 });
-
-// ── API Key Modal ─────────────────────────────────────────────────────
-window.openApiKeyModal = function(){
-  document.getElementById('apiKeyInput').value = apiKey || '';
-  document.getElementById('apiKeyOverlay').style.display = 'flex';
-};
-window.closeApiKeyModal = function(){
-  document.getElementById('apiKeyOverlay').style.display = 'none';
-};
-window.saveApiKey = async function(){
-  const key = document.getElementById('apiKeyInput').value.trim();
-  if (!key){ alert('API 키를 입력하세요.'); return; }
-  await set(ref(db, `academies/${academyId}/settings/anthropicApiKey`), key);
-  apiKey = key;
-  closeApiKeyModal();
-};
-
-// ── 버튼 이벤트 ──────────────────────────────────────────────────────
-document.getElementById('btnApiKey').addEventListener('click', () => { openApiKeyModal(); });
 
 window.doLogout = async function() {
   await signOut(auth);
