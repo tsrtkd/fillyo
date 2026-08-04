@@ -77,13 +77,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 
 /* ── PRICING ─────────────────────────────────────────────────────── */
 .custom-intro{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.7;}
-.price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
-.price-card{border:1.5px solid var(--border);border-radius:12px;padding:14px 10px;text-align:center;}
-.price-tier{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:0.5px;margin-bottom:7px;text-transform:uppercase;}
-.price-name{font-size:12px;font-weight:900;color:var(--navy);margin-bottom:6px;line-height:1.35;}
-.price-desc{font-size:10px;color:var(--text2);margin-bottom:10px;line-height:1.5;}
-.price-amt{font-size:15px;font-weight:900;color:var(--blue);}
-.price-unit{font-size:10px;color:var(--gray);margin-top:2px;}
 
 /* ── KAKAO BUTTON ────────────────────────────────────────────────── */
 .btn-kakao{display:flex;align-items:center;justify-content:center;gap:8px;background:#FEE500;color:#191919;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;width:100%;transition:all 0.15s;}
@@ -127,13 +120,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 @media(max-width:480px){
   .hdr-sep,.hdr-title{display:none;}
   .main{padding:16px 12px 80px;}
-  .price-grid{grid-template-columns:1fr;gap:8px;}
-  .price-card{display:flex;align-items:center;gap:12px;text-align:left;padding:12px 14px;}
-  .price-card > *{margin:0;}
-  .price-card-right{display:flex;flex-direction:column;flex:1;}
-  .price-tier{margin-bottom:2px;}
-  .price-name{margin-bottom:2px;}
-  .price-desc{margin-bottom:4px;}
 }
 @media(max-width:360px){
   .btn-hdr{font-size:11px;padding:5px 9px;}
@@ -162,11 +148,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .btn-addon-sub.loading::after{content:'';position:absolute;right:14px;top:50%;margin-top:-7px;width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;}
 .btn-addon-cancel{background:none;border:1.5px solid var(--border);color:var(--text2);border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;}
 .btn-addon-cancel:hover{border-color:var(--red);color:var(--red);}
-.addon-card.merged{border-color:#c5a200;background:#fffbeb;}
-.addon-badge-merged{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:#fffbeb;color:#b45309;border:1px solid #c5a200;}
-.addon-merged-msg{background:#fffde7;border:1px solid #c5a200;border-radius:9px;padding:10px 12px;font-size:12px;color:#92400e;line-height:1.6;margin-bottom:8px;}
-.btn-addon-unbundle{background:none;border:1.5px solid #c5a200;color:#92400e;border-radius:9px;padding:8px 16px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:all 0.15s;}
-.btn-addon-unbundle:hover{border-color:#b45309;color:#78350f;}
 </style>
 </head>
 <body>
@@ -312,20 +293,6 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
-<!-- ── 번들 분해 확인 모달 ──────────────────────────────────────── -->
-<div class="modal-bg" id="addonUnbundleModal">
-  <div class="modal">
-    <div class="modal-title" id="addonUnbundleModalTitle">묶음에서 빼기</div>
-    <div class="modal-sub" id="addonUnbundleModalSub"></div>
-    <div class="modal-warn" id="addonUnbundleWarnBox" style="display:none">
-      <p id="addonUnbundleWarnText"></p>
-    </div>
-    <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeAddonUnbundleModal()">돌아가기</button>
-      <button class="btn-ok danger" id="btnAddonUnbundleOk" onclick="doAddonUnbundle()">빼기 확인</button>
-    </div>
-  </div>
-</div>
 
 <div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
 
@@ -370,7 +337,6 @@ let currentAddons     = {};
 let pendingAddonKey    = null;
 let pendingAddonBT     = null;
 let pendingCancelKey   = null;
-let pendingUnbundleKey = null;
 
 // AI성장리포트 가격 단계 (수동 전환 — 대표님 지시 시에만 변경)
 // functions/index.js ADDON_PRICE_TIER와 동일한 값으로 유지
@@ -794,13 +760,6 @@ window.doAddonCancel = async () => {
   }
 };
 
-// stub: 번들 분해 모달은 더 이상 사용하지 않음 (하위 호환성 유지)
-window.openAddonUnbundleModal = () => {};
-window.closeAddonUnbundleModal = () => {};
-window.doAddonUnbundle = async () => {
-  // 구 번들 구조 사용자는 더 이상 없음
-};
-
 // ── 로그아웃 ──────────────────────────────────────────────────────
 window.doLogout = async () => {
   await signOut(auth);
@@ -811,7 +770,7 @@ window.doLogout = async () => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeCancelSubModal(); closeWithdrawModal();
-    closeAddonSubModal(); closeAddonCancelModal(); closeAddonUnbundleModal();
+    closeAddonSubModal(); closeAddonCancelModal();
   }
 });
 document.getElementById('cancelSubModal').addEventListener('click', (e) => {
@@ -825,9 +784,6 @@ document.getElementById('addonSubModal').addEventListener('click', (e) => {
 });
 document.getElementById('addonCancelModal').addEventListener('click', (e) => {
   if (e.target === document.getElementById('addonCancelModal')) closeAddonCancelModal();
-});
-document.getElementById('addonUnbundleModal').addEventListener('click', (e) => {
-  if (e.target === document.getElementById('addonUnbundleModal')) closeAddonUnbundleModal();
 });
 
 // ── 유틸 ──────────────────────────────────────────────────────────

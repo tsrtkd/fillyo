@@ -768,9 +768,9 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
     setCardStatus('cardApp',      isPro);
-    setCardStatus('cardExam',     addons.exam?.status === 'active' || addons.bundle?.status === 'active');
-    setCardStatus('cardJumprope', addons.jumprope?.status === 'active' || addons.bundle?.status === 'active');
-    setCardStatus('cardReport',   addons.bundle?.status === 'active');
+    setCardStatus('cardExam',     addons.report?.status === 'active');
+    setCardStatus('cardJumprope', addons.report?.status === 'active');
+    setCardStatus('cardReport',   addons.report?.status === 'active');
     // cardSlowmo: 무료 서비스 — 로그인만 되면 항상 이용 가능, setCardStatus 생략
 
   } catch (e) {
