@@ -61,6 +61,14 @@
     transition:transform .2s,box-shadow .2s;
   }
   .nav-cta:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+  .nav-right{display:flex;align-items:center;gap:20px;}
+  .nav-guide{font-size:14px;font-weight:600;color:var(--ink-soft);transition:color .15s;}
+  .nav-guide:hover{color:var(--mint);}
+  @media(max-width:480px){
+    .nav{padding:16px 20px;}
+    .nav-right{gap:14px;}
+    .nav-guide{font-size:13px;}
+  }
 
   /* ── 히어로 ── */
   .hero{padding:88px 0 60px;position:relative;overflow:hidden;}
@@ -389,7 +397,10 @@
 <header>
   <div class="nav">
     <div class="logo">FILL<span>YO</span></div>
-    <a href="/login/" class="nav-cta">무료로 시작하기</a>
+    <div class="nav-right">
+      <a href="/guide/" class="nav-guide">사용설명서</a>
+      <a href="/login/" class="nav-cta">무료로 시작하기</a>
+    </div>
   </div>
 </header>
 
