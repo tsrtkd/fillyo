@@ -1179,7 +1179,7 @@ window.icalSelectDay = async (key) => {
   if (isDirty) { const ok = await showConfirmDialog(); if (!ok) return; }
   const [y, m, d] = key.split('-').map(Number);
   currentDate = new Date(y, m-1, d); icalDate = new Date(y, m-1, d);
-  updateDateHeader(); loadCurrentDay(); renderInlineCal();
+  updateDateHeader(); loadCurrentDay(); updateMonthStrip(); renderInlineCal();
   calOpen = false;
   document.getElementById('inlineCal').classList.remove('open');
   document.getElementById('calToggleBtn').classList.remove('open');
@@ -1277,12 +1277,12 @@ function updateMonthStrip() {
 
   const { newC: totalNew, restC: totalRest, outC: totalOut } = getCountsUpTo(null);
   document.getElementById('inp_base').value    = effBase || '';
-  document.getElementById('inp_new').value     = totalNew;
-  document.getElementById('inp_restore').value = totalRest;
-  document.getElementById('inp_out').value     = totalOut;
-  if (document.getElementById('disp_new'))     document.getElementById('disp_new').textContent     = totalNew;
-  if (document.getElementById('disp_restore')) document.getElementById('disp_restore').textContent = totalRest;
-  if (document.getElementById('disp_out'))     document.getElementById('disp_out').textContent     = totalOut;
+  document.getElementById('inp_new').value     = dispNew;
+  document.getElementById('inp_restore').value = dispRestore;
+  document.getElementById('inp_out').value     = dispOut;
+  if (document.getElementById('disp_new'))     document.getElementById('disp_new').textContent     = dispNew;
+  if (document.getElementById('disp_restore')) document.getElementById('disp_restore').textContent = dispRestore;
+  if (document.getElementById('disp_out'))     document.getElementById('disp_out').textContent     = dispOut;
 
   const totalCur = effBase + totalNew + totalRest - totalOut;
   document.getElementById('s_base').textContent    = effBase;
@@ -1550,7 +1550,7 @@ function renderNotifList() {
 window.notifClick = (lid, dk) => {
   const n = notifications.find(x => x.lid === lid); if (n) n.read = true;
   renderNotifList(); closeNotifPanel();
-  if (dk) { const [y,m,d] = dk.split('-').map(Number); currentDate = new Date(y,m-1,d); updateDateHeader(); loadCurrentDay(); showView('daily'); }
+  if (dk) { const [y,m,d] = dk.split('-').map(Number); currentDate = new Date(y,m-1,d); updateDateHeader(); loadCurrentDay(); updateMonthStrip(); showView('daily'); }
 };
 window.clearAllNotifs = () => { notifications = []; unreadCount = 0; updateNotifBadge(); renderNotifList(); };
 window.toggleNotifPanel = () => {
