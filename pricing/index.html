@@ -181,7 +181,7 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
             <span class="price-now">₩9,900</span>
             <span class="price-unit">/월</span>
           </div>
-          <div class="price-note">8/31까지 가입 시 · 가입일로부터 1년간 가격 고정</div>
+          <div class="price-note">선착순 50개 도장 한정 · 가입일로부터 1년간 가격 고정</div>
         </div>
       </div>
     </div>
@@ -443,11 +443,40 @@ const PLAN_PRICES = {
 // 'earlybird': 9,900원 / 'discount30': 13,500원 / 'full': 19,800원
 const ADDON_PRICE_TIER = 'earlybird';
 const ADDON_TIER_PRICES = { earlybird: 9900, discount30: 13500, full: 19800 };
-const REPORT_PRICE = ADDON_TIER_PRICES[ADDON_PRICE_TIER];
+let REPORT_PRICE = ADDON_TIER_PRICES[ADDON_PRICE_TIER];
 
 // ── 상태 ──
 let selectedPlan = 'early';
 const addons = { report: false };
+
+// ── 얼리버드 선착순 마감 체크 ──
+(async function checkEarlybirdStatus() {
+  try {
+    const res = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/getEarlybirdStatus');
+    if (!res.ok) return;
+    const { available } = await res.json();
+    if (!available) applyEarlybirdClosed();
+  } catch (_) { /* 실패 시 얼리버드 표시 유지 */ }
+})();
+
+function applyEarlybirdClosed() {
+  // 얼리버드 카드 숨김, 기본 선택을 1년 약정으로 전환
+  const cardEarly = document.getElementById('cardEarly');
+  if (cardEarly) cardEarly.style.display = 'none';
+  // 리포트 애드온 배지·가격 업데이트 (정가 19,800원)
+  REPORT_PRICE = 19800;
+  NAMES.report = 'AI성장리포트 (1년 계약)';
+  const badge = document.querySelector('#cardReport .card-badge');
+  if (badge) { badge.textContent = '1년 계약'; badge.style.background = '#5A6A7A'; }
+  const billingDesc = document.getElementById('billingReport');
+  if (billingDesc) {
+    billingDesc.innerHTML = billingDesc.innerHTML.replace(
+      '정가 ₩19,800/월 대비 50% 얼리버드 혜택 제공.',
+      '정가 ₩19,800/월 · 1년 계약',
+    );
+  }
+  selectPlan('contract');
+}
 
 // ── 메인 플랜 선택 ──
 window.selectPlan = function(plan) {

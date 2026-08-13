@@ -54,10 +54,37 @@ const ADDON_PRICE_TIER = 'earlybird';
 // KG이니시스 실연동 전환 시 'YYYY-MM-DD' 형식으로 기입
 const ADDON_LIVE_DATE = null;
 
-function reportContractPrice() {
+// ── 얼리버드 선착순 설정 ──────────────────────────────────────────
+const EARLYBIRD_LIMIT = 50;
+// 도장 수 카운트에서 제외할 테스트·관리자 계정 이메일
+const EARLYBIRD_EXCLUDED_EMAILS = new Set([
+  'test-free@fillyo.kr',
+  'tsr@fillyo.kr',
+  'test@fillyo.kr',
+  'audtls2g@naver.com',
+  'audtls2g@gmail.com',
+]);
+
+// planType === 'pro'인 실사용 도장 수 집계 (테스트·관리자 제외)
+// orderByChild 인덱스 불필요 — JS 필터링 (FILLYO 규모에서 충분히 빠름)
+async function countActivePaidDojangs() {
+  const snap = await db.ref('users').get();
+  if (!snap.exists()) return 0;
+  let count = 0;
+  snap.forEach(child => {
+    const u = child.val();
+    if (u.planType === 'pro' && u.email && !EARLYBIRD_EXCLUDED_EMAILS.has(u.email)) count++;
+  });
+  return count;
+}
+
+// earlybird 단계일 때 실시간으로 도장 수 확인 후 가격 결정
+async function reportContractPrice() {
   if (ADDON_PRICE_TIER === 'discount30') return 13500;
   if (ADDON_PRICE_TIER === 'full') return 19800;
-  return 9900; // 'earlybird'
+  // 'earlybird': 선착순 50개 도장 미만이면 9,900원, 이후 신규는 19,800원(정가)
+  const count = await countActivePaidDojangs();
+  return (count >= EARLYBIRD_LIMIT) ? 19800 : 9900;
 }
 
 // 다음 달 동일 일자 계산 (월말 보정 포함)
@@ -69,6 +96,25 @@ function nextMonthSameDay(from = new Date()) {
   if (d.getDate() !== day) d.setDate(0);
   return d;
 }
+
+// ──────────────────────────────────────────────────────────────────
+// getEarlybirdStatus  (공개 엔드포인트 — 인증 불필요)
+// 얼리버드 선착순 50개 도장 마감 여부를 클라이언트에 전달
+// ──────────────────────────────────────────────────────────────────
+exports.getEarlybirdStatus = onRequest(
+  { region: 'asia-northeast3', timeoutSeconds: 15 },
+  async (req, res) => {
+    cors(req, res, async () => {
+      try {
+        const count = await countActivePaidDojangs();
+        return res.status(200).json({ available: count < EARLYBIRD_LIMIT });
+      } catch (e) {
+        console.error('[getEarlybirdStatus] 오류:', e.message);
+        return res.status(500).json({ error: e.message });
+      }
+    });
+  },
+);
 
 // ──────────────────────────────────────────────────────────────────
 // scheduleNextPayment
@@ -626,7 +672,7 @@ exports.subscribeAddon = onCall(
     const { billingKey } = billing;
 
     // 금액 결정 (단계별 가격 적용)
-    const monthlyAmount = reportContractPrice();
+    const monthlyAmount = await reportContractPrice();
     const regularAmount = priceInfo.regularAmount;
     const orderName     = `FILLYO ${priceInfo.name} 1년 계약`;
 
