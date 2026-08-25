@@ -2136,7 +2136,7 @@ window.bulkPassGroup = async (belt) => {
   await bulkPassStudents(indices);
   const remaining = currentExamSession.students.filter(ss => !ss.done).length;
   showToast(remaining === 0 ? '🎉 이번 심사 완료!' : `✅ ${belt} 전체 합격 처리 완료`);
-  backToStep2List(true);  // 전원 저장 완료 후 호출 — 경고 불필요
+  backToStep2List();  // 다른 띠에 미저장 입력 있을 수 있어 경고 체크 필요
 };
 
 window.bulkPassAll = async () => {
