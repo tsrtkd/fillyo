@@ -1919,28 +1919,51 @@ window.setPassed = (idx, val) => {
 };
 
 window.savePending = async (idx) => {
-  const ss = currentExamSession.students[idx];
-  ss.comment = document.getElementById('comment-' + idx)?.value || '';
-  const evalData = {
-    studentId: ss.id,
-    date:      currentExamSession.date,
-    round:     currentExamSession.round,
-    belt:      ss.belt,
-    grade:     ss.grade || '',
-    passed:    'pending',
-    scores:    ss.scores,
-    comment:   ss.comment,
-  };
-  const existingEntry = Object.entries(evaluations).find(
-    ([, e]) => e.studentId === ss.id && e.date === currentExamSession.date && e.round === currentExamSession.round
-  );
-  const evalId = existingEntry ? existingEntry[0] : push(ref(db, `academies/${academyId}/exam/evaluations`)).key;
-  await set(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), evalData);
-  ss.done   = true;
-  ss.passed = 'pending';
-  const rowEl = document.getElementById('erow-' + idx);
-  if (rowEl) rowEl.classList.add('done');
-  showToast('⏸ 진행 중으로 저장했습니다');
+  // DOM의 최신 코멘트를 전부 세션에 반영
+  currentExamSession.students.forEach((s, i) => {
+    const el = document.getElementById('comment-' + i);
+    if (el) s.comment = el.value;
+  });
+
+  // 아직 저장 안 된 학생 중 입력이 하나라도 있으면 전부 저장
+  for (const [i, s] of currentExamSession.students.entries()) {
+    if (s.done) continue; // 이미 저장된 학생은 건너뜀
+
+    const hasInput = i === idx                                          // 버튼을 누른 학생은 무조건 저장
+      || Object.values(s.scores || {}).some(v => v > 0)                // 점수 입력
+      || !!(s.comment && s.comment.trim())                             // 코멘트 입력
+      || s.passed !== null;                                             // 합격/불합격 선택
+
+    if (!hasInput) continue;
+
+    // 버튼 누른 학생·합격여부 미선택 → pending / 선택한 학생은 그 값 유지
+    const passedVal = (i === idx || s.passed === null) ? 'pending' : s.passed;
+
+    const evalData = {
+      studentId: s.id,
+      date:      currentExamSession.date,
+      round:     currentExamSession.round,
+      belt:      s.belt,
+      grade:     s.grade || '',
+      passed:    passedVal,
+      scores:    s.scores,
+      comment:   s.comment,
+    };
+    const existingEntry = Object.entries(evaluations).find(
+      ([, e]) => e.studentId === s.id && e.date === currentExamSession.date && e.round === currentExamSession.round
+    );
+    const evalId = existingEntry ? existingEntry[0] : push(ref(db, `academies/${academyId}/exam/evaluations`)).key;
+    await set(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), evalData);
+
+    s.done   = true;
+    s.passed = passedVal;
+    const rowEl = document.getElementById('erow-' + i);
+    if (rowEl) rowEl.classList.add('done');
+  }
+
+  // 승급 모달은 띄우지 않음 — "오늘 여기까지"는 중간 저장이므로
+  // 나중에 목록으로 돌아와 각 학생을 saveExamRow로 완료할 때 모달 표시됨
+  showToast('⏸ 전원 저장 후 목록으로 돌아갑니다');
   backToStep2List();
 };
 
