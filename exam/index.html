@@ -1825,7 +1825,17 @@ window.startSubExam = () => {
   renderExamTable();
 };
 
-window.backToStep2List = () => {
+window.backToStep2List = (skipWarning = false) => {
+  if (!skipWarning && currentExamSession) {
+    const hasUnsaved = currentExamSession.students.some((ss, i) =>
+      !ss.done && (
+        Object.values(ss.scores || {}).some(v => v > 0) ||
+        !!(document.getElementById('comment-' + i)?.value?.trim()) ||
+        ss.passed !== null
+      )
+    );
+    if (hasUnsaved && !confirm('저장하지 않은 평가가 있습니다. 목록으로 돌아가시겠습니까?')) return;
+  }
   currentExamSession = null;
   document.getElementById('examSection').classList.add('hidden');
   document.getElementById('examSection').innerHTML = '';
@@ -2023,7 +2033,7 @@ window.savePending = async (idx) => {
   // 승급 모달은 띄우지 않음 — "오늘 여기까지"는 중간 저장이므로
   // 나중에 목록으로 돌아와 각 학생을 saveExamRow로 완료할 때 모달 표시됨
   showToast('⏸ 전원 저장 후 목록으로 돌아갑니다');
-  backToStep2List();
+  backToStep2List(true);  // 전원 저장 완료 후 호출 — 경고 불필요
 };
 
 window.saveExamRow = async (idx) => {
@@ -2066,13 +2076,12 @@ window.saveExamRow = async (idx) => {
       }
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
       showToast(`🏆 저장 완료! ${ss.belt} → ${next.nextBelt} 승급 적용됨`);
-      backToStep2List();
-      return;
+      return;  // 심사 화면에 머뭄 — 다른 학생 입력 보존
     }
     // calcNext === null: 빨간띠→1품단 등 수동 처리 케이스 — 승급 없이 저장만
   }
   showToast('✅ 저장 완료!');
-  backToStep2List();
+  // 목록으로 돌아가지 않음 — 사용자가 "← 목록으로" 버튼을 직접 눌러야 이동
 };
 
 
@@ -2127,7 +2136,7 @@ window.bulkPassGroup = async (belt) => {
   await bulkPassStudents(indices);
   const remaining = currentExamSession.students.filter(ss => !ss.done).length;
   showToast(remaining === 0 ? '🎉 이번 심사 완료!' : `✅ ${belt} 전체 합격 처리 완료`);
-  backToStep2List();
+  backToStep2List(true);  // 전원 저장 완료 후 호출 — 경고 불필요
 };
 
 window.bulkPassAll = async () => {
@@ -2140,7 +2149,7 @@ window.bulkPassAll = async () => {
   if (!indices.length) { showToast('미완료 학생이 없습니다'); return; }
   await bulkPassStudents(indices);
   showToast('🎉 이번 심사 완료!');
-  backToStep2List();
+  backToStep2List(true);  // 전원 저장 완료 후 호출 — 경고 불필요
 };
 
 // ── 현황 탭 ──────────────────────────────────────────────────────────
