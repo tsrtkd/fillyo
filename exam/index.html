@@ -390,6 +390,9 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
           <input class="search-input" id="step2SearchInput" type="text" placeholder="이름 검색..." oninput="renderStep2List()">
         </div>
         <div id="step2StudentList" style="padding:0 16px"></div>
+        <div style="padding:4px 16px 0">
+          <button class="modal-btn secondary" style="width:100%" onclick="openAddStudentsModal()">➕ 대상자 추가</button>
+        </div>
         <div style="padding:8px 16px 16px">
           <button class="modal-btn primary" style="width:100%" onclick="startSubExam()">심사 시작</button>
         </div>
@@ -603,14 +606,15 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   </div>
 </div>
 
-<!-- 승급 확인 모달 -->
-<div class="modal-overlay" id="modalPromotion">
+
+<!-- 대상자 추가 모달 -->
+<div class="modal-overlay" id="modalAddStudents">
   <div class="modal-box">
-    <div class="modal-title">🏆 승급 확인</div>
-    <div id="promoContent"></div>
+    <div class="modal-title">➕ 대상자 추가</div>
+    <div id="addStudentsContent" style="max-height:55vh;overflow-y:auto"></div>
     <div class="modal-btn-row">
-      <button class="modal-btn secondary" onclick="cancelPromotion()">취소</button>
-      <button class="modal-btn primary" onclick="applyPromotion()">승급 적용</button>
+      <button class="modal-btn secondary" onclick="closeModal('modalAddStudents')">취소</button>
+      <button class="modal-btn primary" onclick="confirmAddStudents()">추가</button>
     </div>
   </div>
 </div>
@@ -686,7 +690,7 @@ let students            = {};
 let evaluations         = {};
 let currentExamSession  = null;
 let editingStudentId    = null;
-let pendingPromotion    = null;
+// pendingPromotion 제거 — saveExamRow에서 자동 승급으로 전환됨
 let currentSession      = null;
 let editingEvalId       = null;
 let _editScores         = null;
@@ -1643,6 +1647,52 @@ function isStudentPendingInSession(studentId) {
   );
 }
 
+// ── 대상자 추가 ──────────────────────────────────────────────────────────
+window.openAddStudentsModal = () => {
+  if (!currentSession) return;
+  const alreadyIn = new Set(currentSession.studentIds || []);
+  const available = Object.entries(students)
+    .filter(([id]) => !alreadyIn.has(id))
+    .map(([id, s]) => ({ id, ...s }));
+
+  if (!available.length) {
+    showToast('추가할 수 있는 수련생이 없습니다');
+    return;
+  }
+
+  const sorted = [...available].sort((a, b) => beltOrder(a.belt) - beltOrder(b.belt));
+  document.getElementById('addStudentsContent').innerHTML = `
+    <div class="student-check-list" style="padding:8px 0">
+      <div class="check-all-row" style="padding:0 16px 6px">
+        <input type="checkbox" id="chkAllAdd" onchange="document.querySelectorAll('.add-chk').forEach(c=>c.checked=this.checked)">
+        <label for="chkAllAdd">전체 선택</label>
+      </div>
+      ${sorted.map(s => `
+        <div class="check-item" style="padding:6px 16px">
+          <input type="checkbox" class="add-chk" id="addchk-${s.id}" value="${s.id}">
+          <label for="addchk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  openModal('modalAddStudents');
+};
+
+window.confirmAddStudents = async () => {
+  if (!currentSession) return;
+  const selected = [...document.querySelectorAll('.add-chk:checked')].map(c => c.value);
+  if (!selected.length) { showToast('추가할 수련생을 선택해주세요'); return; }
+
+  const updatedIds = [...(currentSession.studentIds || []), ...selected];
+  await update(ref(db, `academies/${academyId}/exam/sessions/${currentSession.key}`), { studentIds: updatedIds });
+  currentSession.studentIds = updatedIds;
+
+  closeModal('modalAddStudents');
+  document.getElementById('examProgressLabel').textContent = `${updatedIds.length}명 등록됨`;
+  renderStep2List();
+  showToast(`✅ ${selected.length}명 추가됨`);
+};
+
 window.renderStep2List = () => {
   if (!currentSession) return;
   const sort   = document.getElementById('step2SortSelect')?.value || 'belt';
@@ -2004,52 +2054,27 @@ window.saveExamRow = async (idx) => {
   const rowEl = document.getElementById('erow-' + idx);
   if (rowEl) rowEl.classList.add('done');
   moveRowToDone(idx);
-  showToast('✅ 저장 완료!');
 
   if (ss.passed === true) {
     const next = calcNext(ss);
     if (next) {
-      pendingPromotion = { ss, stId: ss.id, nextBelt: next.nextBelt, nextGrade: next.nextGrade };
-      showPromotionModal(pendingPromotion);
+      // bulkPassStudents와 동일하게 즉시 자동 승급 적용 (별도 팝업 없음)
+      const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
+      if (isDan(next.nextBelt)) {
+        const certKey = `certDate${DAN_BELTS.indexOf(next.nextBelt) + 1}`;
+        updateData[certKey] = todayStr();
+      }
+      await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
+      showToast(`🏆 저장 완료! ${ss.belt} → ${next.nextBelt} 승급 적용됨`);
+      backToStep2List();
       return;
     }
+    // calcNext === null: 빨간띠→1품단 등 수동 처리 케이스 — 승급 없이 저장만
   }
+  showToast('✅ 저장 완료!');
   backToStep2List();
 };
 
-function showPromotionModal(promo) {
-  document.getElementById('promoContent').innerHTML = `
-    <div class="promo-item">
-      <div class="promo-name">${promo.ss.name}</div>
-      <div class="promo-belts">
-        ${beltBadge(promo.ss.belt, promo.ss.grade || '')}
-        <span style="color:var(--text2)">→</span>
-        ${beltBadge(promo.nextBelt, promo.nextGrade || '')}
-      </div>
-    </div>
-    <p style="font-size:13px;color:var(--text2)">승급을 적용하시겠습니까?</p>
-  `;
-  openModal('modalPromotion');
-}
-
-window.applyPromotion = async () => {
-  if (!pendingPromotion) return;
-  const { stId, nextBelt, nextGrade } = pendingPromotion;
-  const updateData = { belt: nextBelt, grade: nextGrade || '' };
-  if (isDan(nextBelt)) {
-    const certKey = `certDate${DAN_BELTS.indexOf(nextBelt) + 1}`;
-    updateData[certKey] = todayStr();
-  }
-  await update(ref(db, `academies/${academyId}/exam/students/${stId}`), updateData);
-  closeModal('modalPromotion');
-  showToast('🏆 승급 적용 완료!');
-  pendingPromotion = null;
-};
-
-window.cancelPromotion = () => {
-  closeModal('modalPromotion');
-  pendingPromotion = null;
-};
 
 // ── 일괄합격 처리 ──────────────────────────────────────────────────────
 async function bulkPassStudents(indices) {
