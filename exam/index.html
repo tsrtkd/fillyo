@@ -1746,15 +1746,24 @@ window.startSubExam = () => {
   const sessionStudents = checked.map(id => {
     const s     = students[id] || {};
     const group = getExamGroup(s.belt || '흰띠', s.age);
+
+    // 이 회차에 pending으로 저장된 기록이 있으면 점수·코멘트만 복원
+    const prev = Object.values(evaluations).find(
+      e => e.studentId === id && e.date === currentSession.date && e.round === currentSession.round
+    );
+    const prevScores = (prev && prev.passed === 'pending') ? (prev.scores || {}) : {};
+
     return {
       id,
       name:    s.name  || '',
       belt:    s.belt  || '흰띠',
       grade:   s.grade || '',
       age:     s.age   || 0,
-      scores:  Object.fromEntries(getActiveExamItems(group).map(item => [item.key, 0])),
-      passed:  null,
-      comment: '',
+      scores:  Object.fromEntries(
+        getActiveExamItems(group).map(item => [item.key, prevScores[item.key] ?? 0])
+      ),
+      passed:  null,                              // 합격/불합격은 항상 미선택으로 시작
+      comment: (prev && prev.passed === 'pending') ? (prev.comment || '') : '',
       done:    false,
     };
   });
