@@ -494,7 +494,7 @@ onAuthStateChanged(auth, async user => {
       const _isPro = userData.planType === 'pro' && (!userData.planExpiry || userData.planExpiry > Date.now());
       const _ts    = userData.trialStart || null;
       const _days  = _ts ? Math.floor((Date.now() - _ts) / 86400000) : 999;
-      const _trial = !_isPro && _ts !== null && _days < 7;
+      const _trial = !_isPro && _ts !== null && _days < 30;
       let _reportOk = false;
       if (_isPro) {
         const _adSnap = await get(ref(db, `academies/${academyId}/addons`));
