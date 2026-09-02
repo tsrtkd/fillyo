@@ -298,6 +298,18 @@ button{
   padding:10px 24px;border-radius:8px;font-size:13px;letter-spacing:.08em;
 }
 @keyframes saveSpin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+
+/* ── Portrait: 촬영 중 몰입형 모드 (iOS / FS 폴백) ── */
+@media (orientation:portrait) {
+  #ctrl.ios-immersive #ctrl-mini-nav,
+  #ctrl.ios-immersive .ctrl-mid {
+    display: none !important;
+  }
+  #ctrl.ios-immersive {
+    padding: 6px 12px 8px;
+    gap: 4px;
+  }
+}
 </style>
 </head>
 <body>
@@ -435,6 +447,45 @@ function updateSB(i,ph){
   document.getElementById('ph').textContent=ph;
 }
 
+// ── Immersive mode ─────────────────────────────────────────────────────
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+async function enterImmersive() {
+  if (!isIOS) {
+    const target = document.getElementById('app');
+    const reqFS = target.requestFullscreen || target.webkitRequestFullscreen;
+    if (reqFS) {
+      try { await reqFS.call(target); return; } catch(e) {}
+    }
+  }
+  // iOS이거나 Fullscreen API 실패: 불필요한 컨트롤 숨김 + 주소창 접기 시도
+  document.getElementById('ctrl').classList.add('ios-immersive');
+  try {
+    const s = document.body.style;
+    s.overflow = '';
+    window.scrollTo(0, 1);
+    requestAnimationFrame(() => { s.overflow = 'hidden'; });
+  } catch(e) {}
+}
+
+function exitImmersive() {
+  try {
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    }
+  } catch(e) {}
+  document.getElementById('ctrl').classList.remove('ios-immersive');
+}
+
+// ESC 등으로 전체화면이 외부에서 해제될 때 UI 복원
+function _onFSChange() {
+  if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+    document.getElementById('ctrl').classList.remove('ios-immersive');
+  }
+}
+document.addEventListener('fullscreenchange', _onFSChange);
+document.addEventListener('webkitfullscreenchange', _onFSChange);
+
 // ── Start ─────────────────────────────────────────────────────────────
 const BS=document.getElementById('bstart'),BP=document.getElementById('bstop');
 const durEl=document.getElementById('dur'),slowEl=document.getElementById('slow');
@@ -461,6 +512,7 @@ async function startSys(){
   BS.style.display='none'; BP.style.display='inline-block';
   durEl.disabled=true; slowEl.disabled=true;
 
+  await enterImmersive();
   await countdown(3);
   if(!running) return;
   loop();
@@ -468,6 +520,7 @@ async function startSys(){
 
 function stopSys(){
   running=false;
+  exitImmersive();
   recorders.forEach(r=>{try{if(r&&r.state!=='inactive')r.stop();}catch(e){}});
   if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;}
   vids.forEach((v,i)=>{v.pause();v.src='';prevs[i].srcObject=null;prevs[i].style.display='none';});
