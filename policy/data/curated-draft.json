@@ -61,5 +61,23 @@
     "reqstBeginEndDe": "2026.06 ~ 2026.12 (고효율기기·온라인판로 지원 6.11 시작, 나머지 항목 7~8월 순차 오픈, 전국 5,300개소 한정)",
     "tag": "시설·장비, AI/디지털, 소상공인",
     "pinned": false
+  },
+  "DJ_SMARTSTORE2026_2": {
+    "pblancNm": "2026년 스마트상점 기술보급사업 2차 모집 (구입형·렌탈형·SW형)",
+    "jrsdInsttNm": "소상공인시장진흥공단",
+    "pblancUrl": "https://www.sbiz.or.kr/smst/index.do",
+    "reqstEndDt": "2026-09-30",
+    "reqstBeginEndDe": "2026.08.26 ~ 2026.09.30",
+    "tag": "전국, 체육시설, 소상공인, 시설장비",
+    "pinned": false
+  },
+  "DJ_TUNTUNLOAN2026_5": {
+    "pblancNm": "2026년 스포츠산업 육성자금(튼튼론) 5차 접수",
+    "jrsdInsttNm": "국민체육진흥공단(스포비즈)",
+    "pblancUrl": "https://spobiz.kspo.or.kr/front/html/html.do?sitePage=supportInfoDetail08&topMenuSeq=1",
+    "reqstEndDt": "2026-09-01",
+    "reqstBeginEndDe": "2026.09.01 (당일 마감)",
+    "tag": "전국, 체육시설, 정책자금",
+    "pinned": false
   }
 }
