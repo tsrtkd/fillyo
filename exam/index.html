@@ -2069,11 +2069,8 @@ window.saveExamRow = async (idx) => {
     const next = calcNext(ss);
     if (next) {
       // bulkPassStudents와 동일하게 즉시 자동 승급 적용 (별도 팝업 없음)
+      // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
       const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
-      if (isDan(next.nextBelt)) {
-        const certKey = `certDate${DAN_BELTS.indexOf(next.nextBelt) + 1}`;
-        updateData[certKey] = todayStr();
-      }
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
       showToast(`🏆 저장 완료! ${ss.belt} → ${next.nextBelt} 승급 적용됨`);
       return;  // 심사 화면에 머뭄 — 다른 학생 입력 보존
@@ -2109,11 +2106,8 @@ async function bulkPassStudents(indices) {
 
     const next = calcNext(ss);
     if (next) {
+      // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
       const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
-      if (isDan(next.nextBelt)) {
-        const certKey = `certDate${DAN_BELTS.indexOf(next.nextBelt) + 1}`;
-        updateData[certKey] = todayStr();
-      }
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
     }
 
