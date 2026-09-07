@@ -749,7 +749,8 @@ function calcNext(ss) {
     const grades   = getDanGradesStepped(belt, gradeStep);
     const curGrade = ss.grade || st.grade || grades[0];
     const idx      = grades.indexOf(curGrade);
-    if (idx === -1 || idx >= grades.length - 1) return null;
+    if (idx === -1) return { gradeConflict: true };
+    if (idx >= grades.length - 1) return null;
     return { nextBelt: belt, nextGrade: grades[idx + 1] };
   } else {
     const promoMap = getPromoMap(st.age, belt);
@@ -1563,7 +1564,7 @@ window.importExcelStudents = async () => {
       const wb   = XLSX.read(ev.target.result, { type: 'array' });
       const ws   = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-      let added = 0, skipped = 0;
+      let added = 0, skipped = 0, duplicates = [];
       for (const row of rows) {
         const nameStr = String(row['이름'] || '').trim();
         const beltStr = String(row['현재띠'] || row['띠'] || '').trim();
@@ -1572,7 +1573,14 @@ window.importExcelStudents = async () => {
         const studentData = {
           name:        nameStr,
           belt:        beltStr,
-          grade:       (() => { if (!gradeStr) return 0; const n = Number(gradeStr); if (!isNaN(n)) return n; const m = gradeStr.match(/\d+/); return m ? Number(m[0]) : gradeStr; })(),
+          grade:       (() => {
+            if (!isDan(beltStr)) return '';
+            if (!gradeStr) return '';
+            const strVal = String(gradeStr).trim();
+            if (strVal.endsWith('급')) return strVal;
+            const n = parseInt(strVal);
+            return isNaN(n) ? '' : n + '급';
+          })(),
           age:         Number(row['나이']) || 0,
           school:      String(row['학교/학년'] || row['학교'] || '').trim(),
           parentPhone: String(row['부모님연락처'] || '').trim(),
@@ -1583,8 +1591,14 @@ window.importExcelStudents = async () => {
           certDate4:   String(row['4품취득일'] || '').trim(),
           memo:        String(row['메모'] || '').trim(),
         };
-        // 이름으로 기존 학생 매칭
-        const existingKey = Object.keys(students).find(k => students[k].name === studentData.name);
+        // 이름으로 기존 학생 매칭 — 동명이인이면 건너뜀
+        const matchingKeys = Object.keys(students).filter(k => students[k].name === studentData.name);
+        if (matchingKeys.length > 1) {
+          skipped++;
+          duplicates.push(nameStr);
+          continue;
+        }
+        const existingKey     = matchingKeys.length === 1 ? matchingKeys[0] : null;
         const existingStudent = existingKey ? students[existingKey] : null;
         // 취득일 비어있으면 기존 값 유지
         ['certDate1','certDate2','certDate3','certDate4'].forEach(key => {
@@ -1601,6 +1615,9 @@ window.importExcelStudents = async () => {
         added++;
       }
       closeModal('modalExcel');
+      if (duplicates.length) {
+        alert(`⚠️ 동명이인으로 건너뜀 — 수동 확인 필요:\n${duplicates.join(', ')}`);
+      }
       showToast(`✅ ${added}명 처리 완료, ${skipped}명 건너뜀`);
     } catch (err) {
       console.error(err);
@@ -2067,6 +2084,10 @@ window.saveExamRow = async (idx) => {
 
   if (ss.passed === true) {
     const next = calcNext(ss);
+    if (next?.gradeConflict) {
+      showToast('⚠️ 저장은 됐지만 급수 설정 불일치로 승급이 적용되지 않았습니다. 확인해주세요');
+      return;
+    }
     if (next) {
       // bulkPassStudents와 동일하게 즉시 자동 승급 적용 (별도 팝업 없음)
       // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
@@ -2084,6 +2105,7 @@ window.saveExamRow = async (idx) => {
 
 // ── 일괄합격 처리 ──────────────────────────────────────────────────────
 async function bulkPassStudents(indices) {
+  let gradeConflictNames = [];
   for (const idx of indices) {
     const ss = currentExamSession.students[idx];
     if (ss.done) continue;
@@ -2105,7 +2127,9 @@ async function bulkPassStudents(indices) {
     await set(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), evalData);
 
     const next = calcNext(ss);
-    if (next) {
+    if (next?.gradeConflict) {
+      gradeConflictNames.push(students[ss.id]?.name || ss.id);
+    } else if (next) {
       // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
       const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
@@ -2116,7 +2140,11 @@ async function bulkPassStudents(indices) {
     const rowEl = document.getElementById('erow-' + idx);
     if (rowEl) rowEl.classList.add('done');
   }
-  showToast('전체 합격 처리 완료!', 'ok');
+  if (gradeConflictNames.length) {
+    showToast(`⚠️ 저장 완료, 급수 설정 불일치로 승급 미적용: ${gradeConflictNames.join(', ')} — 확인해주세요`);
+  } else {
+    showToast('전체 합격 처리 완료!', 'ok');
+  }
 }
 
 window.bulkPassGroup = async (belt) => {
@@ -2244,7 +2272,7 @@ async function rollbackRound() {
   if (!roundStr) return;
   const evalEntry = Object.values(evaluations).find(e => e.round === roundStr);
   const dateStr   = evalEntry?.date || '';
-  if (!confirm(`⚠️ [${roundStr}] 심사 이전 상태로 롤백합니다. 해당 회차의 평가 기록과 승급 데이터가 모두 초기화됩니다. 계속하시겠습니까?`)) return;
+  if (!confirm(`⚠️ [${roundStr}] 심사 이전 상태로 롤백합니다.\n해당 회차에 참여했던 학생의 승급 데이터만 백업 시점으로 복원되며, 나머지 학생 데이터는 건드리지 않습니다. 계속하시겠습니까?`)) return;
 
   const backupsSnap = await get(ref(db, `academies/${academyId}/exam/backups`));
   if (!backupsSnap.exists()) {
@@ -2253,14 +2281,35 @@ async function rollbackRound() {
   }
   const backups = backupsSnap.val();
   const backup  = Object.values(backups).find(b => b.round === roundStr && (!dateStr || b.date === dateStr));
-  if (!backup) {
+  if (!backup || !backup.studentSnapshot) {
     alert('백업 데이터가 없습니다. 수동으로 수정해주세요.');
     return;
   }
 
-  await set(ref(db, `academies/${academyId}/exam/students`), backup.studentSnapshot);
+  // 참여 학생 목록: evaluations + 세션의 studentIds (합산)
+  const participantSet = new Set(
+    Object.values(evaluations)
+      .filter(e => e.round === roundStr && (!dateStr || e.date === dateStr))
+      .map(e => e.studentId)
+  );
+  if (backup.sessionKey) {
+    const sessSnap2 = await get(ref(db, `academies/${academyId}/exam/sessions/${backup.sessionKey}`));
+    if (sessSnap2.exists()) {
+      (sessSnap2.val().studentIds || []).forEach(id => participantSet.add(id));
+    }
+  }
 
-  const toDelete = Object.entries(evaluations).filter(([, e]) => e.round === roundStr && e.date === dateStr);
+  // 참여 학생만 belt/grade/certDate 필드를 백업 값으로 개별 update (다른 학생 건드리지 않음)
+  const RESTORE = ['belt', 'grade', 'certDate1', 'certDate2', 'certDate3', 'certDate4'];
+  for (const studentId of participantSet) {
+    const snap = backup.studentSnapshot[studentId];
+    if (!snap) continue;
+    const restoreData = {};
+    RESTORE.forEach(f => { restoreData[f] = snap[f] ?? ''; });
+    await update(ref(db, `academies/${academyId}/exam/students/${studentId}`), restoreData);
+  }
+
+  const toDelete = Object.entries(evaluations).filter(([, e]) => e.round === roundStr && (!dateStr || e.date === dateStr));
   for (const [evalId] of toDelete) {
     await remove(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`));
   }
@@ -2268,13 +2317,13 @@ async function rollbackRound() {
   const sessSnap = await get(ref(db, `academies/${academyId}/exam/sessions`));
   if (sessSnap.exists()) {
     for (const [key, s] of Object.entries(sessSnap.val())) {
-      if (s.round === roundStr && s.date === dateStr) {
+      if (s.round === roundStr && (!dateStr || s.date === dateStr)) {
         await remove(ref(db, `academies/${academyId}/exam/sessions/${key}`));
       }
     }
   }
 
-  showToast('✅ 롤백 완료! 심사 이전 상태로 복원되었습니다');
+  showToast('✅ 롤백 완료! 해당 회차 참여 학생의 승급 데이터가 복원되었습니다');
 }
 window.rollbackRound = rollbackRound;
 
