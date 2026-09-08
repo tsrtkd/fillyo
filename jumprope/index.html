@@ -775,17 +775,33 @@ function uploadExcel(inp) {
     const wb = XLSX.read(e.target.result, {type:'binary'});
     const ws = wb.Sheets[wb.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json(ws, {defval:''});
+    let added = 0, skipped = 0, duplicates = [];
     rows.forEach(row => {
       const keys = Object.keys(row).map(k => k.toLowerCase());
       const getV = (...ns) => { for (const n of ns) { const k = keys.find(k => k.includes(n)); if (k !== undefined) return String(row[Object.keys(row)[keys.indexOf(k)]]).trim(); } return ''; };
       const name = getV('이름','name'); if (!name) return;
       const grade = parseInt(getV('학년','grade')) || 3;
       const level = getV('급수','level') || '미평가';
-      const ex = students.find(s => s.name === name);
-      if (ex) { ex.grade = grade; if (level && level !== '미평가') ex.level = level; }
-      else { idCnt++; students.push({id:idCnt, name, grade, level}); }
+      const matches = students.filter(s => s.name === name);
+      if (matches.length > 1) {
+        skipped++;
+        duplicates.push(name);
+        return;
+      }
+      if (matches.length === 1) {
+        matches[0].grade = grade;
+        if (level && level !== '미평가') matches[0].level = level;
+      } else {
+        idCnt++; students.push({id:idCnt, name, grade, level});
+      }
+      added++;
     });
-    saveStudents(); renderStudents(); alert('업로드 완료!');
+    saveStudents(); renderStudents();
+    if (duplicates.length) {
+      alert(`업로드 완료!\n\n⚠️ 동명이인으로 건너뜀 — 수동 확인 필요:\n${duplicates.join(', ')}`);
+    } else {
+      alert('업로드 완료!');
+    }
   };
   r.readAsBinaryString(f);
 }
