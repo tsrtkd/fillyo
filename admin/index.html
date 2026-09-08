@@ -315,6 +315,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       <div class="alert-card-hdr">
         <span class="alert-card-title">✏️ 맞춤 수정 요청 관리</span>
         <span class="alert-cnt none" id="customReqCnt">0</span>
+        <button class="btn-refresh" onclick="loadCustomRequests()" style="margin-left:8px;">↻ 새로고침</button>
       </div>
       <div id="customReqList">
         <div class="req-empty">
@@ -588,6 +589,7 @@ onAuthStateChanged(auth, async (user) => {
   await loadNotices();
   await loadCurated();
   await loadSettlementDue();
+  await loadCustomRequests();
 });
 
 window.doLogout = () => signOut(auth).then(() => location.href = '/login/');
@@ -1250,6 +1252,66 @@ window.loadSettlementDue = async () => {
       </div>`;
   } catch (e) {
     listEl.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패: ${esc(e.message)}</div></div>`;
+  }
+};
+
+// ── 맞춤 수정 요청 로드 ──────────────────────────────────────────
+window.loadCustomRequests = async () => {
+  const listEl = document.getElementById('customReqList');
+  const cntEl  = document.getElementById('customReqCnt');
+  if (!listEl) return;
+  try {
+    const acadIds = [...new Set(allData.map(a => a.academyId).filter(Boolean))];
+    const pending = [];
+    await Promise.all(acadIds.map(async (acadId) => {
+      const acadName = allData.find(a => a.academyId === acadId)?.academyName || acadId;
+      const snap = await get(ref(db, `academies/${acadId}/customRequests`));
+      if (!snap.exists()) return;
+      Object.entries(snap.val()).forEach(([reqId, req]) => {
+        if (req.status === 'pending') pending.push({ reqId, acadId, acadName, ...req });
+      });
+    }));
+    pending.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+    cntEl.textContent = pending.length;
+    cntEl.className   = `alert-cnt ${pending.length > 0 ? 'has' : 'none'}`;
+
+    if (pending.length === 0) {
+      listEl.innerHTML = `<div class="req-empty"><div class="req-empty-icon">📭</div><div class="req-empty-text">접수된 요청이 없습니다.</div></div>`;
+      return;
+    }
+    listEl.innerHTML = `
+      <div class="tbl-wrap">
+        <table style="min-width:600px;">
+          <thead><tr>
+            <th>도장명</th><th>요청 내용</th><th>요청 시각</th><th>처리</th>
+          </tr></thead>
+          <tbody>
+            ${pending.map(item => `<tr>
+              <td class="td-academy">${esc(item.acadName)}</td>
+              <td style="font-size:12px;white-space:pre-wrap;max-width:240px;word-break:break-all;">${esc(item.content || '—')}</td>
+              <td class="td-date">${fmt(item.createdAt)}</td>
+              <td><button class="btn-ok" style="padding:6px 14px;font-size:12px;"
+                onclick="markCustomReqDone('${esc(item.acadId)}','${esc(item.reqId)}',this)">처리 완료</button></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>`;
+  } catch (e) {
+    listEl.innerHTML = `<div class="req-empty"><div class="req-empty-icon">❌</div><div class="req-empty-text">불러오기 실패: ${esc(e.message)}</div></div>`;
+  }
+};
+
+window.markCustomReqDone = async (acadId, reqId, btn) => {
+  btn.disabled = true;
+  btn.textContent = '처리 중...';
+  try {
+    await update(ref(db, `academies/${acadId}/customRequests/${reqId}`), { status: 'done' });
+    await loadCustomRequests();
+  } catch (e) {
+    console.error('[markCustomReqDone]', e);
+    btn.disabled = false;
+    btn.textContent = '처리 완료';
   }
 };
 
