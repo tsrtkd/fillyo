@@ -659,9 +659,10 @@ function renderAddonSection(userData) {
     return;
   }
 
-  const p     = ADDON_PRICE.report;
-  const addon = currentAddons.report;
-  const active = addon?.status === 'active';
+  const p         = ADDON_PRICE.report;
+  const addon     = currentAddons.report;
+  const active    = addon?.status === 'active';
+  const completed = addon?.status === 'completed';
 
   let html = `<div class="addon-card${active ? ' active' : ''}">`;
   html += `<div class="addon-card-top">`;
@@ -677,6 +678,13 @@ function renderAddonSection(userData) {
     const nextTxt  = `다음 결제: ${fmtDate(nextMonthSameDayTs(base))}`;
     html += `<div class="addon-card-meta"><strong>1년 계약</strong> · ₩${amt.toLocaleString()}/월 · ${paid}/12회 결제<br>${nextTxt}</div>`;
     html += `<button class="btn-addon-cancel" onclick="openAddonCancelModal('report')">해지</button>`;
+  } else if (completed) {
+    html += `<div class="addon-card-meta" style="color:var(--text2);margin-bottom:6px">✅ 1년 계약(12회)이 모두 완료되어 이용이 종료되었습니다.<br>계속 이용하시려면 아래에서 재신청해 주세요.</div>`;
+    html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;">`;
+    html += `<span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>`;
+    html += `<span class="addon-billing-opt-tag">1년 계약 · ${ADDON_TIER_LABELS[ADDON_PRICE_TIER]}</span>`;
+    html += `</div></div>`;
+    html += `<button class="btn-addon-sub" onclick="openAddonSubModal('report')">재신청하기</button>`;
   } else {
     html += `<div class="addon-billing-opts"><div class="addon-billing-opt sel" style="cursor:default;">`;
     html += `<span class="addon-billing-opt-price">₩${p.contract.toLocaleString()}/월</span>`;
