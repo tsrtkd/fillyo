@@ -631,10 +631,11 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getDatabase, ref, get, set }
+import { getDatabase, ref, get, set, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-let _uid = null;
+let _uid      = null;
+let _academyId = null;
 
 const FB_CONFIG = {
   apiKey:            "AIzaSyBL5lQr2VIPK9caokm90g4_eQIkA8EXjqE",
@@ -663,6 +664,7 @@ onAuthStateChanged(auth, async (user) => {
     const planType           = userData.planType           || 'free';
     const planExpiry         = userData.planExpiry         || null;
     const academyId          = userData.academyId          || null;
+    _academyId = academyId;
     const subscribedServices = userData.subscribedServices || [];
 
     // ── 관리자 계정 자동 설정 (최초 1회) ─────────────────────────────
@@ -985,6 +987,32 @@ function xss(s) {
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── 맞춤 수정 요청 접수 ──────────────────────────────────────────
+window.submitCustomRequest = async () => {
+  const text = document.getElementById('customReqText').value.trim();
+  const btn  = document.getElementById('btnCustomReqSubmit');
+  btn.disabled = true;
+  btn.textContent = '저장 중...';
+  try {
+    if (_academyId && text) {
+      await push(ref(db, `academies/${_academyId}/customRequests`), {
+        content:   text,
+        academyId: _academyId,
+        createdAt: Date.now(),
+        status:    'pending',
+      });
+    }
+  } catch (e) {
+    console.error('[customRequest]', e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '카카오로 요청하기 💬';
+  }
+  window.open('https://pf.kakao.com/_xnxicxjX', '_blank');
+  document.getElementById('customRequestModal').style.display = 'none';
+  document.getElementById('customReqText').value = '';
+};
+
 // ── 정책 배너 애니메이션 ──────────────────────────────────────────
 async function loadPolicyBanner() {
   try {
@@ -1029,9 +1057,13 @@ loadPolicyBanner();
   .crm-price{font-size:20px;font-weight:900;color:#0B1F3A;}
   .crm-price-unit{font-size:11px;color:#888;margin-top:4px;}
   .crm-note{font-size:10px;color:#0B7B6B;font-weight:700;margin-top:6px;}
-  .crm-kakao{display:flex;align-items:center;justify-content:center;gap:8px;background:#FEE500;color:#191919;border-radius:14px;padding:14px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;width:100%;text-decoration:none;transition:background 0.15s;}
+  .crm-kakao{display:flex;align-items:center;justify-content:center;gap:8px;background:#FEE500;color:#191919;border-radius:14px;padding:14px;font-size:15px;font-weight:900;font-family:inherit;cursor:pointer;width:100%;border:none;text-decoration:none;transition:background 0.15s;}
   .crm-kakao:hover{background:#f0d800;}
   .crm-kakao:active{transform:scale(0.98);}
+  .crm-kakao:disabled{opacity:0.6;cursor:default;}
+  .crm-req-label{display:block;font-size:12px;font-weight:700;color:#546E7A;margin-bottom:6px;}
+  .crm-textarea{width:100%;border:1.5px solid #DDE4EE;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;color:#1A2332;background:#FAFBFF;resize:vertical;min-height:80px;outline:none;transition:border-color .15s;margin-bottom:12px;box-sizing:border-box;}
+  .crm-textarea:focus{border-color:#1352A8;}
   @media(max-width:480px){.crm-cards{flex-direction:column;}.crm-box{padding:22px 18px;}}
 </style>
 
@@ -1060,7 +1092,9 @@ loadPolicyBanner();
         <div class="crm-note">규모에 따라 견적 안내</div>
       </div>
     </div>
-    <a href="https://pf.kakao.com/_xnxicxjX" target="_blank" class="crm-kakao">카카오로 요청하기 💬</a>
+    <label class="crm-req-label" for="customReqText">수정 요청 내용</label>
+    <textarea id="customReqText" class="crm-textarea" placeholder="어떤 부분을 수정하고 싶으신지 적어주세요.&#10;예) 출석부에 수영모자 대여 항목을 추가하고 싶습니다."></textarea>
+    <button id="btnCustomReqSubmit" class="crm-kakao" onclick="submitCustomRequest()">카카오로 요청하기 💬</button>
   </div>
 </div>
 <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">© 2026 FILLYO · fillyo.kr</div>
