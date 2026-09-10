@@ -940,6 +940,18 @@ window.generateReport = async function(){
     if (traitLines.length) dataLines.push(`성격/태도 특성: ${traitLines.join(', ')}`);
     if (memoLines.length) dataLines.push(`기간 내 특이사항:\n${memoLines.join('\n')}`);
 
+    // 이전 리포트 텍스트 로드 (비교 문장 생성용)
+    const currentRptKeyForComp = `${startVal}_${endVal}`;
+    const allRptsSnap = await get(ref(db, `academies/${academyId}/reportData/${selStudent.id}/reports`));
+    if (allRptsSnap.exists()) {
+      const allRpts = Object.entries(allRptsSnap.val())
+        .filter(([k]) => k < currentRptKeyForComp)
+        .sort((a, b) => b[0].localeCompare(a[0]));
+      if (allRpts.length && allRpts[0][1].text) {
+        dataLines.push(`이전 리포트:\n${allRpts[0][1].text}`);
+      }
+    }
+
     const userContent = `아래 데이터를 바탕으로 학부모 발송용 성장 리포트 문구를 작성해주세요.\n\n${dataLines.join('\n')}`;
 
     const result = await fnGenerateGrowthReport({
