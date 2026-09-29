@@ -132,7 +132,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--navy);color:var(--te
       <label>비밀번호 확인</label>
       <input type="password" id="signupPw2" placeholder="비밀번호 재입력" required>
     </div>
-    <div class="trial-notice">30일 무료체험 · 카드 등록 없이 시작</div>
+    <div class="trial-notice">3개월 무료체험 · 카드 등록 없이 시작</div>
     <div class="agree-block">
       <label class="agree-row">
         <input type="checkbox" id="agreeTerms">
@@ -304,7 +304,7 @@ window.doSignup = async (e) => {
       phone,
       address,
       planType:    'trial',
-      planExpiry:  Date.now() + 7 * 24 * 60 * 60 * 1000,
+      planExpiry:  Date.now() + 90 * 24 * 60 * 60 * 1000,
       createdAt:   Date.now(),
       academyId:   null,
     });
