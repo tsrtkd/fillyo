@@ -66,15 +66,15 @@ const EARLYBIRD_EXCLUDED_EMAILS = new Set([
 async function resolveSubscriptionPrice(academyId, userEmail) {
   const isExcluded = EARLYBIRD_EXCLUDED_EMAILS.has(userEmail || '');
   const slotSnap = await db.ref(`openPriceSlots/${academyId}`).get();
-  if (slotSnap.exists()) return PLAN_OPEN_PRICE;
-  if (isExcluded) return PLAN_OPEN_PRICE; // 슬롯 기록 없이 오픈가 적용
+  if (slotSnap.exists()) return { price: PLAN_OPEN_PRICE, slotCreated: false };
+  if (isExcluded) return { price: PLAN_OPEN_PRICE, slotCreated: false };
   const allSlotsSnap = await db.ref('openPriceSlots').get();
   const slotCount = allSlotsSnap.exists() ? Object.keys(allSlotsSnap.val()).length : 0;
   if (slotCount < EARLYBIRD_LIMIT) {
     await db.ref(`openPriceSlots/${academyId}`).set({ academyId, recordedAt: Date.now() });
-    return PLAN_OPEN_PRICE;
+    return { price: PLAN_OPEN_PRICE, slotCreated: true };
   }
-  return PLAN_REGULAR_PRICE;
+  return { price: PLAN_REGULAR_PRICE, slotCreated: false };
 }
 
 // openPriceSlots 수 집계 (excluded 이메일 소유 academyId는 슬롯이 없으므로 단순 count)
@@ -91,6 +91,16 @@ function nextMonthSameDay(from = new Date()) {
   // 1월 31일 → 2월 28/29일처럼 월 오버플로 발생 시 해당 달 마지막 날로 보정
   if (d.getDate() !== day) d.setDate(0);
   return d;
+}
+
+// PortOne paymentId 생성 (최대 32자 제한)
+// 형식: {prefix}_{timestamp_base36}_{random4} — academyId 미포함
+function makePaymentId(prefix) {
+  const ts  = Date.now().toString(36);
+  const rnd = Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+  const id  = `${prefix}_${ts}_${rnd}`;
+  if (id.length > 32) throw new Error(`paymentId 길이 초과: ${id.length}자 (최대 32) prefix=${prefix}`);
+  return id;
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -158,11 +168,11 @@ exports.scheduleNextPayment = onRequest(
 
       // 서버에서 금액 결정 (클라이언트 amount/orderName 무시)
       const userEmail = (await db.ref(`users/${uid}/email`).get()).val() || '';
-      const price     = await resolveSubscriptionPrice(academyId, userEmail);
+      const { price, slotCreated } = await resolveSubscriptionPrice(academyId, userEmail);
       const serverOrderName = `FILLYO 정기구독 (월 ₩${price.toLocaleString()})`;
 
       const now = Date.now();
-      const paymentId = `sub_${now}_${academyId}`;
+      const paymentId = makePaymentId('sub');
 
       try {
         // ── 1. 빌링 초기화 ──
@@ -206,6 +216,7 @@ exports.scheduleNextPayment = onRequest(
         const payStatus = payData?.status;
         if (payStatus !== 'PAID') {
           console.error('[scheduleNextPayment] 결제 실패 — status:', payStatus, JSON.stringify(payRes.data));
+          if (slotCreated) await db.ref(`openPriceSlots/${academyId}`).remove().catch(() => {});
           return res.status(402).json({ error: '결제 실패', status: payStatus, portoneData: payRes.data });
         }
 
@@ -213,6 +224,7 @@ exports.scheduleNextPayment = onRequest(
         return res.status(200).json({ ok: true, paymentId, amount: price });
       } catch (e) {
         console.error('[scheduleNextPayment] 오류:', e.response?.data ?? e.message);
+        if (slotCreated) await db.ref(`openPriceSlots/${academyId}`).remove().catch(() => {});
         return res.status(500).json({ error: '결제 실패', details: e.response?.data });
       }
     });
@@ -300,7 +312,7 @@ exports.portoneWebhook = onRequest(
           let nextTime = null;
 
           if (billingType === 'contract' && newPaidCount < 12) {
-            nextPaymentId = `addon_${addonKey}_${academyId}_${now}`;
+            nextPaymentId = makePaymentId('addon');
             nextTime = nextMonthSameDay();
             try {
               const reschedResp = await axios.post(
@@ -408,7 +420,7 @@ exports.portoneWebhook = onRequest(
           });
 
           // 다음 달 자동 재예약
-          const nextId   = `sub_${Date.now()}_${academyId}`;
+          const nextId   = makePaymentId('sub');
           const nextTime = nextMonthSameDay();
           await axios.post(
             `${PORTONE_BASE}/payments/${nextId}/schedule`,
@@ -709,7 +721,7 @@ exports.subscribeAddon = onCall(
 
     // paymentId: 업무일지(sub_)와 절대 겹치지 않도록 addon_ 접두사 사용
     const timestamp = Date.now();
-    const paymentId = `addon_${addonKey}_${academyId}_${timestamp}`;
+    const paymentId = makePaymentId('addon');
     const timeToPay = nextMonthSameDay(new Date(timestamp));
 
     // PortOne 결제 예약
@@ -786,7 +798,7 @@ async function chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, se
   let charged = false;
   let chargeError = null;
   const ts = Date.now();
-  const paymentId = `addon_settlement_${academyId}_${addonKey}_${ts}`;
+  const paymentId = makePaymentId('addon_settlement');
   const addonName = ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey;
   const orderName = `FILLYO ${addonName} 중도해지 정산금`;
 
@@ -1589,7 +1601,7 @@ exports.migrateToSinglePlan = onCall(
       const nextPayTime   = (billing.nextPaymentAt && billing.nextPaymentAt > Date.now())
         ? new Date(billing.nextPaymentAt)
         : nextMonthSameDay();
-      const nextPaymentId = `sub_migrate_${Date.now()}_${academyId}`;
+      const nextPaymentId = makePaymentId('sub_migrate');
 
       try {
         await axios.post(
