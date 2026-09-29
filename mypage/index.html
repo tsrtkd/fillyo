@@ -224,7 +224,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <div id="paymentFailBanner"></div>
       <div class="sub-box" id="subBox"><!-- JS로 채움 --></div>
       <div id="cancelSubRow" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
-        <p class="cancel-sub-desc">계정은 유지하고 정기결제만 중단합니다.<br>취소 후에도 이번 달 결제된 서비스는 결제일까지 이용 가능합니다.</p>
+        <p class="cancel-sub-desc">위약금 없이 언제든 해지 가능합니다.<br>취소 후에도 이미 결제된 기간까지 계속 이용 가능합니다.</p>
         <button class="btn-cancel-sub" onclick="openCancelSubModal()">구독 취소</button>
       </div>
     </div>
@@ -247,7 +247,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <div class="modal-bg" id="cancelSubModal">
   <div class="modal">
     <div class="modal-title">구독 취소</div>
-    <div class="modal-sub">정기결제를 취소하시겠습니까?<br>계정과 데이터는 유지되며, 이번 달 결제된 서비스는 결제일까지 계속 이용 가능합니다.</div>
+    <div class="modal-sub">정기결제를 취소하시겠습니까?<br>위약금 없이 언제든 해지 가능합니다. 이미 결제된 기간까지는 계속 이용하실 수 있습니다.</div>
     <div class="modal-btns">
       <button class="btn-cancel" onclick="closeCancelSubModal()">돌아가기</button>
       <button class="btn-ok" id="btnCancelSubOk" onclick="doCancelSub()">취소 확인</button>
@@ -339,6 +339,7 @@ const CANCEL_SUB_URL = 'https://asia-northeast3-fillyo-journal.cloudfunctions.ne
 let currentUser          = null;
 let currentAcadId        = null;
 let currentBillingKey    = null;
+let currentBillingData   = null;
 let currentAddons        = {};
 let pendingAddonKey      = null;
 let pendingAddonBT       = null;
@@ -384,6 +385,7 @@ onAuthStateChanged(auth, async (user) => {
       if (billingSnap.exists()) {
         const bv = billingSnap.val();
         currentBillingKey    = bv?.billingKey || null;
+        currentBillingData   = bv;
         billingPaymentFailed = bv?.paymentFailed === true;
         billingFailReason    = bv?.lastFailReason || '';
         billingFailedAt      = bv?.lastFailedAt   || null;
@@ -421,38 +423,36 @@ function renderSubBox(userData) {
     return;
   }
 
-  const planType    = userData.planType    || 'free';
-  const planExpiry  = userData.planExpiry  || null;
-  const billingCycle = userData.billingCycle || '';
-  const hasContract = billingCycle === 'early' || billingCycle === 'yearly';
-  const contractBtn = hasContract
-    ? `<button onclick="downloadContractPDF()" style="margin-top:14px;width:100%;background:#0B1F3A;color:white;border:none;border-radius:8px;padding:10px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;">📄 계약서 다운로드</button>`
-    : '';
+  const planType   = userData.planType  || 'free';
+  const planExpiry = userData.planExpiry || null;
 
-  if (planType === 'pro' && planExpiry) {
-    const diff   = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));
-    const warn   = diff <= 7;
+  if (planType === 'pro' && currentBillingKey) {
+    // 월정기구독 활성 — billing에서 금액·다음결제일 표시
+    const monthlyAmt  = currentBillingData?.monthlyAmount || 0;
+    const nextPayAt   = currentBillingData?.nextPaymentAt || null;
+    const nextPayTxt  = nextPayAt ? `다음 결제일 ${fmtDate(nextPayAt)}` : '자동 결제 중';
+    const amtTxt      = monthlyAmt ? `월 ₩${monthlyAmt.toLocaleString()} 자동결제` : '월 자동결제';
+    el.innerHTML = `
+      <div class="sub-row">
+        <span class="sub-plan-name">⭐ FILLYO 구독 중</span>
+        <span class="sub-badge pro">유료 구독</span>
+      </div>
+      <div class="sub-free-desc" style="margin-top:8px">${amtTxt} · 약정 없음<br>${nextPayTxt}</div>
+    `;
+  } else if (planType === 'pro' && planExpiry) {
+    // 해지 후 만료일까지 pro 유지
+    const diff    = Math.ceil((planExpiry - Date.now()) / (1000 * 60 * 60 * 24));
     const ddayTxt = diff > 0 ? `D-${diff}` : '만료됨';
     el.innerHTML = `
       <div class="sub-row">
-        <span class="sub-plan-name">⭐ 업무일지 구독 중</span>
+        <span class="sub-plan-name">⭐ FILLYO 구독 중</span>
         <span class="sub-badge pro">유료 구독</span>
       </div>
       <div class="sub-expiry">
-        <span class="sub-expiry-date">만료일 ${fmtDate(planExpiry)}</span>
-        <span class="sub-dday${warn ? ' warn' : ''}">${ddayTxt}</span>
+        <span class="sub-expiry-date">이용 만료일 ${fmtDate(planExpiry)}</span>
+        <span class="sub-dday">${ddayTxt}</span>
       </div>
-      ${warn && diff > 0 ? `<div class="sub-warn-text">⚠️ 구독이 ${diff}일 후 만료됩니다. 갱신해주세요.</div>` : ''}
-      ${contractBtn}
-    `;
-  } else if (planType === 'pro') {
-    el.innerHTML = `
-      <div class="sub-row">
-        <span class="sub-plan-name">⭐ 업무일지 구독 중</span>
-        <span class="sub-badge pro">유료 구독</span>
-      </div>
-      <div class="sub-free-desc">구독 기간 정보가 없습니다.</div>
-      ${contractBtn}
+      <div class="sub-free-desc" style="margin-top:6px">구독이 취소되어 만료일까지 이용 가능합니다.</div>
     `;
   } else {
     el.innerHTML = `
@@ -460,7 +460,7 @@ function renderSubBox(userData) {
         <span class="sub-plan-name">무료 플랜</span>
         <span class="sub-badge free">무료</span>
       </div>
-      <div class="sub-free-desc">현재 무료 체험 중입니다.<br>업무일지를 구독하면 더 많은 기능을 이용할 수 있습니다.</div>
+      <div class="sub-free-desc">현재 3개월 무료체험 중입니다.<br>업무일지·줄넘기·승급심사·AI성장리포트를 모두 이용해보세요.</div>
       <button onclick="location.href='/pricing/'" style="margin-top:14px;width:100%;background:#0B7B6B;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 12px rgba(11,123,107,0.35);transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">💳 구독 시작하기</button>
     `;
   }
@@ -648,10 +648,14 @@ function nextMonthSameDayTs(ts) {
 }
 
 function renderAddonSection(userData) {
+  // 단일 요금제 전환 후 애드온 섹션 숨김
   const sec = document.getElementById('addonSection');
-  const content = document.getElementById('addonContent');
-  if (userData.role === 'admin') { sec.style.display = 'none'; return; }
-  sec.style.display = 'block';
+  sec.style.display = 'none';
+  return;
+
+  // 아래 코드는 레거시 참조용으로 보존 (실행되지 않음)
+  const content = document.getElementById('addonContent'); // eslint-disable-line
+  if (userData.role === 'admin') { return; }
 
   const isPro = (userData.planType || 'free') === 'pro';
   if (!isPro) {

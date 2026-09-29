@@ -37,26 +37,19 @@ function apiSecret() {
   return process.env.PORTONE_API_SECRET;
 }
 
-// ── 애드온 가격표 ──────────────────────────────────────────────────
-// 유료 애드온은 AI성장리포트 하나. 줄넘기·승급심사는 포함됨.
-// billingType: 'contract'(1년 계약) 전용
-// regularAmount: 정가 → 중도해지 위약금 계산용
+// ── 단일 요금제 가격 ──────────────────────────────────────────────
+// 애드온 개념 폐지. FILLYO 전체 이용 단일 플랜.
+const PLAN_REGULAR_PRICE = 19900;
+const PLAN_OPEN_PRICE    = 9900;   // 오픈기념가 (선착순 50개 도장, 평생 고정)
+
+// 기존 ADDON_PRICE_TABLE: 구 애드온 참조 코드(cancelAddon 등)가 읽을 수 있도록 유지
 const ADDON_PRICE_TABLE = {
   report: { regularAmount: 19800, name: 'AI성장리포트 (줄넘기·승급심사 포함)' },
 };
 
-// AI성장리포트 가격 단계 (수동 전환 — 대표님 지시 시에만 변경)
-// 'earlybird': 9,900원 / 'discount30': 13,500원 / 'full': 19,800원
-// ※ 전환 조건: ADDON_LIVE_DATE 기준 최소 3개월 이상 경과 후 다음 단계 가능
-const ADDON_PRICE_TIER = 'earlybird';
-
-// 얼리버드 시작일 기록용 (가격 전환 자동계산에 사용하지 않음)
-// KG이니시스 실연동 전환 시 'YYYY-MM-DD' 형식으로 기입
-const ADDON_LIVE_DATE = null;
-
-// ── 얼리버드 선착순 설정 ──────────────────────────────────────────
+// ── 오픈기념가 선착순 설정 ──────────────────────────────────────────
 const EARLYBIRD_LIMIT = 50;
-// 도장 수 카운트에서 제외할 테스트·관리자 계정 이메일
+// 슬롯 카운트에서 제외할 테스트·관리자 계정 이메일 (슬롯을 차지하지 않음)
 const EARLYBIRD_EXCLUDED_EMAILS = new Set([
   'test-free@fillyo.kr',
   'tsr@fillyo.kr',
@@ -65,26 +58,29 @@ const EARLYBIRD_EXCLUDED_EMAILS = new Set([
   'audtls2g@gmail.com',
 ]);
 
-// planType === 'pro'인 실사용 도장 수 집계 (테스트·관리자 제외)
-// orderByChild 인덱스 불필요 — JS 필터링 (FILLYO 규모에서 충분히 빠름)
-async function countActivePaidDojangs() {
-  const snap = await db.ref('users').get();
-  if (!snap.exists()) return 0;
-  let count = 0;
-  snap.forEach(child => {
-    const u = child.val();
-    if (u.planType === 'pro' && u.email && !EARLYBIRD_EXCLUDED_EMAILS.has(u.email)) count++;
-  });
-  return count;
+// openPriceSlots 기반 가격 결정
+// - 이미 슬롯이 있으면 9,900
+// - 슬롯 수 < 50 이면 슬롯 기록 후 9,900
+// - 슬롯 수 >= 50 이면 19,900
+// excluded 이메일은 슬롯을 차지하지 않되 항상 오픈가 적용
+async function resolveSubscriptionPrice(academyId, userEmail) {
+  const isExcluded = EARLYBIRD_EXCLUDED_EMAILS.has(userEmail || '');
+  const slotSnap = await db.ref(`openPriceSlots/${academyId}`).get();
+  if (slotSnap.exists()) return { price: PLAN_OPEN_PRICE, slotCreated: false };
+  if (isExcluded) return { price: PLAN_OPEN_PRICE, slotCreated: false };
+  const allSlotsSnap = await db.ref('openPriceSlots').get();
+  const slotCount = allSlotsSnap.exists() ? Object.keys(allSlotsSnap.val()).length : 0;
+  if (slotCount < EARLYBIRD_LIMIT) {
+    await db.ref(`openPriceSlots/${academyId}`).set({ academyId, recordedAt: Date.now() });
+    return { price: PLAN_OPEN_PRICE, slotCreated: true };
+  }
+  return { price: PLAN_REGULAR_PRICE, slotCreated: false };
 }
 
-// earlybird 단계일 때 실시간으로 도장 수 확인 후 가격 결정
-async function reportContractPrice() {
-  if (ADDON_PRICE_TIER === 'discount30') return 13500;
-  if (ADDON_PRICE_TIER === 'full') return 19800;
-  // 'earlybird': 선착순 50개 도장 미만이면 9,900원, 이후 신규는 19,800원(정가)
-  const count = await countActivePaidDojangs();
-  return (count >= EARLYBIRD_LIMIT) ? 19800 : 9900;
+// openPriceSlots 수 집계 (excluded 이메일 소유 academyId는 슬롯이 없으므로 단순 count)
+async function countOpenSlots() {
+  const snap = await db.ref('openPriceSlots').get();
+  return snap.exists() ? Object.keys(snap.val()).length : 0;
 }
 
 // 다음 달 동일 일자 계산 (월말 보정 포함)
@@ -97,6 +93,16 @@ function nextMonthSameDay(from = new Date()) {
   return d;
 }
 
+// PortOne paymentId 생성 (최대 32자 제한)
+// 형식: {prefix}_{timestamp_base36}_{random4} — academyId 미포함
+function makePaymentId(prefix) {
+  const ts  = Date.now().toString(36);
+  const rnd = Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+  const id  = `${prefix}_${ts}_${rnd}`;
+  if (id.length > 32) throw new Error(`paymentId 길이 초과: ${id.length}자 (최대 32) prefix=${prefix}`);
+  return id;
+}
+
 // ──────────────────────────────────────────────────────────────────
 // getEarlybirdStatus  (공개 엔드포인트 — 인증 불필요)
 // 얼리버드 선착순 50개 도장 마감 여부를 클라이언트에 전달
@@ -106,8 +112,15 @@ exports.getEarlybirdStatus = onRequest(
   async (req, res) => {
     cors(req, res, async () => {
       try {
-        const count = await countActivePaidDojangs();
-        return res.status(200).json({ available: count < EARLYBIRD_LIMIT });
+        const count     = await countOpenSlots();
+        const available = count < EARLYBIRD_LIMIT;
+        const slotsLeft = Math.max(0, EARLYBIRD_LIMIT - count);
+        return res.status(200).json({
+          available,
+          slotsLeft,
+          openPrice:    PLAN_OPEN_PRICE,
+          regularPrice: PLAN_REGULAR_PRICE,
+        });
       } catch (e) {
         console.error('[getEarlybirdStatus] 오류:', e.message);
         return res.status(500).json({ error: e.message });
@@ -128,45 +141,57 @@ exports.scheduleNextPayment = onRequest(
       if (req.method === 'OPTIONS') return res.status(204).send('');
       if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-      // Firebase ID 토큰 검증
+      // Firebase ID 토큰 검증 + uid 추출
       const authHeader = req.headers.authorization || '';
       if (!authHeader.startsWith('Bearer ')) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+      let uid;
       try {
-        await admin.auth().verifyIdToken(authHeader.slice(7));
+        const decoded = await admin.auth().verifyIdToken(authHeader.slice(7));
+        uid = decoded.uid;
       } catch {
         return res.status(401).json({ error: 'Invalid token' });
       }
 
-      const { billingKey, academyId, amount, orderName } = req.body;
-      if (!billingKey || !academyId || !amount || !orderName) {
-        return res.status(400).json({ error: 'billingKey, academyId, amount, orderName 필수' });
+      const { billingKey, academyId } = req.body;
+      if (!billingKey || !academyId) {
+        return res.status(400).json({ error: 'billingKey, academyId 필수' });
       }
       assertNotProtectedForTest(academyId, 'scheduleNextPayment');
 
+      // 소유권 확인: 토큰 uid가 해당 academyId의 소유자인지 검증
+      const ownerSnap = await db.ref(`users/${uid}/academyId`).get();
+      if (!ownerSnap.exists() || ownerSnap.val() !== academyId) {
+        return res.status(403).json({ error: '본인 학원의 결제만 처리할 수 있습니다' });
+      }
+
+      // 서버에서 금액 결정 (클라이언트 amount/orderName 무시)
+      const userEmail = (await db.ref(`users/${uid}/email`).get()).val() || '';
+      const { price, slotCreated } = await resolveSubscriptionPrice(academyId, userEmail);
+      const serverOrderName = `FILLYO 정기구독 (월 ₩${price.toLocaleString()})`;
+
       const now = Date.now();
-      const paymentId = `sub_${now}_${academyId}`;
+      const paymentId = makePaymentId('sub');
 
       try {
         // ── 1. 빌링 초기화 ──
-        // billingKey는 재구독 시에도 항상 갱신 (취소 후 재구독 시 null 상태 방지)
-        // 위약금 계산용 필드(paidCount 등)는 최초 구독 시에만 초기화
-        const existingBillingSnap = await db.ref(`academies/${academyId}/billing`).get();
-        const existingBilling = existingBillingSnap.val() || {};
-        const billingInit = { billingKey, paymentFailed: false };
-        if (existingBilling.paidCount === undefined || existingBilling.paidCount === null) {
-          billingInit.monthlyAmount = amount;
-          billingInit.regularAmount = 19800;
-          billingInit.paidCount     = 0;
-        }
-        await db.ref(`academies/${academyId}/billing`).update(billingInit);
+        // billingKey는 재구독 시에도 항상 갱신. 단일 요금제 전환 후 plan:'all' 기록.
+        await db.ref(`academies/${academyId}/billing`).update({
+          billingKey,
+          paymentFailed: false,
+          plan:          'all',
+          monthlyAmount: price,
+          regularAmount: price, // 약정 없음 → 위약금 0
+          paidCount:     0,
+          status:        'active',
+        });
 
         // ── 2. 주문 정보 선저장 (웹훅이 paymentOrders를 참조해 처리하므로 결제 전에 저장) ──
         await db.ref(`paymentOrders/${paymentId}`).set({
           academyId,
-          amount,
-          orderName,
+          amount:    price,
+          orderName: serverOrderName,
           billingKey,
           createdAt: now,
         });
@@ -176,9 +201,9 @@ exports.scheduleNextPayment = onRequest(
           `${PORTONE_BASE}/payments/${paymentId}/billing-key`,
           {
             billingKey,
-            orderName,
+            orderName: serverOrderName,
             customer: { id: academyId },
-            amount:   { total: amount },
+            amount:   { total: price },
             currency: 'KRW',
           },
           { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
@@ -186,18 +211,34 @@ exports.scheduleNextPayment = onRequest(
 
         console.log('[scheduleNextPayment] 즉시결제 응답:', JSON.stringify(payRes.data));
 
-        // PortOne V2 billing-key 즉시결제 응답 구조: { payment: { status, paidAt, ... } }
-        const payData   = payRes.data?.payment ?? payRes.data;
-        const payStatus = payData?.status;
-        if (payStatus !== 'PAID') {
-          console.error('[scheduleNextPayment] 결제 실패 — status:', payStatus, JSON.stringify(payRes.data));
-          return res.status(402).json({ error: '결제 실패', status: payStatus, portoneData: payRes.data });
+        // PortOne V2 billing-key 응답에 status 필드가 없는 경우가 있으므로
+        // 단건조회(GET)로 실제 결제 상태를 확인 (가장 정확)
+        let verifiedStatus;
+        try {
+          const { data: verifiedPayment } = await axios.get(
+            `${PORTONE_BASE}/payments/${paymentId}`,
+            { headers: { Authorization: `PortOne ${apiSecret()}` } },
+          );
+          verifiedStatus = verifiedPayment.status;
+          console.log('[scheduleNextPayment] 단건조회 status:', verifiedStatus);
+        } catch (verifyErr) {
+          // 단건조회 실패 시 billing-key 응답의 paidAt 존재·failedAt 없음으로 폴백
+          const fallbackData = payRes.data?.payment ?? payRes.data;
+          verifiedStatus = (fallbackData?.paidAt && !fallbackData?.failedAt) ? 'PAID' : 'UNKNOWN';
+          console.warn('[scheduleNextPayment] 단건조회 실패, 폴백 판정:', verifiedStatus, verifyErr.message);
+        }
+
+        if (verifiedStatus !== 'PAID') {
+          console.error('[scheduleNextPayment] 결제 실패 — verifiedStatus:', verifiedStatus, JSON.stringify(payRes.data));
+          if (slotCreated) await db.ref(`openPriceSlots/${academyId}`).remove().catch(() => {});
+          return res.status(402).json({ error: '결제 실패', status: verifiedStatus, portoneData: payRes.data });
         }
 
         // 결제 성공 — paidCount 갱신·다음 달 예약은 portoneWebhook이 자동 처리
-        return res.status(200).json({ ok: true, paymentId });
+        return res.status(200).json({ ok: true, paymentId, amount: price });
       } catch (e) {
         console.error('[scheduleNextPayment] 오류:', e.response?.data ?? e.message);
+        if (slotCreated) await db.ref(`openPriceSlots/${academyId}`).remove().catch(() => {});
         return res.status(500).json({ error: '결제 실패', details: e.response?.data });
       }
     });
@@ -285,7 +326,7 @@ exports.portoneWebhook = onRequest(
           let nextTime = null;
 
           if (billingType === 'contract' && newPaidCount < 12) {
-            nextPaymentId = `addon_${addonKey}_${academyId}_${now}`;
+            nextPaymentId = makePaymentId('addon');
             nextTime = nextMonthSameDay();
             try {
               const reschedResp = await axios.post(
@@ -393,7 +434,7 @@ exports.portoneWebhook = onRequest(
           });
 
           // 다음 달 자동 재예약
-          const nextId   = `sub_${Date.now()}_${academyId}`;
+          const nextId   = makePaymentId('sub');
           const nextTime = nextMonthSameDay();
           await axios.post(
             `${PORTONE_BASE}/payments/${nextId}/schedule`,
@@ -595,11 +636,21 @@ exports.cancelSubscription = onRequest(
       }
 
       // ④ users/{uid}에 해지 상태 기록
+      // nextPaymentAt이 미래이면 이미 결제된 기간까지 pro 유지
       try {
-        await db.ref(`users/${uid}`).update({
-          planType:    'cancelled',
-          cancelledAt: now,
-        });
+        const nextPaymentAt = billing.nextPaymentAt || null;
+        if (nextPaymentAt && nextPaymentAt > now) {
+          await db.ref(`users/${uid}`).update({
+            planType:    'pro',
+            planExpiry:  nextPaymentAt,
+            cancelledAt: now,
+          });
+        } else {
+          await db.ref(`users/${uid}`).update({
+            planType:    'cancelled',
+            cancelledAt: now,
+          });
+        }
       } catch (e) {
         console.error('[cancelSubscription] ④ users 업데이트 실패:', e.message);
         return res.status(500).json({ error: 'users 업데이트 실패' });
@@ -638,6 +689,12 @@ exports.cancelSubscription = onRequest(
 exports.subscribeAddon = onCall(
   { region: 'asia-northeast3' },
   async (request) => {
+    // 단일 요금제 전환 후 모든 기능이 기본 구독에 포함됨 — 신규 애드온 결제 차단
+    throw new HttpsError(
+      'failed-precondition',
+      '이제 기본 요금에 모두 포함되어 별도 신청이 필요 없습니다',
+    );
+
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
 
@@ -678,7 +735,7 @@ exports.subscribeAddon = onCall(
 
     // paymentId: 업무일지(sub_)와 절대 겹치지 않도록 addon_ 접두사 사용
     const timestamp = Date.now();
-    const paymentId = `addon_${addonKey}_${academyId}_${timestamp}`;
+    const paymentId = makePaymentId('addon');
     const timeToPay = nextMonthSameDay(new Date(timestamp));
 
     // PortOne 결제 예약
@@ -755,7 +812,7 @@ async function chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, se
   let charged = false;
   let chargeError = null;
   const ts = Date.now();
-  const paymentId = `addon_settlement_${academyId}_${addonKey}_${ts}`;
+  const paymentId = makePaymentId('addon_settlement');
   const addonName = ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey;
   const orderName = `FILLYO ${addonName} 중도해지 정산금`;
 
@@ -777,9 +834,20 @@ async function chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, se
         },
         { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
       );
-      const payData   = chargeResp.data?.payment ?? chargeResp.data;
-      const payStatus = chargeResp.data?.status ?? payData?.status;
-      const isPaid    = payStatus === 'PAID' || (payData?.paidAt && !payData?.failedAt);
+      // 단건조회로 status 확인 (billing-key 응답에 status가 없을 수 있음)
+      let isPaid = false;
+      try {
+        const { data: verifiedPayment } = await axios.get(
+          `${PORTONE_BASE}/payments/${paymentId}`,
+          { headers: { Authorization: `PortOne ${apiSecret()}` } },
+        );
+        isPaid = verifiedPayment.status === 'PAID';
+      } catch (verifyErr) {
+        const fallbackData = chargeResp.data?.payment ?? chargeResp.data;
+        const fallbackStatus = chargeResp.data?.status ?? fallbackData?.status;
+        isPaid = fallbackStatus === 'PAID' || Boolean(fallbackData?.paidAt && !fallbackData?.failedAt);
+        console.warn('[chargeAddonPenalty] 단건조회 실패, 폴백 판정:', isPaid, verifyErr.message);
+      }
       if (isPaid) {
         charged = true;
         await db.ref(`paymentOrders/${paymentId}`).set({
@@ -867,13 +935,9 @@ exports.cancelAddon = onCall(
 
     const paid = addon.paidCount || 0;
 
-    // ── 1년 약정 중도해지: 위약금 즉시 청구 시도
-    let penalty = 0;
-    let chargeResult = { charged: true };
-    if (addon.billingType === 'contract' && paid < 12) {
-      penalty = (addon.regularAmount - addon.monthlyAmount) * paid;
-      chargeResult = await chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, settings });
-    }
+    // 단일 요금제 전환 후 약정 없음 → 위약금 0
+    const penalty = 0;
+    const chargeResult = { charged: true };
 
     // ── PortOne 예약 취소: 이 애드온의 schedule만 (업무일지 예약은 건드리지 않음)
     if (addon.currentScheduleId) {
@@ -938,33 +1002,10 @@ exports.calculateWithdrawSettlement = onCall(
       throw new HttpsError('permission-denied', '본인 학원만 조회할 수 있습니다');
     }
 
-    // 업무일지 위약금: 필드가 없으면(기존 고객) 0으로 처리
-    const billingSnap = await db.ref(`academies/${academyId}/billing`).get();
-    const billing = billingSnap.val() || {};
-    let journalPenalty = 0;
-    if (
-      billing.regularAmount != null &&
-      billing.monthlyAmount != null &&
-      billing.paidCount != null
-    ) {
-      journalPenalty = (billing.regularAmount - billing.monthlyAmount) * billing.paidCount;
-    }
-
-    // 애드온 위약금: contract + active 항목만, cancelAddon과 동일한 공식
-    const addonsSnap = await db.ref(`academies/${academyId}/addons`).get();
+    // 단일 요금제 전환 후 약정 없음 → 위약금 0
+    const journalPenalty = 0;
     const addonPenalties = [];
-    if (addonsSnap.exists()) {
-      for (const [addonKey, addon] of Object.entries(addonsSnap.val())) {
-        if (addon.billingType === 'contract' && addon.status === 'active') {
-          const paid   = addon.paidCount || 0;
-          const amount = (addon.regularAmount - addon.monthlyAmount) * paid;
-          const name   = ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey;
-          addonPenalties.push({ addonKey, name, amount });
-        }
-      }
-    }
-
-    const totalPenalty = journalPenalty + addonPenalties.reduce((s, a) => s + a.amount, 0);
+    const totalPenalty   = 0;
     return { journalPenalty, addonPenalties, totalPenalty };
   },
 );
@@ -1010,88 +1051,13 @@ exports.executeWithdraw = onCall(
     const addons    = addonsSnap.val()   || {};
     const { billingKey } = billing;
 
-    // ── 2. 위약금 계산 (calculateWithdrawSettlement와 동일한 공식)
-    let journalPenalty = 0;
-    if (billing.regularAmount != null && billing.monthlyAmount != null && billing.paidCount != null) {
-      journalPenalty = (billing.regularAmount - billing.monthlyAmount) * billing.paidCount;
-    }
+    // ── 2. 위약금 계산: 단일 요금제 전환 후 약정 없음 → 항상 0
+    const journalPenalty = 0;
     const addonPenalties = [];
-    for (const [addonKey, addon] of Object.entries(addons)) {
-      if (addon.billingType === 'contract' && addon.status === 'active') {
-        const paid   = addon.paidCount || 0;
-        const amount = (addon.regularAmount - addon.monthlyAmount) * paid;
-        addonPenalties.push({ addonKey, name: ADDON_PRICE_TABLE[addonKey]?.name ?? addonKey, amount });
-      }
-    }
-    const totalPenalty = journalPenalty + addonPenalties.reduce((s, a) => s + a.amount, 0);
+    const totalPenalty   = 0;
+    const charged        = true; // 0원이므로 청구 불필요
 
-    // ── 3. 즉시 청구 (totalPenalty > 0이고 billingKey 있을 때)
-    let charged     = totalPenalty === 0; // 0원이면 청구 불필요 → charged=true 처리
-    let chargeError = null;
-
-    if (totalPenalty > 0 && billingKey) {
-      const paymentId = `withdraw_settlement_${academyId}_${now}`;
-      const orderName = 'FILLYO 중도해지 정산금';
-      try {
-        const chargeResp = await axios.post(
-          `${PORTONE_BASE}/payments/${paymentId}/billing-key`,
-          {
-            billingKey,
-            orderName,
-            customer: {
-              customerId:  academyId,
-              name:        { full: (settings.academyName || settings.name || 'Withdraw').replace(/[^\x00-\x7F]/g, '').trim() || 'Academy' },
-              email:       userEmail || 'noreply@fillyo.kr',
-              phoneNumber: (settings.phone || '00000000000').replace(/[^0-9]/g, ''),
-            },
-            amount:   { total: totalPenalty },
-            currency: 'KRW',
-          },
-          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
-        );
-        // PortOne V2 빌링키 즉시결제 성공 시 응답: { payment: { pgTxId, paidAt } }
-        // status 필드가 없는 경우 paidAt 존재 여부로 성공 판별
-        const payData    = chargeResp.data?.payment ?? chargeResp.data;
-        const payStatus  = chargeResp.data?.status ?? payData?.status;
-        const isPaid     = payStatus === 'PAID' || (payData?.paidAt && !payData?.failedAt);
-        if (isPaid) {
-          charged = true;
-          await db.ref(`paymentOrders/${paymentId}`).set({
-            type:      'withdraw_settlement',
-            academyId,
-            amount:    totalPenalty,
-            orderName,
-            billingKey,
-            status:    'PAID',
-            paidAt:    now,
-          });
-          console.log(`[executeWithdraw] 정산금 청구 성공: ${totalPenalty}원 (${academyId})`);
-        } else {
-          chargeError = `결제 상태: ${payStatus ?? JSON.stringify(chargeResp.data)}`;
-          console.warn(`[executeWithdraw] 예상치 못한 결제 상태:`, chargeResp.data);
-        }
-      } catch (e) {
-        chargeError = e.response?.data?.message ?? e.message;
-        console.error('[executeWithdraw] 즉시 청구 실패:', e.response?.data ?? e.message);
-      }
-    } else if (totalPenalty > 0 && !billingKey) {
-      chargeError = 'billingKey 없음 — 카드 정보 없어 청구 불가';
-      console.warn(`[executeWithdraw] billingKey 없음, settlementDue 기록 (${academyId})`);
-    }
-
-    // ── 4. 청구 실패 시 settlementDue 기록 (학원 데이터 삭제 후에도 잔존)
-    if (!charged && totalPenalty > 0) {
-      await db.ref(`settlementDue/${academyId}`).set({
-        academyName:    settings.academyName || settings.name || academyId,
-        amount:         totalPenalty,
-        reason:         chargeError || '청구 실패',
-        failedAt:       now,
-        contactPhone:   settings.phone || '',
-        journalPenalty,
-        addonPenalties,
-      });
-      console.log(`[executeWithdraw] settlementDue 기록: ${totalPenalty}원 (${academyId})`);
-    }
+    // ── 4. settlementDue 기록 불필요 (위약금 0)
 
     // ── 5. 결제 예약 전체 취소 (billingKey 기준 일괄 — 청구 완료 후)
     if (billingKey) {
@@ -1365,12 +1331,16 @@ exports.generateGrowthReport = onCall(
       throw new HttpsError('permission-denied', '본인 학원만 리포트를 생성할 수 있습니다');
     }
 
-    // 접근 권한 확인 (admin 제외)
+    // 접근 권한 확인 (admin 제외): 구독 중이거나 90일 무료체험 중이면 이용 가능
     const isAdmin = request.auth?.token?.email === 'audtls2g@gmail.com';
     if (!isAdmin) {
-      const addonSnap = await db.ref(`academies/${academyId}/addons/report/status`).get();
-      if (!addonSnap.exists() || addonSnap.val() !== 'active') {
-        throw new HttpsError('permission-denied', 'AI성장리포트 애드온이 활성 상태가 아닙니다');
+      const ucSnap = await db.ref(`users/${uid}`).get();
+      const uc     = ucSnap.val() || {};
+      const _isPro  = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
+      const _ts     = uc.trialStart || null;
+      const _trial  = !_isPro && _ts !== null && Math.floor((Date.now() - _ts) / 86400000) < 90;
+      if (!_isPro && !_trial) {
+        throw new HttpsError('permission-denied', '3개월 무료체험이 종료되었습니다. 구독 후 계속 이용해주세요.');
       }
     }
 
@@ -1557,6 +1527,199 @@ ${dojanKeyword ? `
 
     console.log(`[generateGrowthReport] 완료: ${academyId}/${studentId} usage=${JSON.stringify(usage)}`);
     return { text, usage };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// migrateToSinglePlan  (Callable — 관리자 전용)
+// billingKey가 있고 cancelled가 아닌 모든 학원을 단일 요금제로 일괄 이전
+// dryRun=true(기본값): 대상 목록만 반환 (DB 변경 없음)
+// dryRun=false: 실제 이전 실행 (PROTECTED_ACADEMY_IDS 가드 없음 — 실고객 이전용)
+// ──────────────────────────────────────────────────────────────────
+exports.migrateToSinglePlan = onCall(
+  { region: 'asia-northeast3', timeoutSeconds: 300 },
+  async (request) => {
+    if (request.auth?.token?.email !== 'audtls2g@gmail.com') {
+      throw new HttpsError('permission-denied', '관리자 전용 기능입니다');
+    }
+
+    const { dryRun = true, onlyAcademyId } = request.data || {};
+
+    const academiesSnap = await db.ref('academies').get();
+    if (!academiesSnap.exists()) return { targets: [] };
+
+    // 대상 학원 목록 구성 (academy 데이터 포함)
+    const targets = [];
+    for (const [academyId, academy] of Object.entries(academiesSnap.val())) {
+      if (onlyAcademyId && academyId !== onlyAcademyId) continue;
+      const billing = academy.billing || {};
+      if (!billing.billingKey) continue;
+      if (billing.status === 'cancelled') continue;
+      targets.push({ academyId, billing, academy });
+    }
+
+    // users 전체를 한 번만 로드해서 academyId → {uid, email} 인덱스 구성
+    const allUsersSnap = await db.ref('users').get();
+    const usersByAcademy = {};
+    if (allUsersSnap.exists()) {
+      allUsersSnap.forEach(child => {
+        const u = child.val();
+        if (u.academyId) usersByAcademy[u.academyId] = { uid: child.key, email: u.email || '' };
+      });
+    }
+
+    if (dryRun) {
+      return {
+        dryRun: true,
+        count:  targets.length,
+        targets: targets.map(t => {
+          const settings    = t.academy.settings || {};
+          const addons      = t.academy.addons   || {};
+          const activeAddons = Object.entries(addons)
+            .filter(([, a]) => a.status === 'active')
+            .map(([key]) => key);
+          const owner = usersByAcademy[t.academyId] || {};
+          return {
+            academyId:     t.academyId,
+            academyName:   settings.academyName || settings.name || '',
+            ownerEmail:    owner.email || '',
+            currentAmount: t.billing.monthlyAmount,
+            nextPaymentAt: t.billing.nextPaymentAt,
+            billingPlan:   t.billing.plan,
+            activeAddons,
+          };
+        }),
+      };
+    }
+
+    const results      = [];
+    const migrateOrderName = `FILLYO 정기구독 (월 ₩${PLAN_OPEN_PRICE.toLocaleString()})`;
+
+    for (const { academyId, billing, academy } of targets) {
+      const { billingKey } = billing;
+      const result = { academyId, steps: [] };
+
+      // ① billingKey 기준으로 PortOne 예약 전체 취소
+      // 409: 이미 취소된 상태 → 계속 진행
+      // 그 외 에러: 이중결제 방지를 위해 즉시 실패 처리하고 ②~⑥ 실행 안 함
+      try {
+        await axios.delete(`${PORTONE_BASE}/payment-schedules`, {
+          headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+          data:    { billingKey },
+        });
+        result.steps.push('schedules_cancelled');
+      } catch (e) {
+        if (e.response?.status === 409) {
+          result.steps.push('schedules_already_cancelled');
+        } else {
+          const errMsg = e.response?.data?.message ?? e.message;
+          result.success = false;
+          result.error   = `①예약취소실패(이중결제방지) — ${errMsg}`;
+          console.error(`[migrateToSinglePlan] ${academyId} ①실패(이중결제방지):`, errMsg);
+          results.push(result);
+          continue; // ②~⑥ 실행 안 함, 다음 학원으로
+        }
+      }
+
+      // ② 기존 nextPaymentAt(과거면 다음 달 같은 날)에 9,900원으로 재예약
+      // 실패 시: ③~⑥ 실행 안 함 — 결제가 조용히 끊기는 것을 막기 위해 수동 처리 필요
+      const nextPayTime   = (billing.nextPaymentAt && billing.nextPaymentAt > Date.now())
+        ? new Date(billing.nextPaymentAt)
+        : nextMonthSameDay();
+      const nextPaymentId = makePaymentId('sub_migrate');
+
+      try {
+        await axios.post(
+          `${PORTONE_BASE}/payments/${nextPaymentId}/schedule`,
+          {
+            payment: {
+              billingKey,
+              orderName: migrateOrderName,
+              customer:  { id: academyId },
+              amount:    { total: PLAN_OPEN_PRICE },
+              currency:  'KRW',
+            },
+            timeToPay: nextPayTime.toISOString(),
+          },
+          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+        );
+        await db.ref(`paymentOrders/${nextPaymentId}`).set({
+          academyId,
+          amount:     PLAN_OPEN_PRICE,
+          orderName:  migrateOrderName,
+          billingKey,
+          scheduledAt: Date.now(),
+          migratedAt:  Date.now(),
+        });
+        result.steps.push(`rescheduled: ${nextPaymentId}`);
+      } catch (e) {
+        const errMsg = e.response?.data?.message ?? e.message;
+        result.success = false;
+        result.error   = `②재예약실패(수동재예약필요) — 예약이 모두 취소된 상태이므로 수동 재예약 필요: ${errMsg}`;
+        console.error(`[migrateToSinglePlan] ${academyId} ②실패(수동재예약필요):`, errMsg);
+        results.push(result);
+        continue; // ③~⑥ 실행 안 함, 다음 학원으로
+      }
+
+      // ③~⑥: ①②가 모두 성공한 경우에만 실행
+      try {
+        // ③ billing 갱신
+        await db.ref(`academies/${academyId}/billing`).update({
+          plan:                   'all',
+          monthlyAmount:          PLAN_OPEN_PRICE,
+          regularAmount:          PLAN_OPEN_PRICE,
+          migratedAt:             Date.now(),
+          nextPaymentAt:          nextPayTime.getTime(),
+          lastScheduledPaymentId: nextPaymentId,
+        });
+        result.steps.push('billing_updated');
+
+        // ④ 활성 애드온 status → 'merged', schedule/payment id null
+        const addons = academy.addons || {};
+        for (const [addonKey, addon] of Object.entries(addons)) {
+          if (addon.status === 'active') {
+            await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+              status:            'merged',
+              mergedAt:          Date.now(),
+              currentPaymentId:  null,
+              currentScheduleId: null,
+            });
+            result.steps.push(`addon_merged: ${addonKey}`);
+          }
+        }
+
+        // ⑤ 소유자 users: planExpiry=null, billingCycle='monthly'
+        const owner = usersByAcademy[academyId];
+        if (owner) {
+          await db.ref(`users/${owner.uid}`).update({ planExpiry: null, billingCycle: 'monthly' });
+          result.steps.push(`user_updated: ${owner.uid}`);
+
+          // ⑥ openPriceSlots 기록 (excluded 이메일은 슬롯 차지 않음)
+          if (!EARLYBIRD_EXCLUDED_EMAILS.has(owner.email)) {
+            const slotExists = (await db.ref(`openPriceSlots/${academyId}`).get()).exists();
+            if (!slotExists) {
+              await db.ref(`openPriceSlots/${academyId}`).set({
+                academyId,
+                recordedAt: Date.now(),
+                migratedAt: Date.now(),
+              });
+              result.steps.push('open_price_slot_recorded');
+            } else {
+              result.steps.push('open_price_slot_exists');
+            }
+          }
+        }
+
+        result.success = true;
+      } catch (e) {
+        result.success = false;
+        result.error   = `③~⑥처리실패: ${e.message}`;
+        console.error(`[migrateToSinglePlan] ${academyId} ③~⑥실패:`, e.message);
+      }
+      results.push(result);
+    }
+
+    return { dryRun: false, count: results.length, results };
   },
 );
 
