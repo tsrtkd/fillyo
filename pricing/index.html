@@ -6,8 +6,6 @@
 <title>구독 플랜 선택 — FILLYO</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Noto Sans KR',sans-serif;background:#EEF2F8;color:#1A2332;min-height:100vh;-webkit-font-smoothing:antialiased}
@@ -155,128 +153,57 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
 
 <div id="pageWrap">
   <main>
-    <h1 class="page-title">구독 플랜 선택</h1>
-    <p class="page-sub">업무일지를 중심으로 필요한 서비스를 추가하세요</p>
+    <h1 class="page-title">FILLYO 구독</h1>
+    <p class="page-sub">업무일지·줄넘기·승급심사·AI성장리포트 전부 포함</p>
 
     <!-- 이미 구독 중인 사용자 안내 배너 -->
     <div id="subscriberBanner">
-      <p class="sub-banner-text">이미 업무일지를 이용 중이시네요! 애드온 추가/변경은 마이페이지에서 하실 수 있어요.</p>
+      <p class="sub-banner-text">이미 FILLYO를 구독 중이시네요! 구독 관리는 마이페이지에서 하실 수 있어요.</p>
       <a class="sub-banner-btn" href="/mypage/">마이페이지로 이동</a>
     </div>
 
     <div id="planSelectionUI">
-    <div class="section-label">메인 플랜</div>
 
-    <!-- 얼리버드 (기본 선택) -->
-    <div class="plan-card selected" id="cardEarly" onclick="selectPlan('early')">
+    <!-- 단일 플랜 카드 -->
+    <div class="plan-card selected" id="cardAll">
       <div class="card-top-bar"></div>
       <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="rb selected" id="rbEarly"></div>
-        </div>
         <div class="card-body">
-          <div class="card-name">업무일지<span class="card-badge">얼리버드</span></div>
+          <div class="card-name">FILLYO 전체 이용<span class="card-badge" id="planBadge">오픈기념</span></div>
           <div class="price-row">
-            <span class="price-regular">₩19,800 (1개월)</span>
-            <span class="price-now">₩9,900</span>
+            <span class="price-regular" id="priceRegularDisplay">₩19,900</span>
+            <span class="price-now" id="priceNowDisplay">₩9,900</span>
             <span class="price-unit">/월</span>
           </div>
-          <div class="price-note">선착순 50개 도장 한정 · 가입일로부터 1년간 가격 고정</div>
+          <div class="price-note" id="priceNote">선착순 50개 도장 · 가격 평생 고정 · 약정 없음</div>
         </div>
+      </div>
+      <div style="border-top:1px solid #f3f4f6;padding-top:12px;margin-top:10px;font-size:12px;color:#5A6A7A;line-height:1.6">
+        업무일지 · 줄넘기 기록 · 승급심사 · AI성장리포트 모두 포함<br>
+        카드 등록 후 매월 자동 결제 · 언제든 해지 가능
       </div>
     </div>
 
-    <!-- 1년 계약 정가 -->
-    <div class="plan-card" id="cardContract" onclick="selectPlan('contract')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="rb" id="rbContract"></div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">업무일지<span class="card-badge" style="background:#5A6A7A">1년 약정</span></div>
-          <div class="price-row">
-            <span class="price-regular">₩19,800 (1개월)</span>
-            <span class="price-now">₩15,840</span>
-            <span class="price-unit">/월</span>
-          </div>
-          <div class="price-note">정가 20% 할인</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 단건결제 (1개월 이용권) -->
-    <div class="plan-card" id="cardMonthly" onclick="selectPlan('monthly')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="rb" id="rbMonthly"></div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">업무일지</div>
-          <div class="price-row">
-            <span class="price-now">₩19,800</span>
-          </div>
-          <div class="price-note">1개월 이용권 · 계약 없음</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="section-label" style="margin-top:20px">애드온 <span style="font-size:11px;font-weight:400;color:#9ca3af;letter-spacing:0;text-transform:none">— 선택 추가</span></div>
-
-    <!-- AI성장리포트 (줄넘기·승급심사 포함) -->
-    <div class="plan-card" id="cardReport" onclick="toggleAddon('report')">
-      <div class="card-row">
-        <div class="checkbox-wrap">
-          <div class="cb" id="cbReport">
-            <svg width="13" height="10" viewBox="0 0 13 10" fill="none">
-              <path d="M1.5 5L5 8.5L11.5 1.5" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="card-name">AI성장리포트<span class="card-badge" style="background:#0B7B6B;color:#fff">얼리버드</span></div>
-          <div class="price-row">
-            <span class="price-now" style="font-size:18px">₩9,900</span>
-            <span class="price-unit">/월</span>
-          </div>
-          <div class="price-note">줄넘기 기록 + 승급심사 평가 포함 · 1년 계약</div>
-        </div>
-      </div>
-      <div class="addon-billing" id="billingReport" style="border-top:1px solid #f3f4f6;padding-top:12px;margin-top:10px;font-size:12px;color:#5A6A7A;line-height:1.6">
-        줄넘기 기록과 승급심사 데이터를 자동으로 모아 AI가 학생별 성장리포트를 생성합니다.<br>
-        정가 ₩19,800/월 대비 50% 얼리버드 혜택 제공.
-      </div>
-    </div>
-
-    <!-- 안내 문구 -->
-    <div class="info-box">
-      AI성장리포트 애드온 하나로 줄넘기 기록·승급심사 데이터 관리와 AI 리포트 생성을 모두 이용할 수 있습니다.
-    </div>
-
-    <!-- 1년 계약 동의 체크박스 -->
+    <!-- 정기구독 동의 체크박스 -->
     <div class="agree-box" id="agreeBox">
       <label class="agree-label">
         <input type="checkbox" id="agreeCheck" onchange="updatePayBtn()">
-        <span>1년 계약 조건에 동의합니다. 중도 해지 시 이용 기간은 정가로 재산정되며 차액이 청구됩니다.</span>
+        <span>매월 자동 결제되는 정기구독에 동의합니다(언제든 해지 가능)</span>
       </label>
     </div>
 
     <!-- 합계 -->
     <div class="total-box">
-      <div class="total-label">선택 항목</div>
+      <div class="total-label">결제 금액</div>
       <div class="total-items" id="totalItems"></div>
       <div class="total-divider"></div>
       <div class="total-final-row">
-        <span class="total-final-label" id="totalFinalLabel">월 결제 금액 (1년 약정)</span>
+        <span class="total-final-label">월 자동결제 금액</span>
         <span class="total-final-price" id="totalPrice">₩9,900<span class="total-final-unit">/월</span></span>
       </div>
     </div>
 
-    <!-- 정기결제 중도해지 안내 -->
-    <div class="contract-notice" id="contractNotice">
-      이 상품은 매월 자동 결제되는 1년 약정 정기 구독 상품입니다. 가입 시 등록한 카드로 매월 결제 금액이 자동 청구됩니다. 단, 1년 약정 기간 내 중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.
-    </div>
-
-    <button class="pay-btn" id="payBtn" onclick="startPayment()" disabled>결제하기</button>
+    <button class="pay-btn" id="payBtn" onclick="startPayment()" disabled>카드 등록 후 구독 시작</button>
     </div><!-- /#planSelectionUI -->
   </main>
 </div>
@@ -289,8 +216,6 @@ footer{background:#1A2332;text-align:center;padding:24px 6%;color:rgba(255,255,2
   사업장 주소: 대전 광역시 서구 도안동로 77 린풀하우스 1812-2401 &nbsp;|&nbsp; 대표번호: 010-6407-6273 &nbsp;|&nbsp; 이메일: audtls2g@gmail.com</p>
   © 2026 FILLYO · fillyo.kr
 </footer>
-
-<div id="contractDoc" style="position:fixed;top:-9999px;left:-9999px;width:794px;padding:60px;background:white;font-family:'Noto Sans KR',sans-serif;"></div>
 
 <div class="toast" id="toast"></div>
 
@@ -328,19 +253,17 @@ const app  = initializeApp(FB_CONFIG);
 const auth = getAuth(app);
 const db   = getDatabase(app);
 
-let currentUser = null;
+let currentUser  = null;
+let currentAcadId = null;
+// 서버에서 결정된 실제 청구 금액 (getEarlybirdStatus 응답)
+let confirmedPrice = 9900;
 
 onAuthStateChanged(auth, async user => {
-  if (!user) {
-    location.href = '/login/';
-    return;
-  }
+  if (!user) { location.href = '/login/'; return; }
   currentUser = user;
-  document.getElementById('loadingWrap').style.display = 'none';
-  document.getElementById('pageWrap').style.display = 'block';
 
   // ── 모바일 리다이렉트 복귀 처리 ──
-  const params = new URLSearchParams(location.search);
+  const params     = new URLSearchParams(location.search);
   const billingKey = params.get('billingKey');
   const code       = params.get('code');
 
@@ -348,224 +271,86 @@ onAuthStateChanged(auth, async user => {
     history.replaceState(null, '', location.pathname);
     const stateStr = sessionStorage.getItem('fillyo_billing_state');
     if (stateStr) {
-      const s = JSON.parse(stateStr);
       sessionStorage.removeItem('fillyo_billing_state');
-      try {
-        // ── 정기결제 첫 회차 예약 (먼저 확인) ──
-        const idToken = await user.getIdToken();
-        const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-          body: JSON.stringify({
-            billingKey,
-            academyId: s.academyId,
-            amount: s.displayAmount,
-            orderName: `FILLYO 업무일지 정기구독 (월 ₩${Number(s.displayAmount).toLocaleString()})`,
-          }),
-        });
-        if (!scheduleRes.ok) {
-          const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
-          const failTarget = s.academyId || user.uid;
-          try {
-            await set(ref(db, `failedSubscriptions/${failTarget}`), {
-              uid: user.uid, academyId: s.academyId || null, billingKey,
-              failedAt: Date.now(), reason: errText,
-            });
-          } catch(dbErr) { console.warn('failedSubscriptions 저장 오류:', dbErr); }
-          alert('결제에 실패했습니다. 카드 정보를 확인하시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
-          return;
-        }
-        // ── scheduleNextPayment 성공 후 users/{uid} 업데이트 ──
-        await update(ref(db, 'users/' + user.uid), {
-          planType:        'pro',
-          billingCycle:    s.selectedPlan === 'early' ? 'early' : 'yearly',
-          billingKey,
-          planExpiry:      Date.now() + 365 * 24 * 60 * 60 * 1000,
-          subscribedAddons: s.subscribedAddons,
-        });
-        // ── 계약서 Firebase 저장 및 PDF 자동 다운로드 ──
-        const rcId = `contract_${Date.now()}`;
-        const rToday = new Date();
-        const rContract = {
-          contractId: rcId,
-          planName: s.planName,
-          addons: s.addonNames || [],
-          monthlyAmount: s.displayAmount,
-          totalMonths: 12,
-          ownerName: s.ownerName || '',
-          businessName: s.businessName || '',
-          email: user.email,
-          agreedAt: new Date().toISOString(),
-          agreedTermsVersion: 'v1.0',
-          contractStartDate: fmtDateStr(rToday),
-          contractEndDate: fmtDateStr(new Date(rToday.getTime() + 365 * 24 * 60 * 60 * 1000)),
-          earlyTerminationClause: '중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.',
-        };
-        if (s.academyId) {
-          await set(ref(db, `academies/${s.academyId}/contracts/${rcId}`), rContract);
-        }
-        try { await generateContractPDF(rContract); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
-        document.getElementById('modalPlanName').textContent = s.planName;
-        document.getElementById('modalAmount').textContent   = s.modalAmount;
-        const note = document.getElementById('modalBillingNote');
-        note.textContent = '매월 ' + Number(s.displayAmount).toLocaleString() + '원이 자동 결제됩니다';
-        note.style.display = '';
-        document.getElementById('payModal').classList.add('show');
-      } catch(e) {
-        alert('카드 등록은 완료됐으나 저장 중 오류가 발생했습니다.');
-      }
+      const s = JSON.parse(stateStr);
+      await handleSubscriptionComplete(user, billingKey, s.academyId);
     }
   } else if (code) {
     history.replaceState(null, '', location.pathname);
     alert(params.get('message') || '카드 등록에 실패했습니다.');
+    showPage();
   } else {
-    // ── 이미 구독 중인 사용자 감지 ──
+    showPage();
     const userSnap = await get(ref(db, `users/${user.uid}`));
-    if (userSnap.exists() && userSnap.val().planType === 'pro') {
-      document.getElementById('subscriberBanner').style.display = 'block';
-      document.getElementById('planSelectionUI').style.display = 'none';
+    if (userSnap.exists()) {
+      const ud = userSnap.val();
+      if (ud.planType === 'pro') {
+        document.getElementById('subscriberBanner').style.display = 'block';
+        document.getElementById('planSelectionUI').style.display  = 'none';
+      }
+      currentAcadId = ud.academyId || null;
     }
+    if (!currentAcadId) { location.href = '/setup/'; return; }
+    checkEarlybirdStatus();
   }
 });
+
+function showPage() {
+  document.getElementById('loadingWrap').style.display = 'none';
+  document.getElementById('pageWrap').style.display    = 'block';
+}
+
+// ── 오픈기념가 선착순 상태 확인 ──
+async function checkEarlybirdStatus() {
+  try {
+    const res = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/getEarlybirdStatus');
+    if (!res.ok) return;
+    const { available, slotsLeft, openPrice, regularPrice } = await res.json();
+    confirmedPrice = available ? (openPrice || 9900) : (regularPrice || 19900);
+    if (!available) {
+      // 선착순 마감 — 정가 표시
+      document.getElementById('planBadge').textContent       = '';
+      document.getElementById('planBadge').style.display     = 'none';
+      document.getElementById('priceRegularDisplay').style.display = 'none';
+      document.getElementById('priceNowDisplay').textContent = `₩${confirmedPrice.toLocaleString()}`;
+      document.getElementById('priceNote').textContent       = '약정 없음 · 언제든 해지 가능';
+    } else {
+      document.getElementById('priceNowDisplay').textContent = `₩${confirmedPrice.toLocaleString()}`;
+      if (slotsLeft <= 10) {
+        document.getElementById('priceNote').textContent = `남은 오픈기념 자리 ${slotsLeft}개 · 가격 평생 고정 · 약정 없음`;
+      }
+    }
+    renderTotal();
+  } catch (_) { /* 실패 시 기본값(9,900원) 유지 */ }
+}
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
   signOut(auth).then(() => { location.href = '/login/'; });
 });
 
-// ── 요금 상수 ──
-const PLAN_PRICES = {
-  early:    9900,
-  contract: 15840,
-  monthly:  19800,
-};
-// AI성장리포트 가격 단계 (수동 전환 — 대표님 지시 시에만 변경)
-// functions/index.js ADDON_PRICE_TIER와 동일한 값으로 유지
-// 'earlybird': 9,900원 / 'discount30': 13,500원 / 'full': 19,800원
-const ADDON_PRICE_TIER = 'earlybird';
-const ADDON_TIER_PRICES = { earlybird: 9900, discount30: 13500, full: 19800 };
-let REPORT_PRICE = ADDON_TIER_PRICES[ADDON_PRICE_TIER];
-
-// ── 상태 ──
-let selectedPlan = 'early';
-const addons = { report: false };
-
-// ── 얼리버드 선착순 마감 체크 ──
-(async function checkEarlybirdStatus() {
-  try {
-    const res = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/getEarlybirdStatus');
-    if (!res.ok) return;
-    const { available } = await res.json();
-    if (!available) applyEarlybirdClosed();
-  } catch (_) { /* 실패 시 얼리버드 표시 유지 */ }
-})();
-
-function applyEarlybirdClosed() {
-  // 얼리버드 카드 숨김, 기본 선택을 1년 약정으로 전환
-  const cardEarly = document.getElementById('cardEarly');
-  if (cardEarly) cardEarly.style.display = 'none';
-  // 리포트 애드온 배지·가격 업데이트 (정가 19,800원)
-  REPORT_PRICE = 19800;
-  NAMES.report = 'AI성장리포트 (1년 계약)';
-  const badge = document.querySelector('#cardReport .card-badge');
-  if (badge) { badge.textContent = '1년 계약'; badge.style.background = '#5A6A7A'; }
-  const billingDesc = document.getElementById('billingReport');
-  if (billingDesc) {
-    billingDesc.innerHTML = billingDesc.innerHTML.replace(
-      '정가 ₩19,800/월 대비 50% 얼리버드 혜택 제공.',
-      '정가 ₩19,800/월 · 1년 계약',
-    );
-  }
-  selectPlan('contract');
-}
-
-// ── 메인 플랜 선택 ──
-window.selectPlan = function(plan) {
-  selectedPlan = plan;
-  ['early', 'contract', 'monthly'].forEach(p => {
-    const cap = p.charAt(0).toUpperCase() + p.slice(1);
-    document.getElementById('rb'   + cap).classList.toggle('selected', p === plan);
-    document.getElementById('card' + cap).classList.toggle('selected', p === plan);
-  });
-
-  // 정기결제 안내 문구: earlybird/contract 시 표시, monthly 시 숨김
-  document.getElementById('contractNotice').style.display = plan === 'monthly' ? 'none' : '';
-
-  updatePayBtn();
-  renderTotal();
-};
-
-// ── 애드온 토글 ──
-window.toggleAddon = function(key) {
-  if (key !== 'report') return;
-  addons.report = !addons.report;
-  document.getElementById('cbReport').classList.toggle('checked', addons.report);
-  document.getElementById('cardReport').classList.toggle('selected', addons.report);
-  updatePayBtn();
-  renderTotal();
-};
-
-// ── 계약 동의 필요 여부 ──
-function needsAgreement() {
-  return selectedPlan !== 'monthly';
-}
-
 // ── 결제 버튼 상태 갱신 ──
 window.updatePayBtn = function() {
-  const needs    = needsAgreement();
-  const check    = document.getElementById('agreeCheck');
-  const agreeBox = document.getElementById('agreeBox');
-  agreeBox.style.display = needs ? '' : 'none';
-  if (!needs) {
-    check.checked = false;
-    agreeBox.classList.remove('agreed');
-  }
-  agreeBox.classList.toggle('agreed', check.checked);
-  document.getElementById('payBtn').disabled = needs && !check.checked;
+  const check = document.getElementById('agreeCheck');
+  document.getElementById('agreeBox').classList.toggle('agreed', check.checked);
+  document.getElementById('payBtn').disabled = !check.checked;
 };
 
 // ── 합계 렌더링 ──
-const NAMES = {
-  early:    '업무일지 (얼리버드)',
-  contract: '업무일지 (1년 약정)',
-  monthly:  '업무일지 (1개월 이용권)',
-  report:   'AI성장리포트 (얼리버드)',
-};
-
 function renderTotal() {
-  const isContract = selectedPlan !== 'monthly';
-  const mainPrice  = PLAN_PRICES[selectedPlan];
-
-  const items = [{ name: NAMES[selectedPlan], price: mainPrice }];
-  let total   = mainPrice;
-
-  if (addons.report) {
-    items.push({ name: NAMES.report, price: REPORT_PRICE });
-    total += REPORT_PRICE;
-  }
-
-  document.getElementById('totalItems').innerHTML = items.map(i =>
-    `<div class="total-item"><span class="total-item-name">${i.name}</span><span class="total-item-price">₩${i.price.toLocaleString()}</span></div>`
-  ).join('');
-
-  document.getElementById('totalFinalLabel').textContent = isContract ? '월 결제 금액 (1년 약정)' : '결제 금액';
+  document.getElementById('totalItems').innerHTML =
+    `<div class="total-item"><span class="total-item-name">FILLYO 전체 이용</span><span class="total-item-price">₩${confirmedPrice.toLocaleString()}</span></div>`;
   document.getElementById('totalPrice').innerHTML =
-    `₩${total.toLocaleString()}${isContract ? '<span class="total-final-unit">/월</span>' : ''}`;
+    `₩${confirmedPrice.toLocaleString()}<span class="total-final-unit">/월</span>`;
 }
 renderTotal();
 updatePayBtn();
-// 초기 플랜(early)에 맞게 안내 문구 표시
-document.getElementById('contractNotice').style.display = '';
 
-// ── 결제 ──
+// ── 결제 (빌키 발급 → scheduleNextPayment) ──
 window.startPayment = async function() {
   const user = auth.currentUser;
   if (!user) { showToast('로그인이 필요합니다.', 'error'); return; }
-
-  const isContract = selectedPlan !== 'monthly';
-
-  if (isContract && !document.getElementById('agreeCheck').checked) {
-    showToast('계약 조건에 동의해 주세요.', 'error');
-    return;
+  if (!document.getElementById('agreeCheck').checked) {
+    showToast('정기구독 동의가 필요합니다.', 'error'); return;
   }
 
   const btn = document.getElementById('payBtn');
@@ -573,215 +358,128 @@ window.startPayment = async function() {
   btn.textContent = '결제창 열기...';
 
   try {
-  const snap = await get(ref(db, 'users/' + user.uid));
-  const userData = snap.exists() ? snap.val() : {};
-  console.log('[FILLYO] users/' + user.uid, userData);
+    const snap     = await get(ref(db, 'users/' + user.uid));
+    const userData = snap.exists() ? snap.val() : {};
+    const academyId = userData.academyId || currentAcadId;
+    if (!academyId) { location.href = '/setup/'; return; }
 
-  // phone이 없으면 직접 입력 받아 Firebase에 저장
-  if (!userData.phone) {
-    const phoneSnap = await get(ref(db, 'users/' + user.uid + '/phone'));
-    if (phoneSnap.exists()) {
-      userData.phone = phoneSnap.val();
-    } else {
+    // 전화번호 확인/입력
+    if (!userData.phone) {
       const phone = prompt('정기결제 등록을 위해 휴대폰 번호를 입력해주세요 (예: 01012345678)');
-      if (!phone) { btn.disabled = false; btn.textContent = '결제하기'; return; }
+      if (!phone) { btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작'; return; }
       userData.phone = phone;
       await update(ref(db, 'users/' + user.uid), { phone });
     }
-  }
-
-  // ownerName이 없으면 직접 입력 받아 Firebase에 저장
-  if (!userData.ownerName) {
-    const nameSnap = await get(ref(db, 'users/' + user.uid + '/ownerName'));
-    if (nameSnap.exists()) {
-      userData.ownerName = nameSnap.val();
-    } else {
+    // 결제자 성함 확인/입력
+    if (!userData.ownerName) {
       const ownerName = prompt('결제자 성함을 입력해주세요 (본인 명의 카드와 일치해야 합니다)');
-      if (!ownerName) { btn.disabled = false; btn.textContent = '결제하기'; return; }
+      if (!ownerName) { btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작'; return; }
       userData.ownerName = ownerName;
       await update(ref(db, 'users/' + user.uid), { ownerName });
     }
-  }
 
-  const subscribedAddons = { report: !!addons.report };
+    // 모바일 리다이렉트 복귀 시 필요한 최소 상태 저장
+    sessionStorage.setItem('fillyo_billing_state', JSON.stringify({ academyId }));
 
-  // ── 단건결제 (1개월 이용권) ──
-  if (selectedPlan === 'monthly') {
-    PortOne.requestPayment({
-      storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-      channelKey:  'channel-key-dab745e0-688d-45e7-b7d2-e648d528b826',
-      paymentId:   'fillyo_' + Date.now(),
-      orderName:   'FILLYO 업무일지 1개월 사용권',
-      totalAmount: 19800,
-      currency:    'CURRENCY_KRW',
-      payMethod:   'CARD',
+    btn.textContent = '카드 등록 중...';
+    const issueResponse = await PortOne.requestIssueBillingKey({
+      storeId:          'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+      channelKey:       'channel-key-94abf50e-2417-4672-9066-64f782818ffa',
+      billingKeyMethod: 'CARD',
+      issueId:          `fb_${Date.now()}`,
+      issueName:        'FILLYO 정기구독',
+      redirectUrl:      window.location.origin + '/pricing/',
+      offerPeriod:      { interval: '1m' },
       customer: {
-        customerId:  user.uid,
-        email:       user.email || '',
-        fullName:    userData.ownerName || user.email || 'FILLYO 사용자',
-        phoneNumber: userData.phone || '010-0000-0000',
+        fullName:    userData.ownerName,
+        phoneNumber: userData.phone,
+        email:       user.email,
       },
-    }).then(async (rsp) => {
-      if (rsp.code === undefined) {
-        try {
-          await update(ref(db, 'users/' + user.uid), {
-            planType:     'pro',
-            billingCycle: 'monthly',
-            planExpiry:   Date.now() + 30 * 24 * 60 * 60 * 1000,
-            subscribedAddons,
-            lastPayment: {
-              amount:    19800,
-              date:      Date.now(),
-              paymentId: rsp.paymentId,
-            },
-          });
-          document.getElementById('modalPlanName').textContent = 'FILLYO 업무일지 (월 1회 결제)';
-          document.getElementById('modalAmount').textContent = '₩19,800';
-          document.getElementById('payModal').classList.add('show');
-        } catch(e) {
-          showToast('결제는 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
-          btn.disabled = false;
-          btn.textContent = '결제하기';
-        }
-      } else {
-        showToast('결제 실패: ' + (rsp.message || '알 수 없는 오류'), 'error');
-        btn.disabled = false;
-        btn.textContent = '결제하기';
-      }
     });
-    return;
-  }
 
-  // ── 얼리버드/약정: 빌키 발급 ──
-  const parts = ['업무일지'];
-  if (addons.report) parts.push('AI성장리포트');
-  const planName    = 'FILLYO ' + parts.join('+');
-
-  let displayAmount = PLAN_PRICES[selectedPlan];
-  if (addons.report) displayAmount += REPORT_PRICE;
-
-  const modalAmount = `₩${displayAmount.toLocaleString()}/월`;
-
-  const issueName = `FILLYO 업무일지 정기구독 (월 ₩${displayAmount.toLocaleString()})`;
-
-  // ── 학원명 조회 (계약서용) ──
-  const academyId = userData.academyId || null;
-  let businessName = '';
-  if (academyId) {
-    const acSnap = await get(ref(db, `academies/${academyId}/settings`));
-    if (acSnap.exists()) businessName = acSnap.val().academyName || '';
-  }
-
-  // 리다이렉트 복귀 시 Firebase 저장에 필요한 상태 보존
-  sessionStorage.setItem('fillyo_billing_state', JSON.stringify({
-    selectedPlan,
-    subscribedAddons,
-    planName,
-    modalAmount,
-    displayAmount,
-    academyId,
-    addonNames: buildAddonNames(),
-    ownerName: userData.ownerName || '',
-    businessName,
-  }));
-
-  // 빌키 발급
-  btn.textContent = '카드 등록 중...';
-  const billingKeyRequest = {
-    storeId: 'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
-    channelKey: 'channel-key-94abf50e-2417-4672-9066-64f782818ffa',
-    billingKeyMethod: 'CARD',
-    issueId: `fb_${Date.now()}`,
-    issueName,
-    redirectUrl: window.location.origin + '/pricing/',
-    offerPeriod: { interval: '1m' },
-    customer: {
-      fullName:    userData.ownerName,
-      phoneNumber: userData.phone,
-      email:       currentUser.email,
-    },
-  };
-  console.log('[FILLYO] 빌키발급 요청 파라미터:', billingKeyRequest);
-  const issueResponse = await PortOne.requestIssueBillingKey(billingKeyRequest);
-
-  if (issueResponse.code !== undefined) {
-    alert(issueResponse.message);
-    btn.textContent = '결제하기';
-    btn.disabled = false;
-    return;
-  }
-
-  try {
-    // ── 정기결제 첫 회차 예약 (먼저 확인) ──
-    const idToken = await currentUser.getIdToken();
-    const scheduleRes = await fetch('https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
-      body: JSON.stringify({ billingKey: issueResponse.billingKey, academyId, amount: displayAmount, orderName: issueName }),
-    });
-    if (!scheduleRes.ok) {
-      const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
-      const failTarget = academyId || user.uid;
-      try {
-        await set(ref(db, `failedSubscriptions/${failTarget}`), {
-          uid: user.uid, academyId: academyId || null, billingKey: issueResponse.billingKey,
-          failedAt: Date.now(), reason: errText,
-        });
-      } catch(dbErr) { console.warn('failedSubscriptions 저장 오류:', dbErr); }
-      alert('카드 등록은 완료됐으나 구독 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주시거나 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
-      btn.disabled = false;
-      btn.textContent = '결제하기';
+    if (issueResponse.code !== undefined) {
+      alert(issueResponse.message);
+      btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작';
       return;
     }
-    // ── scheduleNextPayment 성공 후 users/{uid} 업데이트 ──
-    await update(ref(db, 'users/' + user.uid), {
-      planType:     'pro',
-      billingCycle: selectedPlan === 'early' ? 'early' : 'yearly',
-      billingKey:   issueResponse.billingKey,
-      planExpiry:   Date.now() + 365 * 24 * 60 * 60 * 1000,
-      subscribedAddons,
-    });
-    // ── 계약서 Firebase 저장 및 PDF 자동 다운로드 ──
-    const contractId = `contract_${Date.now()}`;
-    const today = new Date();
-    const contractData = {
-      contractId,
-      planName: selectedPlan === 'early' ? '업무일지 얼리버드' : '업무일지 1년약정',
-      addons: buildAddonNames(),
-      monthlyAmount: displayAmount,
-      totalMonths: 12,
-      ownerName: userData.ownerName || '',
-      businessName,
-      email: currentUser.email,
-      agreedAt: new Date().toISOString(),
-      agreedTermsVersion: 'v1.0',
-      contractStartDate: fmtDateStr(today),
-      contractEndDate: fmtDateStr(new Date(today.getTime() + 365 * 24 * 60 * 60 * 1000)),
-      earlyTerminationClause: '중도 해지 시 할인 혜택이 취소되며 이용 기간에 대해 정가로 재산정한 차액이 청구됩니다.',
-    };
-    if (academyId) {
-      await set(ref(db, `academies/${academyId}/contracts/${contractId}`), contractData);
-    }
-    try { await generateContractPDF(contractData); } catch(pdfErr) { console.warn('PDF 생성:', pdfErr); }
-    document.getElementById('modalPlanName').textContent = planName;
-    document.getElementById('modalAmount').textContent = modalAmount;
-    const note = document.getElementById('modalBillingNote');
-    note.textContent = '매월 ' + displayAmount.toLocaleString() + '원이 자동 결제됩니다';
-    note.style.display = '';
-    document.getElementById('payModal').classList.add('show');
-  } catch(e) {
-    showToast('빌키 발급은 완료됐으나 저장 중 오류가 발생했습니다.', 'error');
-    btn.disabled = false;
-    btn.textContent = '결제하기';
-  }
+
+    await handleSubscriptionComplete(user, issueResponse.billingKey, academyId);
 
   } catch (e) {
     console.error('[startPayment] 오류:', e);
     alert('오류가 발생했습니다: ' + (e.message || e.toString()));
-    btn.disabled = false;
-    btn.textContent = '결제하기';
+    btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작';
   }
 };
+
+// ── 빌키 발급 완료 후 공통 처리 (PC / 모바일 리다이렉트 둘 다) ──
+async function handleSubscriptionComplete(user, billingKey, academyId) {
+  showPage();
+  const btn = document.getElementById('payBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '처리 중...'; }
+
+  try {
+    const idToken    = await user.getIdToken();
+    const scheduleRes = await fetch(
+      'https://asia-northeast3-fillyo-journal.cloudfunctions.net/scheduleNextPayment',
+      {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body:    JSON.stringify({ billingKey, academyId }),
+      },
+    );
+
+    if (!scheduleRes.ok) {
+      const errText = await scheduleRes.text().catch(() => `HTTP ${scheduleRes.status}`);
+      try {
+        await set(ref(db, `failedSubscriptions/${academyId || user.uid}`), {
+          uid: user.uid, academyId: academyId || null, billingKey,
+          failedAt: Date.now(), reason: errText,
+        });
+      } catch (_) {}
+      alert('카드 등록은 완료됐으나 구독 처리 중 오류가 발생했습니다. 카카오톡 채널(pf.kakao.com/_xnxicxjX)로 문의해주세요.');
+      if (btn) { btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작'; }
+      return;
+    }
+
+    const scheduleData = await scheduleRes.json();
+    const paidAmount   = scheduleData.amount || confirmedPrice;
+
+    // users/{uid} 업데이트: 단일 요금제 — planExpiry null, billingCycle monthly
+    await update(ref(db, 'users/' + user.uid), {
+      planType:     'pro',
+      billingCycle: 'monthly',
+      billingKey,
+      planExpiry:   null,
+    });
+
+    // 구독 기록 저장 (v2.0 — 약정 없음)
+    if (academyId) {
+      const contractId = `contract_${Date.now()}`;
+      await set(ref(db, `academies/${academyId}/contracts/${contractId}`), {
+        contractId,
+        planName:          'FILLYO 전체 이용',
+        monthlyAmount:     paidAmount,
+        billingType:       'monthly',
+        agreedAt:          new Date().toISOString(),
+        agreedTermsVersion: 'v2.0',
+        email:             user.email,
+      });
+    }
+
+    // 완료 모달
+    document.getElementById('modalPlanName').textContent = 'FILLYO 전체 이용';
+    document.getElementById('modalAmount').textContent   = `₩${paidAmount.toLocaleString()}/월`;
+    const note = document.getElementById('modalBillingNote');
+    note.textContent   = `매월 ₩${paidAmount.toLocaleString()}원이 자동 결제됩니다`;
+    note.style.display = '';
+    document.getElementById('payModal').classList.add('show');
+
+  } catch (e) {
+    alert('처리 중 오류가 발생했습니다: ' + (e.message || e.toString()));
+    if (btn) { btn.disabled = false; btn.textContent = '카드 등록 후 구독 시작'; }
+  }
+}
 
 // ── 토스트 ──
 window.showToast = function(msg, type = '') {
@@ -791,86 +489,6 @@ window.showToast = function(msg, type = '') {
   t.classList.add('show');
   setTimeout(() => t.classList.remove('show'), 3500);
 };
-
-// ── 날짜 포맷 (YYYY-MM-DD) ──
-function fmtDateStr(date) {
-  const d = date instanceof Date ? date : new Date(date);
-  const p = n => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
-}
-
-// ── 선택된 애드온 이름 목록 ──
-function buildAddonNames() {
-  return addons.report ? ['AI성장리포트 (줄넘기·승급심사 포함)'] : [];
-}
-
-// ── 계약서 HTML 생성 ──
-function buildContractHTML(data) {
-  const addonText = data.addons && data.addons.length > 0 ? data.addons.join(', ') : '없음';
-  const agreedAtStr = data.agreedAt ? new Date(data.agreedAt).toLocaleString('ko-KR') : '';
-  return `<div style="font-family:'Noto Sans KR',sans-serif;color:#1A2332;line-height:1.8;font-size:14px;">
-    <h1 style="font-size:22px;font-weight:900;text-align:center;margin-bottom:6px;color:#0B1F3A;">필요(FILLYO) 서비스 이용계약서</h1>
-    <p style="text-align:center;color:#5A6A7A;margin-bottom:30px;">(1년 약정)</p>
-    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 당사자</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:5px 0;font-weight:700;width:70px;color:#5A6A7A;vertical-align:top;">공급자</td>
-            <td style="padding:5px 0;">필요(FILLYO) | 대표: 임명신 | 사업자등록번호: 776-51-01113<br><span style="color:#5A6A7A;">주소: 대전 광역시 서구 도안동로 77 린풀하우스 1812-2401</span></td></tr>
-        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;vertical-align:top;">가입자</td>
-            <td style="padding:5px 0;">${data.businessName || '—'} | 대표자: ${data.ownerName || '—'} | 이메일: ${data.email}</td></tr>
-      </table>
-    </div>
-    <div style="background:#f5f7fa;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <h2 style="font-size:15px;font-weight:900;color:#0B1F3A;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid #DDE4EE;">계약 내용</h2>
-      <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:5px 0;font-weight:700;width:120px;color:#5A6A7A;">상품명</td><td style="padding:5px 0;">${data.planName}</td></tr>
-        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">추가 애드온</td><td style="padding:5px 0;">${addonText}</td></tr>
-        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">월 결제 금액</td><td style="padding:5px 0;font-weight:900;color:#0B7B6B;">&#8361;${Number(data.monthlyAmount).toLocaleString()}원</td></tr>
-        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">계약 기간</td><td style="padding:5px 0;">${data.contractStartDate} ~ ${data.contractEndDate} (12개월)</td></tr>
-        <tr><td style="padding:5px 0;font-weight:700;color:#5A6A7A;">결제 방식</td><td style="padding:5px 0;">매월 등록된 카드로 자동 결제</td></tr>
-      </table>
-    </div>
-    <div style="background:#FFF3E0;border:1.5px solid #FF9800;border-radius:12px;padding:20px 24px;margin-bottom:20px;">
-      <h2 style="font-size:15px;font-weight:900;color:#BF360C;margin-bottom:8px;">중도 해지 조항</h2>
-      <p style="color:#E65100;">${data.earlyTerminationClause}</p>
-    </div>
-    <div style="background:#EBF7F5;border:1.5px solid #0B7B6B;border-radius:12px;padding:20px 24px;margin-bottom:24px;">
-      <h2 style="font-size:15px;font-weight:900;color:#0B7B6B;margin-bottom:8px;">전자 동의 기록</h2>
-      <p>본 계약은 <strong>${agreedAtStr}</strong>, 가입자 본인의 체크박스 동의를 통해 전자적으로 체결되었습니다.</p>
-      <p style="margin-top:4px;">약관 버전: ${data.agreedTermsVersion}</p>
-    </div>
-    <div style="text-align:right;color:#5A6A7A;font-size:12px;padding-top:14px;border-top:1px solid #DDE4EE;">
-      발급일: ${new Date().toLocaleDateString('ko-KR')} &nbsp;|&nbsp; FILLYO · fillyo.kr
-    </div>
-  </div>`;
-}
-
-// ── 계약서 PDF 다운로드 ──
-async function generateContractPDF(data) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-  const el  = document.getElementById('contractDoc');
-  el.innerHTML = buildContractHTML(data);
-
-  const canvas = await window.html2canvas(el, { scale: 2, useCORS: true, logging: false });
-  const img    = canvas.toDataURL('image/png');
-  const pdfW   = doc.internal.pageSize.getWidth();
-  const pdfH   = doc.internal.pageSize.getHeight();
-  const imgH   = (canvas.height * pdfW) / canvas.width;
-
-  let y = 0, rem = imgH;
-  doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
-  rem -= pdfH;
-  while (rem > 0) {
-    y -= pdfH;
-    doc.addPage();
-    doc.addImage(img, 'PNG', 0, y, pdfW, imgH);
-    rem -= pdfH;
-  }
-
-  el.innerHTML = '';
-  doc.save(`FILLYO_계약서_${data.contractStartDate}.pdf`);
-}
 </script>
 </body>
 </html>

@@ -698,7 +698,7 @@ onAuthStateChanged(auth, async (user) => {
     const rawDaysUsed   = trialStart
       ? Math.max(0, Math.floor((Date.now() - trialStart) / 86400000))
       : 0;
-    const trialDaysLeft = Math.min(30, Math.max(0, 30 - rawDaysUsed));
+    const trialDaysLeft = Math.min(90, Math.max(0, 90 - rawDaysUsed));
     const inTrial       = planType !== 'pro' && trialDaysLeft > 0;
 
     // 플랜 배지
@@ -706,9 +706,9 @@ onAuthStateChanged(auth, async (user) => {
     if (isAdmin) {
       badgeEl.textContent = '🟢 운영자 계정';
     } else if (planType === 'pro') {
-      badgeEl.textContent = '🟢 얼리버드 구독 중';
+      badgeEl.textContent = '🟢 구독 중';
     } else if (inTrial) {
-      badgeEl.textContent = '🟡 무료 체험 중';
+      badgeEl.textContent = '🟡 3개월 무료체험 중';
     } else {
       badgeEl.textContent = '🔴 체험 종료';
     }
@@ -734,9 +734,13 @@ onAuthStateChanged(auth, async (user) => {
         numEl.style.color    = '#C62828';
         numEl.style.fontSize = '18px';
       }
+    } else if (planType === 'pro') {
+      // 월정기구독 — planExpiry 없음 → 계속 구독 중
+      numEl.textContent   = '✓';
+      labelEl.textContent = '구독 중';
     } else if (inTrial) {
       numEl.textContent   = `D-${trialDaysLeft}`;
-      labelEl.textContent = '무료체험 중';
+      labelEl.textContent = '3개월 무료체험 중';
     } else {
       numEl.textContent    = '종료';
       numEl.style.color    = '#C62828';
@@ -770,9 +774,9 @@ onAuthStateChanged(auth, async (user) => {
       }
     }
     setCardStatus('cardApp',      isPro);
-    setCardStatus('cardExam',     addons.report?.status === 'active');
-    setCardStatus('cardJumprope', addons.report?.status === 'active');
-    setCardStatus('cardReport',   addons.report?.status === 'active');
+    setCardStatus('cardExam',     isPro);
+    setCardStatus('cardJumprope', isPro);
+    setCardStatus('cardReport',   isPro);
     // cardSlowmo: 무료 서비스 — 로그인만 되면 항상 이용 가능, setCardStatus 생략
 
   } catch (e) {
