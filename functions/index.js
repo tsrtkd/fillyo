@@ -211,13 +211,27 @@ exports.scheduleNextPayment = onRequest(
 
         console.log('[scheduleNextPayment] 즉시결제 응답:', JSON.stringify(payRes.data));
 
-        // PortOne V2 billing-key 즉시결제 응답 구조: { payment: { status, paidAt, ... } }
-        const payData   = payRes.data?.payment ?? payRes.data;
-        const payStatus = payData?.status;
-        if (payStatus !== 'PAID') {
-          console.error('[scheduleNextPayment] 결제 실패 — status:', payStatus, JSON.stringify(payRes.data));
+        // PortOne V2 billing-key 응답에 status 필드가 없는 경우가 있으므로
+        // 단건조회(GET)로 실제 결제 상태를 확인 (가장 정확)
+        let verifiedStatus;
+        try {
+          const { data: verifiedPayment } = await axios.get(
+            `${PORTONE_BASE}/payments/${paymentId}`,
+            { headers: { Authorization: `PortOne ${apiSecret()}` } },
+          );
+          verifiedStatus = verifiedPayment.status;
+          console.log('[scheduleNextPayment] 단건조회 status:', verifiedStatus);
+        } catch (verifyErr) {
+          // 단건조회 실패 시 billing-key 응답의 paidAt 존재·failedAt 없음으로 폴백
+          const fallbackData = payRes.data?.payment ?? payRes.data;
+          verifiedStatus = (fallbackData?.paidAt && !fallbackData?.failedAt) ? 'PAID' : 'UNKNOWN';
+          console.warn('[scheduleNextPayment] 단건조회 실패, 폴백 판정:', verifiedStatus, verifyErr.message);
+        }
+
+        if (verifiedStatus !== 'PAID') {
+          console.error('[scheduleNextPayment] 결제 실패 — verifiedStatus:', verifiedStatus, JSON.stringify(payRes.data));
           if (slotCreated) await db.ref(`openPriceSlots/${academyId}`).remove().catch(() => {});
-          return res.status(402).json({ error: '결제 실패', status: payStatus, portoneData: payRes.data });
+          return res.status(402).json({ error: '결제 실패', status: verifiedStatus, portoneData: payRes.data });
         }
 
         // 결제 성공 — paidCount 갱신·다음 달 예약은 portoneWebhook이 자동 처리
@@ -820,9 +834,20 @@ async function chargeAddonPenalty({ academyId, addonKey, penalty, billingKey, se
         },
         { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
       );
-      const payData   = chargeResp.data?.payment ?? chargeResp.data;
-      const payStatus = chargeResp.data?.status ?? payData?.status;
-      const isPaid    = payStatus === 'PAID' || (payData?.paidAt && !payData?.failedAt);
+      // 단건조회로 status 확인 (billing-key 응답에 status가 없을 수 있음)
+      let isPaid = false;
+      try {
+        const { data: verifiedPayment } = await axios.get(
+          `${PORTONE_BASE}/payments/${paymentId}`,
+          { headers: { Authorization: `PortOne ${apiSecret()}` } },
+        );
+        isPaid = verifiedPayment.status === 'PAID';
+      } catch (verifyErr) {
+        const fallbackData = chargeResp.data?.payment ?? chargeResp.data;
+        const fallbackStatus = chargeResp.data?.status ?? fallbackData?.status;
+        isPaid = fallbackStatus === 'PAID' || Boolean(fallbackData?.paidAt && !fallbackData?.failedAt);
+        console.warn('[chargeAddonPenalty] 단건조회 실패, 폴백 판정:', isPaid, verifyErr.message);
+      }
       if (isPaid) {
         charged = true;
         await db.ref(`paymentOrders/${paymentId}`).set({
