@@ -1511,85 +1511,121 @@ exports.migrateToSinglePlan = onCall(
     const academiesSnap = await db.ref('academies').get();
     if (!academiesSnap.exists()) return { targets: [] };
 
+    // 대상 학원 목록 구성 (academy 데이터 포함)
     const targets = [];
     for (const [academyId, academy] of Object.entries(academiesSnap.val())) {
       if (onlyAcademyId && academyId !== onlyAcademyId) continue;
       const billing = academy.billing || {};
       if (!billing.billingKey) continue;
       if (billing.status === 'cancelled') continue;
-      targets.push({ academyId, billing });
+      targets.push({ academyId, billing, academy });
+    }
+
+    // users 전체를 한 번만 로드해서 academyId → {uid, email} 인덱스 구성
+    const allUsersSnap = await db.ref('users').get();
+    const usersByAcademy = {};
+    if (allUsersSnap.exists()) {
+      allUsersSnap.forEach(child => {
+        const u = child.val();
+        if (u.academyId) usersByAcademy[u.academyId] = { uid: child.key, email: u.email || '' };
+      });
     }
 
     if (dryRun) {
       return {
         dryRun: true,
         count:  targets.length,
-        targets: targets.map(t => ({
-          academyId:     t.academyId,
-          currentAmount: t.billing.monthlyAmount,
-          nextPaymentAt: t.billing.nextPaymentAt,
-          billingPlan:   t.billing.plan,
-        })),
+        targets: targets.map(t => {
+          const settings    = t.academy.settings || {};
+          const addons      = t.academy.addons   || {};
+          const activeAddons = Object.entries(addons)
+            .filter(([, a]) => a.status === 'active')
+            .map(([key]) => key);
+          const owner = usersByAcademy[t.academyId] || {};
+          return {
+            academyId:     t.academyId,
+            academyName:   settings.academyName || settings.name || '',
+            ownerEmail:    owner.email || '',
+            currentAmount: t.billing.monthlyAmount,
+            nextPaymentAt: t.billing.nextPaymentAt,
+            billingPlan:   t.billing.plan,
+            activeAddons,
+          };
+        }),
       };
     }
 
-    const results = [];
-    for (const { academyId, billing } of targets) {
+    const results      = [];
+    const migrateOrderName = `FILLYO 정기구독 (월 ₩${PLAN_OPEN_PRICE.toLocaleString()})`;
+
+    for (const { academyId, billing, academy } of targets) {
       const { billingKey } = billing;
       const result = { academyId, steps: [] };
+
+      // ① billingKey 기준으로 PortOne 예약 전체 취소
+      // 409: 이미 취소된 상태 → 계속 진행
+      // 그 외 에러: 이중결제 방지를 위해 즉시 실패 처리하고 ②~⑥ 실행 안 함
       try {
-        // ① billingKey 기준으로 PortOne 예약 전체 취소 (409 무시)
-        try {
-          await axios.delete(`${PORTONE_BASE}/payment-schedules`, {
-            headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
-            data:    { billingKey },
-          });
-          result.steps.push('schedules_cancelled');
-        } catch (e) {
-          if (e.response?.status === 409) {
-            result.steps.push('schedules_already_cancelled');
-          } else {
-            result.steps.push(`schedules_error: ${e.response?.data?.message ?? e.message}`);
-          }
-        }
-
-        // ② 기존 nextPaymentAt(과거면 다음 달 같은 날)에 9,900원으로 재예약
-        let nextPayTime;
-        if (billing.nextPaymentAt && billing.nextPaymentAt > Date.now()) {
-          nextPayTime = new Date(billing.nextPaymentAt);
+        await axios.delete(`${PORTONE_BASE}/payment-schedules`, {
+          headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' },
+          data:    { billingKey },
+        });
+        result.steps.push('schedules_cancelled');
+      } catch (e) {
+        if (e.response?.status === 409) {
+          result.steps.push('schedules_already_cancelled');
         } else {
-          nextPayTime = nextMonthSameDay();
+          const errMsg = e.response?.data?.message ?? e.message;
+          result.success = false;
+          result.error   = `①예약취소실패(이중결제방지) — ${errMsg}`;
+          console.error(`[migrateToSinglePlan] ${academyId} ①실패(이중결제방지):`, errMsg);
+          results.push(result);
+          continue; // ②~⑥ 실행 안 함, 다음 학원으로
         }
-        const nextPaymentId   = `sub_migrate_${Date.now()}_${academyId}`;
-        const migrateOrderName = `FILLYO 정기구독 (월 ₩${PLAN_OPEN_PRICE.toLocaleString()})`;
-        try {
-          await axios.post(
-            `${PORTONE_BASE}/payments/${nextPaymentId}/schedule`,
-            {
-              payment: {
-                billingKey,
-                orderName: migrateOrderName,
-                customer:  { id: academyId },
-                amount:    { total: PLAN_OPEN_PRICE },
-                currency:  'KRW',
-              },
-              timeToPay: nextPayTime.toISOString(),
-            },
-            { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
-          );
-          await db.ref(`paymentOrders/${nextPaymentId}`).set({
-            academyId,
-            amount:    PLAN_OPEN_PRICE,
-            orderName: migrateOrderName,
-            billingKey,
-            scheduledAt: Date.now(),
-            migratedAt:  Date.now(),
-          });
-          result.steps.push(`rescheduled: ${nextPaymentId}`);
-        } catch (e) {
-          result.steps.push(`reschedule_error: ${e.response?.data?.message ?? e.message}`);
-        }
+      }
 
+      // ② 기존 nextPaymentAt(과거면 다음 달 같은 날)에 9,900원으로 재예약
+      // 실패 시: ③~⑥ 실행 안 함 — 결제가 조용히 끊기는 것을 막기 위해 수동 처리 필요
+      const nextPayTime   = (billing.nextPaymentAt && billing.nextPaymentAt > Date.now())
+        ? new Date(billing.nextPaymentAt)
+        : nextMonthSameDay();
+      const nextPaymentId = `sub_migrate_${Date.now()}_${academyId}`;
+
+      try {
+        await axios.post(
+          `${PORTONE_BASE}/payments/${nextPaymentId}/schedule`,
+          {
+            payment: {
+              billingKey,
+              orderName: migrateOrderName,
+              customer:  { id: academyId },
+              amount:    { total: PLAN_OPEN_PRICE },
+              currency:  'KRW',
+            },
+            timeToPay: nextPayTime.toISOString(),
+          },
+          { headers: { Authorization: `PortOne ${apiSecret()}`, 'Content-Type': 'application/json' } },
+        );
+        await db.ref(`paymentOrders/${nextPaymentId}`).set({
+          academyId,
+          amount:     PLAN_OPEN_PRICE,
+          orderName:  migrateOrderName,
+          billingKey,
+          scheduledAt: Date.now(),
+          migratedAt:  Date.now(),
+        });
+        result.steps.push(`rescheduled: ${nextPaymentId}`);
+      } catch (e) {
+        const errMsg = e.response?.data?.message ?? e.message;
+        result.success = false;
+        result.error   = `②재예약실패(수동재예약필요) — 예약이 모두 취소된 상태이므로 수동 재예약 필요: ${errMsg}`;
+        console.error(`[migrateToSinglePlan] ${academyId} ②실패(수동재예약필요):`, errMsg);
+        results.push(result);
+        continue; // ③~⑥ 실행 안 함, 다음 학원으로
+      }
+
+      // ③~⑥: ①②가 모두 성공한 경우에만 실행
+      try {
         // ③ billing 갱신
         await db.ref(`academies/${academyId}/billing`).update({
           plan:                   'all',
@@ -1602,32 +1638,27 @@ exports.migrateToSinglePlan = onCall(
         result.steps.push('billing_updated');
 
         // ④ 활성 애드온 status → 'merged', schedule/payment id null
-        const addonsSnap = await db.ref(`academies/${academyId}/addons`).get();
-        if (addonsSnap.exists()) {
-          for (const [addonKey, addon] of Object.entries(addonsSnap.val())) {
-            if (addon.status === 'active') {
-              await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
-                status:            'merged',
-                mergedAt:          Date.now(),
-                currentPaymentId:  null,
-                currentScheduleId: null,
-              });
-              result.steps.push(`addon_merged: ${addonKey}`);
-            }
+        const addons = academy.addons || {};
+        for (const [addonKey, addon] of Object.entries(addons)) {
+          if (addon.status === 'active') {
+            await db.ref(`academies/${academyId}/addons/${addonKey}`).update({
+              status:            'merged',
+              mergedAt:          Date.now(),
+              currentPaymentId:  null,
+              currentScheduleId: null,
+            });
+            result.steps.push(`addon_merged: ${addonKey}`);
           }
         }
 
         // ⑤ 소유자 users: planExpiry=null, billingCycle='monthly'
-        const usersSnap = await db.ref('users')
-          .orderByChild('academyId').equalTo(academyId).limitToFirst(1).get();
-        if (usersSnap.exists()) {
-          const userId    = Object.keys(usersSnap.val())[0];
-          const userEmail = usersSnap.val()[userId]?.email || '';
-          await db.ref(`users/${userId}`).update({ planExpiry: null, billingCycle: 'monthly' });
-          result.steps.push(`user_updated: ${userId}`);
+        const owner = usersByAcademy[academyId];
+        if (owner) {
+          await db.ref(`users/${owner.uid}`).update({ planExpiry: null, billingCycle: 'monthly' });
+          result.steps.push(`user_updated: ${owner.uid}`);
 
           // ⑥ openPriceSlots 기록 (excluded 이메일은 슬롯 차지 않음)
-          if (!EARLYBIRD_EXCLUDED_EMAILS.has(userEmail)) {
+          if (!EARLYBIRD_EXCLUDED_EMAILS.has(owner.email)) {
             const slotExists = (await db.ref(`openPriceSlots/${academyId}`).get()).exists();
             if (!slotExists) {
               await db.ref(`openPriceSlots/${academyId}`).set({
@@ -1645,8 +1676,8 @@ exports.migrateToSinglePlan = onCall(
         result.success = true;
       } catch (e) {
         result.success = false;
-        result.error   = e.message;
-        console.error(`[migrateToSinglePlan] ${academyId} 실패:`, e.message);
+        result.error   = `③~⑥처리실패: ${e.message}`;
+        console.error(`[migrateToSinglePlan] ${academyId} ③~⑥실패:`, e.message);
       }
       results.push(result);
     }
