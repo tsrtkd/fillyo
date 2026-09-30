@@ -1724,6 +1724,113 @@ exports.migrateToSinglePlan = onCall(
 );
 
 // ──────────────────────────────────────────────────────────────────
+// purgeWithdrawnData
+// 매일 새벽 4시(한국 시각) 탈퇴 후 30일이 지난 데이터를 영구 삭제
+//   - withdrawnAcademies: _withdrawnAt 기준 30일 초과 항목 삭제
+//     (삭제 전 결제 이력 필드를 retainedPaymentRecords/{academyId}에 보존)
+//   - users: planType==='withdrawn' 이고 withdrawnAt 기준 30일 초과 시
+//     users 노드 삭제 + Firebase Auth 계정 삭제
+//   - Storage rtdb-backups/: 30일 초과 백업 파일 삭제
+//   - PROTECTED_ACADEMY_IDS 및 audtls2g@gmail.com은 항상 건너뜀
+//   - PURGE_EXTRA_EXCLUDED_IDS: purge 전용 추가 제외 목록 (실결제 검증 잔여 기록 보존용)
+//   - openPriceSlots·paymentOrders는 삭제하지 않음 (선착순 기록 및 거래 기록 보존)
+// ──────────────────────────────────────────────────────────────────
+
+// purge에서만 추가로 제외할 academyId (실카드 결제 검증 잔여 기록 — 전자상거래법 보존 대상)
+const PURGE_EXTRA_EXCLUDED_IDS = ['ac_mqu804h7zv7m'];
+
+// withdrawnAcademies 삭제 전 보존할 결제 이력 필드 목록 (개인정보 제외)
+const BILLING_RETAIN_FIELDS = [
+  'monthlyAmount', 'lastPaymentAt', 'lastPaymentId', 'lastPaymentAmount',
+  'paymentFailed', 'lastFailedAt', 'lastFailReason',
+];
+
+exports.purgeWithdrawnData = onSchedule(
+  { schedule: '0 4 * * *', timeZone: 'Asia/Seoul', region: 'asia-northeast3' },
+  async () => {
+    const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+    const cutoff = Date.now() - THIRTY_DAYS_MS;
+    const deletedAcademies = [];
+    const deletedUsers     = [];
+    const deletedBackups   = [];
+
+    // 1. withdrawnAcademies 정리
+    const waSnap = await db.ref('/withdrawnAcademies').get();
+    if (waSnap.exists()) {
+      for (const [academyId, val] of Object.entries(waSnap.val())) {
+        if (PROTECTED_ACADEMY_IDS.includes(academyId) || PURGE_EXTRA_EXCLUDED_IDS.includes(academyId)) {
+          console.log(`[purgeWithdrawnData] EXCLUDED skip: ${academyId}`);
+          continue;
+        }
+        const withdrawnAt = val._withdrawnAt;
+        if (withdrawnAt && withdrawnAt < cutoff) {
+          // 삭제 전 결제 이력 필드 보존 (전자상거래법 5년 의무 보관 대비)
+          const billing = val.billing || {};
+          const retainedBilling = {};
+          for (const f of BILLING_RETAIN_FIELDS) {
+            if (billing[f] !== undefined) retainedBilling[f] = billing[f];
+          }
+          if (Object.keys(retainedBilling).length > 0) {
+            await db.ref(`/retainedPaymentRecords/${academyId}`).set({
+              _academyId:   academyId,
+              _retainedAt:  Date.now(),
+              _withdrawnAt: withdrawnAt,
+              billing:      retainedBilling,
+            });
+            console.log(`[purgeWithdrawnData] 결제 이력 보존: ${academyId}`);
+          }
+          await db.ref(`/withdrawnAcademies/${academyId}`).remove();
+          deletedAcademies.push(academyId);
+        }
+      }
+    }
+
+    // 2. users 정리
+    const usersSnap = await db.ref('/users').get();
+    if (usersSnap.exists()) {
+      for (const [uid, val] of Object.entries(usersSnap.val())) {
+        if (val.planType !== 'withdrawn') continue;
+        if (val.email === 'audtls2g@gmail.com') continue;
+        if (PROTECTED_ACADEMY_IDS.includes(val.academyId)) continue;
+        if (PURGE_EXTRA_EXCLUDED_IDS.includes(val.academyId)) continue;
+        const withdrawnAt = val.withdrawnAt;
+        if (withdrawnAt && withdrawnAt < cutoff) {
+          await db.ref(`/users/${uid}`).remove();
+          try {
+            await admin.auth().deleteUser(uid);
+          } catch (e) {
+            console.warn(`[purgeWithdrawnData] Auth 삭제 실패 uid=${uid}:`, e.message);
+          }
+          deletedUsers.push({ uid, email: val.email || '' });
+        }
+      }
+    }
+
+    // 3. rtdb-backups/ 백업 파일 정리
+    try {
+      const bucket  = admin.storage().bucket();
+      const [files] = await bucket.getFiles({ prefix: 'rtdb-backups/' });
+      for (const file of files) {
+        const meta      = await file.getMetadata();
+        const createdAt = new Date(meta[0].timeCreated).getTime();
+        if (createdAt && createdAt < cutoff) {
+          await file.delete();
+          deletedBackups.push(file.name);
+        }
+      }
+    } catch (e) {
+      console.warn('[purgeWithdrawnData] 백업 파일 정리 실패:', e.message);
+    }
+
+    console.log(
+      `[purgeWithdrawnData] 완료 — academies(${deletedAcademies.length}): ${deletedAcademies.join(', ') || '없음'}` +
+      ` / users(${deletedUsers.length}): ${deletedUsers.map(u => u.uid).join(', ') || '없음'}` +
+      ` / backups(${deletedBackups.length}): ${deletedBackups.join(', ') || '없음'}`,
+    );
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
 // dailyRtdbBackup
 // 매일 새벽 3시(한국 시각) 전체 RTDB 스냅샷을 GCS에 저장
 // 저장 경로: gs://{default-bucket}/rtdb-backups/fillyo-YYYY-MM-DD.json
