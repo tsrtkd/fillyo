@@ -1723,6 +1723,8 @@ exports.migrateToSinglePlan = onCall(
   },
 );
 
+const BACKUP_BUCKET = 'fillyo-journal.firebasestorage.app';
+
 // ──────────────────────────────────────────────────────────────────
 // purgeWithdrawnData
 // 매일 새벽 4시(한국 시각) 탈퇴 후 30일이 지난 데이터를 영구 삭제
@@ -1808,7 +1810,7 @@ exports.purgeWithdrawnData = onSchedule(
 
     // 3. rtdb-backups/ 백업 파일 정리
     try {
-      const bucket  = admin.storage().bucket();
+      const bucket  = admin.storage().bucket(BACKUP_BUCKET);
       const [files] = await bucket.getFiles({ prefix: 'rtdb-backups/' });
       for (const file of files) {
         const meta      = await file.getMetadata();
@@ -1833,7 +1835,7 @@ exports.purgeWithdrawnData = onSchedule(
 // ──────────────────────────────────────────────────────────────────
 // dailyRtdbBackup
 // 매일 새벽 3시(한국 시각) 전체 RTDB 스냅샷을 GCS에 저장
-// 저장 경로: gs://{default-bucket}/rtdb-backups/fillyo-YYYY-MM-DD.json
+// 저장 경로: gs://fillyo-journal.firebasestorage.app/rtdb-backups/fillyo-YYYY-MM-DD.json
 // ──────────────────────────────────────────────────────────────────
 exports.dailyRtdbBackup = onSchedule(
   { schedule: '0 3 * * *', timeZone: 'Asia/Seoul', region: 'asia-northeast3' },
@@ -1842,7 +1844,7 @@ exports.dailyRtdbBackup = onSchedule(
     const json     = JSON.stringify(snapshot.val());
     const date     = new Date().toISOString().slice(0, 10);
     const fileName = `rtdb-backups/fillyo-${date}.json`;
-    const bucket   = admin.storage().bucket();
+    const bucket   = admin.storage().bucket(BACKUP_BUCKET);
     await bucket.file(fileName).save(json, { contentType: 'application/json' });
     console.log(`[dailyRtdbBackup] 완료: ${fileName} (${(json.length / 1024).toFixed(1)} KB)`);
   },
