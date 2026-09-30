@@ -260,7 +260,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       <div class="stat c-orange">
         <div class="stat-label">무료 회원</div>
         <div class="stat-value" id="statFree">—</div>
-        <div class="stat-sub">무료 플랜</div>
+        <div class="stat-sub">체험·미결제</div>
       </div>
     </div>
 
@@ -284,7 +284,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       <div class="stat c-orange">
         <div class="stat-label">무료</div>
         <div class="stat-value" id="dstatFree">—</div>
-        <div class="stat-sub">무료 플랜</div>
+        <div class="stat-sub">체험·미결제</div>
       </div>
     </div>
 
@@ -512,8 +512,8 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       <label>구독 만료일</label>
       <input type="date" id="expiryInput">
     </div>
-    <div class="addon-field" id="addonField">
-      <span class="addon-field-label">애드온 선택</span>
+    <div class="addon-field" id="addonField" style="display:none;">
+      <span class="addon-field-label">애드온 선택 (구버전)</span>
       <div class="addon-opts">
         <label class="addon-opt" id="addonOptReport">
           <input type="checkbox" id="addonReport"> AI성장리포트 (구버전)
@@ -1287,13 +1287,17 @@ window.loadCustomRequests = async () => {
             <th>도장명</th><th>요청 내용</th><th>요청 시각</th><th>처리</th>
           </tr></thead>
           <tbody>
-            ${pending.map(item => `<tr>
+            ${pending.map(item => {
+              const typeLabel = item.type === 'suggestion' ? '💡 기능 제안' : '🔧 전용 수정';
+              const typeBg    = item.type === 'suggestion' ? '#f0fdf8' : '#fff3e0';
+              const typeColor = item.type === 'suggestion' ? '#0B7B6B' : '#E65100';
+              return `<tr>
               <td class="td-academy">${esc(item.acadName)}</td>
-              <td style="font-size:12px;white-space:pre-wrap;max-width:240px;word-break:break-all;">${esc(item.content || '—')}</td>
+              <td style="font-size:12px;white-space:pre-wrap;max-width:240px;word-break:break-all;"><span style="font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px;background:${typeBg};color:${typeColor};margin-right:6px;">${typeLabel}</span>${esc(item.content || '—')}</td>
               <td class="td-date">${fmt(item.createdAt)}</td>
               <td><button class="btn-ok" style="padding:6px 14px;font-size:12px;"
                 onclick="markCustomReqDone('${esc(item.acadId)}','${esc(item.reqId)}',this)">처리 완료</button></td>
-            </tr>`).join('')}
+            </tr>`;}).join('')}
           </tbody>
         </table>
       </div>`;
@@ -1318,12 +1322,7 @@ window.markCustomReqDone = async (acadId, reqId, btn) => {
 // ── 구독 구성 텍스트 ──────────────────────────────────────────────
 function buildSubText(a) {
   if (a.planType !== 'pro') return '—';
-  let base = '업무일지';
-  if (a.billingCycle === 'early')  base = '업무일지(얼리버드)';
-  else if (a.billingCycle === 'yearly') base = '업무일지(1년약정)';
-  const parts = [base];
-  if (a.addons?.report?.status === 'active') parts.push('AI성장리포트');
-  return parts.join(' + ');
+  return 'FILLYO 전체 이용';
 }
 
 function buildAmtText(a) {

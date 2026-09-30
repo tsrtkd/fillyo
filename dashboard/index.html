@@ -493,7 +493,7 @@
           <div class="status"></div>
           <div class="emoji">🏆</div>
           <h3>승급심사</h3>
-          <p>심사 · 급수증</p>
+          <p>심사 · 결과카드</p>
         </div>
         <div class="card teal" id="cardReport">
           <div class="status">이용중</div>
@@ -514,7 +514,7 @@
           <p>동작분석 · 영상촬영</p>
         </div>
         <div class="card olive" id="cardPolicy">
-          <div class="status">무료</div>
+          <div class="status">이용중</div>
           <div class="emoji">📋</div>
           <h3>지원정책</h3>
           <p>소상공인 · 정부지원금</p>
@@ -543,10 +543,10 @@
 
         <div class="quick-item" onclick="document.getElementById('customRequestModal').style.display='flex'">
           <div class="quick-left">
-            <div class="quick-icon bg-blue">✏️</div>
+            <div class="quick-icon bg-blue">💡</div>
             <div class="quick-text">
-              <h4>맞춤 수정 요청</h4>
-              <p>우리 도장 맞춤 변경 · 견적 안내</p>
+              <h4>기능 제안 · 맞춤 요청</h4>
+              <p>새 기능 제안(무료) · 전용 수정 견적</p>
             </div>
           </div>
           <div class="arrow">›</div>
@@ -727,7 +727,7 @@ onAuthStateChanged(auth, async (user) => {
       const diff = Math.ceil((planExpiry - Date.now()) / 86400000);
       if (diff > 0 && diff <= 1825) {          // 1일 ~ 5년 이내만 정상
         numEl.textContent   = `D-${diff}`;
-        labelEl.textContent = '구독 만료까지';
+        labelEl.textContent = '해지 예정 · 이용 종료까지';
       } else {
         numEl.textContent    = '만료';
         labelEl.textContent  = '구독을 갱신해주세요';
@@ -992,8 +992,15 @@ function xss(s) {
 }
 
 // ── 맞춤 수정 요청 접수 ──────────────────────────────────────────
+window.updateCrmType = () => {
+  const isSuggestion = document.querySelector('input[name="crmType"]:checked')?.value === 'suggestion';
+  document.getElementById('crmTypeSuggestionLabel').style.borderColor = isSuggestion ? '#0B7B6B' : '#DDE4EE';
+  document.getElementById('crmTypeCustomLabel').style.borderColor = isSuggestion ? '#DDE4EE' : '#0B7B6B';
+};
+
 window.submitCustomRequest = async () => {
   const text = document.getElementById('customReqText').value.trim();
+  const type = document.querySelector('input[name="crmType"]:checked')?.value || 'suggestion';
   const btn  = document.getElementById('btnCustomReqSubmit');
   btn.disabled = true;
   btn.textContent = '저장 중...';
@@ -1001,6 +1008,7 @@ window.submitCustomRequest = async () => {
     if (_academyId && text) {
       await push(ref(db, `academies/${_academyId}/customRequests`), {
         content:   text,
+        type,
         academyId: _academyId,
         createdAt: Date.now(),
         status:    'pending',
@@ -1074,10 +1082,21 @@ loadPolicyBanner();
 <div id="customRequestModal" onclick="if(event.target===this)this.style.display='none'">
   <div class="crm-box">
     <div class="crm-head">
-      <span class="crm-title">✏️ 업무일지 맞춤 수정 요청</span>
+      <span class="crm-title">💡 기능 제안 · 맞춤 요청</span>
       <button class="crm-close" onclick="document.getElementById('customRequestModal').style.display='none'">✕</button>
     </div>
-    <p class="crm-desc">우리 도장에 맞게 업무일지를 수정해드립니다.</p>
+
+    <!-- 💡 기능 제안 (무료) -->
+    <div style="background:#f0fdf8;border:1.5px solid #0B7B6B;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:900;color:#0B7B6B;margin-bottom:4px;">💡 기능 제안 (무료)</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;">현장에서 필요한 기능을 제안해주시면 검토 후, 여러 도장에 도움이 되는 기능은 업데이트로 추가됩니다. 추가 비용은 없습니다.</div>
+    </div>
+
+    <!-- 🔧 전용 수정 (유료) -->
+    <div style="background:#fff7ed;border:1.5px solid #c2770a;border-radius:14px;padding:14px 16px;margin-bottom:14px;">
+      <div style="font-size:13px;font-weight:900;color:#c2770a;margin-bottom:4px;">🔧 우리 도장 전용 수정 (유료)</div>
+      <div style="font-size:12px;color:#555;line-height:1.6;">우리 도장에만 적용되는 전용 변경은 아래 기준으로 견적을 안내해드립니다.</div>
+    </div>
     <div class="crm-cards">
       <div class="crm-card">
         <div class="crm-tier">스탠다드</div>
@@ -1096,8 +1115,22 @@ loadPolicyBanner();
         <div class="crm-note">규모에 따라 견적 안내</div>
       </div>
     </div>
-    <label class="crm-req-label" for="customReqText">수정 요청 내용</label>
-    <textarea id="customReqText" class="crm-textarea" placeholder="어떤 부분을 수정하고 싶으신지 적어주세요.&#10;예) 출석부에 수영모자 대여 항목을 추가하고 싶습니다."></textarea>
+
+    <!-- 요청 종류 선택 -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:700;color:#546E7A;margin-bottom:6px;">요청 종류</div>
+      <div style="display:flex;gap:8px;">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;border:1.5px solid #DDE4EE;border-radius:9px;padding:9px 12px;cursor:pointer;transition:border-color .15s;font-size:13px;font-weight:600;color:#1A2332;" id="crmTypeSuggestionLabel">
+          <input type="radio" name="crmType" value="suggestion" checked onchange="updateCrmType()" style="accent-color:#0B7B6B;"> 💡 기능 제안
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;border:1.5px solid #DDE4EE;border-radius:9px;padding:9px 12px;cursor:pointer;transition:border-color .15s;font-size:13px;font-weight:600;color:#1A2332;" id="crmTypeCustomLabel">
+          <input type="radio" name="crmType" value="custom" onchange="updateCrmType()" style="accent-color:#0B7B6B;"> 🔧 전용 수정
+        </label>
+      </div>
+    </div>
+
+    <label class="crm-req-label" for="customReqText">요청 내용</label>
+    <textarea id="customReqText" class="crm-textarea" placeholder="어떤 기능이 필요하신지 적어주세요.&#10;예) 승급심사 결과를 학부모에게 바로 보낼 수 있으면 좋겠어요."></textarea>
     <button id="btnCustomReqSubmit" class="crm-kakao" onclick="submitCustomRequest()">카카오로 요청하기 💬</button>
   </div>
 </div>
