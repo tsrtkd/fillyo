@@ -455,14 +455,34 @@ function renderSubBox(userData) {
       <div class="sub-free-desc" style="margin-top:6px">구독이 취소되어 만료일까지 이용 가능합니다.</div>
     `;
   } else {
-    el.innerHTML = `
-      <div class="sub-row">
-        <span class="sub-plan-name">무료 플랜</span>
-        <span class="sub-badge free">무료</span>
-      </div>
-      <div class="sub-free-desc">현재 3개월 무료체험 중입니다.<br>업무일지·줄넘기·승급심사·AI성장리포트를 모두 이용해보세요.</div>
-      <button onclick="location.href='/pricing/'" style="margin-top:14px;width:100%;background:#0B7B6B;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 12px rgba(11,123,107,0.35);transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">💳 구독 시작하기</button>
-    `;
+    const trialStart   = userData.trialStart || null;
+    const rawDaysUsed  = trialStart ? Math.max(0, Math.floor((Date.now() - trialStart) / 86400000)) : 0;
+    const trialDaysLeft = Math.min(90, Math.max(0, 90 - rawDaysUsed));
+    const inTrial      = trialStart !== null && trialDaysLeft > 0;
+
+    if (inTrial) {
+      el.innerHTML = `
+        <div class="sub-row">
+          <span class="sub-plan-name">3개월 무료체험</span>
+          <span class="sub-badge free">체험 중</span>
+        </div>
+        <div class="sub-expiry" style="margin-top:10px;">
+          <span class="sub-expiry-date">체험 종료까지</span>
+          <span class="sub-dday">D-${trialDaysLeft}</span>
+        </div>
+        <div class="sub-free-desc" style="margin-top:8px;">업무일지·줄넘기·승급심사·AI성장리포트를 모두 이용해보세요.</div>
+        <button onclick="location.href='/pricing/'" style="margin-top:14px;width:100%;background:#0B7B6B;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 12px rgba(11,123,107,0.35);transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">💳 구독 시작하기</button>
+      `;
+    } else {
+      el.innerHTML = `
+        <div class="sub-row">
+          <span class="sub-plan-name">무료체험 종료</span>
+          <span class="sub-badge free">미구독</span>
+        </div>
+        <div class="sub-free-desc" style="margin-top:10px;">구독하면 저장된 기록 그대로 바로 이어서 사용할 수 있습니다.</div>
+        <button onclick="location.href='/pricing/'" style="margin-top:14px;width:100%;background:#0B7B6B;color:white;border:none;border-radius:8px;padding:12px;font-size:14px;font-weight:700;font-family:inherit;cursor:pointer;letter-spacing:.2px;box-shadow:0 4px 12px rgba(11,123,107,0.35);transition:opacity .15s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">💳 구독 시작하기</button>
+      `;
+    }
   }
 }
 
