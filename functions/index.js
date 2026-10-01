@@ -1842,10 +1842,11 @@ exports.dailyRtdbBackup = onSchedule(
   async () => {
     const snapshot = await db.ref('/').get();
     const json     = JSON.stringify(snapshot.val());
-    const date     = new Date().toISOString().slice(0, 10);
+    const date     = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
     const fileName = `rtdb-backups/fillyo-${date}.json`;
     const bucket   = admin.storage().bucket(BACKUP_BUCKET);
     await bucket.file(fileName).save(json, { contentType: 'application/json' });
-    console.log(`[dailyRtdbBackup] 완료: ${fileName} (${(json.length / 1024).toFixed(1)} KB)`);
+    const bytes    = Buffer.byteLength(json, 'utf8');
+    console.log(`[dailyRtdbBackup] 완료: ${fileName} (${(bytes / 1024).toFixed(1)} KB)`);
   },
 );
