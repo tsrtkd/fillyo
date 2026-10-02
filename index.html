@@ -390,6 +390,32 @@
     .ref-box{grid-template-columns:1fr;text-align:center;}
     .ref-badge{margin:0 auto;}
   }
+
+  /* ── 히어로 시범 개선 (design/landing-hero-trial) ── */
+  .blob{display:none;}
+  .hero::before{
+    content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse 55% 50% at 105% 0%,rgba(0,194,176,0.10) 0%,transparent 62%),
+      radial-gradient(ellipse 30% 35% at -5% 100%,rgba(255,77,109,0.06) 0%,transparent 55%);
+  }
+  .hero h1{word-break:keep-all;}
+  .hero p.lead{word-break:keep-all;}
+  .hero h1 em{
+    background:none;-webkit-background-clip:initial;background-clip:initial;
+    -webkit-text-fill-color:var(--mint-deep);color:var(--mint-deep);
+  }
+  .hero .eyebrow{border-radius:10px;letter-spacing:0.01em;}
+  .hero .btn-primary{box-shadow:0 6px 18px -4px rgba(255,77,109,0.28);}
+  .hero .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px -4px rgba(255,77,109,0.34);}
+  .hero .btn-ghost{border-color:rgba(23,25,35,0.14);}
+  .hero .growth-card{border-top:2.5px solid var(--mint);border-radius:20px;}
+  .hero .growth-card .cap{
+    letter-spacing:0.06em;text-transform:uppercase;color:var(--mint-deep);
+  }
+  .hero .pipe-row:hover{background:#fff;transform:none;box-shadow:var(--shadow-sm);}
+  @media(max-width:860px){.hero .growth-card{border-radius:16px;}}
+  @media(prefers-reduced-motion:reduce){.hero::before{display:none;}}
 </style>
 </head>
 <body>
