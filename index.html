@@ -70,37 +70,37 @@
     .nav-guide{font-size:13px;}
   }
 
-  /* ── 히어로 ── */
-  .hero{padding:88px 0 60px;position:relative;overflow:hidden;}
-  .blob{
-    position:absolute;border-radius:50%;filter:blur(60px);opacity:0.5;z-index:0;
-  }
-  .blob1{width:420px;height:420px;background:var(--mint-bg);top:-140px;right:-100px;}
-  .blob2{width:280px;height:280px;background:var(--coral-bg);bottom:-80px;left:-60px;opacity:0.6;}
-  .hero-grid{display:grid;grid-template-columns:1.05fr 0.95fr;gap:56px;align-items:center;position:relative;z-index:1;}
+  /* ── 히어로 v2 ── */
+  .hero{padding:56px 0 64px}
+  .hx-grid{display:grid;grid-template-columns:1fr 1fr;gap:36px;align-items:center}
   .eyebrow{
     display:inline-flex;align-items:center;gap:8px;
     font-size:13px;font-weight:800;letter-spacing:0.02em;
     color:var(--mint-deep);background:var(--mint-bg);
     padding:8px 16px;border-radius:100px;margin-bottom:24px;
   }
+  .hero .eyebrow{background:var(--mint-bg);color:var(--ink);border-radius:8px;letter-spacing:0.01em;}
   .hero h1{
-    font-weight:900;
-    font-size:50px;
-    line-height:1.32;
-    letter-spacing:-0.025em;
-    margin-bottom:22px;
+    font-weight:800;font-size:52px;line-height:1.18;
+    letter-spacing:-0.035em;word-break:keep-all;margin-bottom:18px;
   }
   .hero h1 em{
-    font-style:normal;
-    background:linear-gradient(90deg, var(--primary), var(--mint));
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+    font-style:normal;color:var(--mint-deep);
+    background:none;-webkit-background-clip:initial;background-clip:initial;
+    -webkit-text-fill-color:var(--mint-deep);
   }
   .hero p.lead{
     font-size:17px;color:var(--ink-soft);
-    line-height:1.75;margin-bottom:36px;max-width:460px;
+    line-height:1.75;margin-bottom:28px;max-width:460px;word-break:keep-all;
   }
-  .cta-row{display:flex;gap:12px;flex-wrap:wrap;}
+  .hx-points{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 28px}
+  .hx-pt{
+    display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:700;
+    color:var(--ink);background:var(--paper-2);border:1px solid var(--line);
+    padding:8px 13px;border-radius:100px;
+  }
+  .hx-pt svg{color:var(--mint-deep)}
+  .hx-btns{display:flex;gap:10px;flex-wrap:wrap}
   .btn-primary{
     background:var(--coral);color:#fff;
     padding:17px 32px;border-radius:100px;
@@ -118,33 +118,10 @@
     transition:transform .2s,box-shadow .2s;
   }
   .btn-ghost:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
-
-  /* ── 성장 곡선 카드 (시그니처) ── */
-  .growth-card{
-    background:#fff;
-    border:1px solid var(--line);
-    border-radius:28px;
-    padding:30px 30px 22px;
-    box-shadow:var(--shadow-md);
-  }
-  .growth-card .cap{font-size:13px;font-weight:800;color:var(--ink-soft);margin-bottom:18px;}
-  .pipe-list{display:flex;flex-direction:column;gap:10px;}
-  .pipe-row{
-    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;
-    background:var(--paper-2);border:1px solid var(--line);border-left:4px solid;
-    border-radius:14px;padding:14px 16px;
-    transition:transform .18s,box-shadow .18s,background .18s;
-  }
-  .pipe-row:hover{background:#fff;transform:translateX(4px);box-shadow:var(--shadow-sm);}
-  .pipe-icon{
-    width:36px;height:36px;border-radius:10px;flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;
-  }
-  .pipe-text .t{font-size:15px;font-weight:800;color:var(--ink);margin-bottom:2px;}
-  .pipe-text .s{font-size:12.5px;color:var(--ink-soft);}
-  .pipe-tag{
-    font-size:11.5px;font-weight:800;padding:6px 12px;border-radius:100px;white-space:nowrap;
-  }
+  .hero .btn-primary{box-shadow:0 6px 18px -4px rgba(255,77,109,.28)}
+  .hero .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px -4px rgba(255,77,109,.34)}
+  .hero .btn-ghost{border-color:rgba(23,25,35,.14)}
+  .hx-right{display:flex;gap:18px;align-items:center;justify-content:flex-end}
 
   section{padding:100px 0;}
   .section-head{max-width:600px;margin-bottom:52px;}
@@ -382,8 +359,6 @@
   @media(max-width:600px){.c-row{grid-template-columns:1fr;}}
 
   @media(max-width:860px){
-    .hero-grid{grid-template-columns:1fr;}
-    .hero h1{font-size:34px;}
     .feat-grid,.price-grid{grid-template-columns:1fr;}
     .flow-row{flex-direction:column;}
     .flow-arrow{transform:rotate(90deg);width:100%;height:36px;}
@@ -391,124 +366,83 @@
     .ref-badge{margin:0 auto;}
   }
 
-  /* ── 히어로 3차 다듬기 ── */
-  .blob{display:none;}
-  .hero{overflow:visible;}
-  .hero-grid{align-items:start;}
-  .hero h1{
-    word-break:keep-all;font-size:60px;line-height:1.18;
-    letter-spacing:-0.035em;margin-bottom:20px;
-  }
-  /* 제목 2번째 줄 — 한 줄로 묶기 */
-  .h1-nowrap{white-space:nowrap;}
-  .hero p.lead{word-break:keep-all;}
-  .hero h1 em{
-    background:none;-webkit-background-clip:initial;background-clip:initial;
-    -webkit-text-fill-color:var(--mint-deep);color:var(--mint-deep);
-  }
-  .hero .eyebrow{background:var(--mint-bg);color:var(--ink);border-radius:8px;letter-spacing:0.01em;}
-  .hero .btn-primary{box-shadow:0 6px 18px -4px rgba(255,77,109,0.28);}
-  .hero .btn-primary:hover{transform:translateY(-2px);box-shadow:0 10px 22px -4px rgba(255,77,109,0.34);}
-  .hero .btn-ghost{border-color:rgba(23,25,35,0.14);}
+  /* ── hx-phone: 업무일지 목업 ── */
+  .hx-phone{width:264px;background:#16191F;border-radius:42px;padding:10px;
+    box-shadow:0 30px 60px rgba(23,25,35,.20),0 4px 12px rgba(23,25,35,.08);flex-shrink:0}
+  .hx-notch{width:60px;height:5px;background:#2C2F36;border-radius:9px;margin:0 auto 7px}
+  .hx-screen{background:#F2F5F8;border-radius:32px;overflow:hidden}
+  .hx-s-bar{background:#0B1F3A;display:flex;justify-content:space-between;
+    padding:6px 16px;font-size:9px;font-weight:700;color:rgba(255,255,255,.6)}
+  .hx-s-hdr{background:#0B1F3A;padding:4px 14px 12px;display:flex;align-items:center;gap:8px}
+  .hx-s-logo{background:var(--mint-deep);color:#fff;font-size:7.5px;font-weight:900;
+    line-height:1.15;padding:3px 5px;border-radius:6px;text-align:center}
+  .hx-s-ttl{color:#fff;font-size:12px;font-weight:800}
+  .hx-s-dt{color:rgba(255,255,255,.55);font-size:9px}
+  .hx-s-share{margin-left:auto;display:flex;align-items:center;gap:4px;
+    background:rgba(0,194,176,.18);color:#7FF0E3;font-size:8.5px;font-weight:700;
+    padding:3px 7px;border-radius:20px}
+  .hx-s-body{padding:8px;display:flex;flex-direction:column;gap:6px}
+  .hx-card{background:#fff;border-radius:11px;box-shadow:0 1px 4px rgba(11,31,58,.06);overflow:hidden}
+  .hx-c-hd{display:flex;align-items:center;gap:5px;font-size:9.5px;font-weight:800;
+    padding:6px 10px 4px;color:var(--ink)}
+  .hx-c-hd svg{color:var(--mint-deep)}
+  .hx-c-hd .hx-tag{margin-left:auto;font-size:8.5px;font-weight:700;color:var(--ink-faint)}
+  .hx-c-li{font-size:10px;color:#3A4452;padding:3px 10px 3px 22px;position:relative;line-height:1.45}
+  .hx-c-li::before{content:'';position:absolute;left:12px;top:9px;
+    width:4px;height:4px;border-radius:50%;background:var(--mint)}
+  .hx-card .hx-c-li:last-child{padding-bottom:8px}
+  .hx-todo{display:flex;align-items:center;gap:7px;font-size:10px;color:#3A4452;padding:3.5px 10px}
+  .hx-todo:last-child{padding-bottom:8px}
+  .hx-box{width:13px;height:13px;border-radius:4px;border:1.5px solid #C9D1DA;
+    flex-shrink:0;display:flex;align-items:center;justify-content:center}
+  .hx-box.hx-on{background:var(--mint-deep);border-color:var(--mint-deep)}
+  .hx-todo.hx-done span{color:var(--ink-faint);text-decoration:line-through}
+  .hx-who{margin-left:auto;font-size:8.5px;color:var(--ink-faint);font-weight:700}
+  .hx-note{font-size:10px;color:#3A4452;padding:0 10px 8px;line-height:1.5}
+  .hx-note b{color:var(--ink)}
+  .hx-s-foot{display:flex;justify-content:space-between;
+    font-size:8.5px;font-weight:700;color:var(--mint-deep);padding:2px 12px 12px}
+  .hx-s-foot span:first-child{color:var(--ink-faint)}
 
-  /* ── 휴대폰 목업 ── */
-  .hero-phone-wrap{
-    position:relative;display:flex;justify-content:center;
-    padding-bottom:100px;
-  }
-  .phone-frame{
-    width:256px;flex-shrink:0;background:#16191F;border-radius:40px;padding:10px;
-    box-shadow:0 28px 56px rgba(23,25,35,0.22),0 4px 12px rgba(23,25,35,0.10),
-               inset 0 0 0 1px rgba(255,255,255,0.06);
-  }
-  .phone-notch{width:60px;height:5px;background:#2C2F36;border-radius:10px;margin:0 auto 7px;}
-  .phone-screen{
-    background:#EEF2F8;border-radius:30px;overflow:hidden;
-    display:flex;flex-direction:column;height:410px;
-  }
-  .ps-bar{
-    background:#0B1F3A;display:flex;justify-content:space-between;
-    padding:5px 14px;font-size:9px;font-weight:700;color:rgba(255,255,255,0.65);
-  }
-  .ps-hdr{
-    background:#0B1F3A;display:flex;align-items:center;gap:8px;padding:6px 12px 10px;
-  }
-  .ps-logo-box{
-    background:#0B7B6B;border-radius:6px;padding:3px 5px;
-    font-size:7px;font-weight:900;color:white;line-height:1.2;text-align:center;flex-shrink:0;
-  }
-  .ps-hdr-mid{flex:1;}
-  .ps-hdr-ttl{color:white;font-size:11px;font-weight:900;}
-  .ps-hdr-dt{color:rgba(255,255,255,0.55);font-size:9px;}
-  .ps-hdr-ico{color:rgba(255,255,255,0.45);display:flex;align-items:center;}
-  .ps-body{flex:1;padding:7px;display:flex;flex-direction:column;gap:5px;overflow:hidden;}
-  .ps-card{
-    background:white;border-radius:10px;overflow:hidden;
-    box-shadow:0 1px 5px rgba(11,31,58,0.08);
-  }
-  .ps-card-hd{
-    background:#0A7C6E;color:white;font-size:9px;font-weight:700;padding:5px 10px;
-    display:flex;align-items:center;gap:5px;
-  }
-  .ps-card-hd-slate{background:#566575;}
-  .ps-card-hd-dark{background:#3D4D5C;}
-  .ps-att-row{
-    display:flex;align-items:center;gap:7px;padding:5px 10px;
-    border-bottom:1px solid #EEF2F8;
-  }
-  .ps-dot{
-    width:16px;height:16px;border-radius:50%;
-    display:flex;align-items:center;justify-content:center;
-    font-size:8px;font-weight:900;flex-shrink:0;
-  }
-  .ps-dot-ok{background:#0A7C6E;color:white;}
-  .ps-dot-ab{background:#FFEBEE;color:#C62828;}
-  .ps-nm{flex:1;font-size:11px;font-weight:700;color:#1A2332;}
-  .ps-chip{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;}
-  .ps-chip-ok{background:#E4F5F3;color:#0A7C6E;}
-  .ps-chip-ab{background:#FFEBEE;color:#C62828;}
-  .ps-note{font-size:9.5px;color:#4A5A6A;line-height:1.5;padding:7px 10px;}
-  .ps-autosave{
-    font-size:9px;color:#0A7C6E;font-weight:700;
-    text-align:right;padding:2px 10px 6px;
-  }
-  .ps-lesson-row{
-    display:flex;align-items:center;gap:6px;
-    font-size:9.5px;color:#1A2332;padding:5px 10px;
-    border-bottom:1px solid #EEF2F8;
-  }
-  .ps-lesson-row:last-child{border-bottom:none;}
-  .ps-lesson-dot{
-    width:5px;height:5px;border-radius:50%;background:#0A7C6E;flex-shrink:0;
-  }
+  /* ── hx-pipe: 파이프라인 카드 ── */
+  .hx-pipe{width:250px;background:#fff;border:1px solid var(--line);border-radius:20px;
+    padding:16px;box-shadow:0 14px 34px rgba(23,25,35,.07)}
+  .hx-pcap{font-size:11px;font-weight:800;color:var(--mint-deep);letter-spacing:.04em;margin-bottom:10px}
+  .hx-st{display:flex;align-items:center;gap:9px;padding:10px;border-radius:12px;position:relative}
+  .hx-st+.hx-st{margin-top:6px}
+  .hx-st+.hx-st::before{content:'';position:absolute;left:19px;top:-8px;
+    width:2px;height:10px;background:var(--line)}
+  .hx-st.hx-on{background:var(--mint-bg)}
+  .hx-sn{display:none}
+  .hx-si{width:30px;height:30px;border-radius:9px;background:var(--paper-2);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .hx-st.hx-on .hx-si{background:var(--mint-deep);color:#fff}
+  .hx-stt{font-size:13.5px;font-weight:800}
+  .hx-sts{font-size:11px;color:var(--ink-soft);line-height:1.4;word-break:keep-all}
+  .hx-stag{margin-left:auto;font-size:10.5px;font-weight:800;color:var(--ink-soft);
+    background:var(--paper-2);padding:3px 8px;border-radius:20px;flex-shrink:0}
+  .hx-st.hx-on .hx-stag{background:#fff;color:var(--mint-deep)}
+  .hx-more{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line);
+    font-size:11.5px;color:var(--ink-soft);display:flex;gap:6px;flex-wrap:wrap}
+  .hx-more span{background:var(--paper-2);padding:3px 8px;border-radius:20px;font-weight:700}
 
-  /* 떠있는 AI 성장리포트 카드 — 휴대폰 왼쪽 아래, 폰과 30px 겹침 */
-  .phone-ai-card{
-    position:absolute;left:20px;bottom:50px;width:174px;background:white;
-    border:1.5px solid var(--mint-bg);border-radius:16px;padding:12px 14px;
-    box-shadow:0 8px 24px rgba(23,25,35,0.13);
+  /* ── 히어로 v2 반응형 ── */
+  @media(max-width:1000px){.hx-right{flex-direction:column;align-items:center}}
+  @media(max-width:760px){
+    .hero{padding:36px 0}
+    .hero > .wrap{padding:0 20px}
+    .hx-grid{grid-template-columns:1fr}
+    .hero h1{font-size:38px;line-height:1.22}
+    .hx-pt{font-size:13px;padding:7px 11px}
+    .hero .btn-primary{padding:14px 22px;font-size:15px}
+    .hero .btn-ghost{padding:13px 20px;font-size:15px}
+    .hx-pipe{width:100%;max-width:340px}
   }
-  .pac-label{
-    display:flex;align-items:center;gap:4px;
-    font-size:9px;font-weight:800;color:var(--mint-deep);
-    letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;
-  }
-  .pac-nm{font-size:13px;font-weight:900;color:var(--ink);margin-bottom:4px;}
-  .pac-txt{font-size:10.5px;color:var(--ink-soft);line-height:1.55;}
-
-  @media(max-width:860px){
-    .hero h1{font-size:38px;line-height:1.22;}
-    .h1-nowrap{white-space:normal;}
-    .hero-phone-wrap{flex-direction:column;align-items:center;padding-bottom:0;}
-    .phone-frame{width:min(256px,82vw);}
-    .phone-screen{height:390px;}
-    .phone-ai-card{
-      position:relative;left:auto;bottom:auto;
-      margin-top:12px;width:min(256px,82vw);
-    }
+  @media(max-width:480px){
+    .hero h1{font-size:32px}
   }
   @media(prefers-reduced-motion:reduce){
-    .hero .btn-primary:hover,.hero .btn-ghost:hover{transform:none;}
+    .hero .btn-primary:hover,.hero .btn-ghost:hover{transform:none}
   }
 </style>
 </head>
@@ -525,88 +459,82 @@
 </header>
 
 <section class="hero">
-  <div class="blob blob1"></div>
-  <div class="blob blob2"></div>
-  <div class="wrap hero-grid">
+  <div class="wrap hx-grid">
     <div>
-      <div class="eyebrow">예체능 학원 · 체육도장을 위한 기록 서비스</div>
-      <h1>오늘의 기록이,<br><span class="h1-nowrap"><em>아이의 성장</em>이 됩니다.</span></h1>
-      <p class="lead">오늘 수업 기록은 FILLYO가 합니다. 그 기록들이 모여 아이의 성장리포트가 완성되고, 학부모의 신뢰가 쌓입니다.</p>
-      <div class="cta-row">
+      <div class="eyebrow">태권도장 · 체육도장을 위한 업무일지</div>
+      <h1>오늘의 기록이<br><em style="white-space:nowrap">아이의 성장</em>이 되고,<br>도장의 신뢰가 됩니다.</h1>
+      <p class="lead">회의·교육·할 일·특이사항까지, 도장의 하루를 한 장에 남기세요. 관장님이 자리에 없어도 모두가 같은 내용을 봅니다.</p>
+      <div class="hx-points">
+        <span class="hx-pt"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 종이 일지는 이제 그만</span>
+        <span class="hx-pt"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 어디서든 휴대폰으로 공유</span>
+        <span class="hx-pt"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg> 스마트한 도장 운영</span>
+      </div>
+      <div class="hx-btns">
         <a href="/login/" class="btn-primary">무료로 시작하기</a>
         <a href="#ref" class="btn-ghost">실사용 도장 보기</a>
       </div>
     </div>
-    <div class="hero-phone-wrap">
-      <!-- 휴대폰 프레임 — app/index.html 업무일지 화면 참고 -->
-      <div class="phone-frame">
-        <div class="phone-notch"></div>
-        <div class="phone-screen">
-          <div class="ps-bar"><span>10:42</span><span>●●●</span></div>
-          <div class="ps-hdr">
-            <div class="ps-logo-box">FILL<br>YO</div>
-            <div class="ps-hdr-mid">
-              <div class="ps-hdr-ttl">업무일지</div>
-              <div class="ps-hdr-dt">10월 2일</div>
+    <div class="hx-right">
+      <div class="hx-phone">
+        <div class="hx-notch"></div>
+        <div class="hx-screen">
+          <div class="hx-s-bar"><span>8:52</span><span>●●●</span></div>
+          <div class="hx-s-hdr">
+            <div class="hx-s-logo">FILL<br>YO</div>
+            <div><div class="hx-s-ttl">업무일지</div><div class="hx-s-dt">10월 2일 · 오늘</div></div>
+            <div class="hx-s-share"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg> 사범 3명 확인</div>
+          </div>
+          <div class="hx-s-body">
+            <div class="hx-card">
+              <div class="hx-c-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> 오늘 회의 내용</div>
+              <div class="hx-c-li">다음 주 승급심사 대상자 확정</div>
+              <div class="hx-c-li">토요일 시범단 연습 4시로 변경</div>
             </div>
-            <div class="ps-hdr-ico">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <div class="hx-card">
+              <div class="hx-c-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/></svg> 교육 내용</div>
+              <div class="hx-c-li">유치부 앞차기 · 고학년 품새 태극 4장</div>
+            </div>
+            <div class="hx-card">
+              <div class="hx-c-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1 1 2-2M3 12l1 1 2-2M3 18l1 1 2-2"/></svg> 오늘 할 일 <span class="hx-tag">2/3</span></div>
+              <div class="hx-todo hx-done"><div class="hx-box hx-on"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><span>차량 운행표 확인</span><span class="hx-who">김사범</span></div>
+              <div class="hx-todo hx-done"><div class="hx-box hx-on"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div><span>심사 신청서 출력</span><span class="hx-who">이사범</span></div>
+              <div class="hx-todo"><div class="hx-box"></div><span>학부모 상담 2건</span><span class="hx-who">관장</span></div>
+            </div>
+            <div class="hx-card">
+              <div class="hx-c-hd"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v8"/><circle cx="12" cy="14" r="4"/><path d="M12 18v4"/></svg> 특이사항</div>
+              <div class="hx-note"><b>최수아</b> 옆차기 높이가 많이 좋아짐, 다음 심사 준비</div>
             </div>
           </div>
-          <div class="ps-body">
-            <div class="ps-card">
-              <div class="ps-card-hd">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-                출석 현황 · 3부
-              </div>
-              <div class="ps-att-row">
-                <div class="ps-dot ps-dot-ok">✓</div>
-                <span class="ps-nm">김도윤</span>
-                <span class="ps-chip ps-chip-ok">출석</span>
-              </div>
-              <div class="ps-att-row">
-                <div class="ps-dot ps-dot-ok">✓</div>
-                <span class="ps-nm">이서연</span>
-                <span class="ps-chip ps-chip-ok">출석</span>
-              </div>
-              <div class="ps-att-row">
-                <div class="ps-dot ps-dot-ab">✕</div>
-                <span class="ps-nm">박지호</span>
-                <span class="ps-chip ps-chip-ab">결석</span>
-              </div>
-              <div class="ps-att-row" style="border-bottom:none">
-                <div class="ps-dot ps-dot-ok">✓</div>
-                <span class="ps-nm">최수아</span>
-                <span class="ps-chip ps-chip-ok">출석</span>
-              </div>
-            </div>
-            <div class="ps-card">
-              <div class="ps-card-hd ps-card-hd-slate">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-                특이사항
-              </div>
-              <div class="ps-note">최수아 — 옆차기 높이가 많이 좋아짐. 다음 심사 준비</div>
-              <div class="ps-autosave">✓ 자동저장됨</div>
-            </div>
-            <div class="ps-card">
-              <div class="ps-card-hd ps-card-hd-dark">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                수업 내용
-              </div>
-              <div class="ps-lesson-row"><div class="ps-lesson-dot"></div>앞차기 · 옆차기 연습</div>
-              <div class="ps-lesson-row"><div class="ps-lesson-dot"></div>품새 태극 3장</div>
-            </div>
-          </div>
+          <div class="hx-s-foot"><span>지난 일지 보기 ›</span><span>✓ 자동저장됨</span></div>
         </div>
       </div>
-      <!-- AI 성장리포트 뜨는 카드 — report/index.html 참고 -->
-      <div class="phone-ai-card">
-        <div class="pac-label">
-          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/></svg>
-          AI 성장리포트
+      <div class="hx-pipe">
+        <div class="hx-pcap">하루의 기록이 이어지는 길</div>
+        <div class="hx-st hx-on">
+          <div class="hx-sn">1</div>
+          <div class="hx-si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+          <div class="hx-stx"><div class="hx-stt">업무일지</div><div class="hx-sts">회의·교육·할 일·특이사항</div></div>
+          <span class="hx-stag">매일</span>
         </div>
-        <div class="pac-nm">김도윤</div>
-        <div class="pac-txt">이번 달 출석 96%. 앞차기 자세가 눈에 띄게 성장했습니다.</div>
+        <div class="hx-st">
+          <div class="hx-sn">2</div>
+          <div class="hx-si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8Z"/></svg></div>
+          <div class="hx-stx"><div class="hx-stt">줄넘기 급수</div><div class="hx-sts">협회별 템플릿으로 급수 측정</div></div>
+          <span class="hx-stag">측정</span>
+        </div>
+        <div class="hx-st">
+          <div class="hx-sn">3</div>
+          <div class="hx-si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M9 14 6.5 22l5.5-3 5.5 3L15 14"/></svg></div>
+          <div class="hx-stx"><div class="hx-stt">승급심사</div><div class="hx-sts">결과와 이력을 누적 관리</div></div>
+          <span class="hx-stag">심사</span>
+        </div>
+        <div class="hx-st">
+          <div class="hx-sn">4</div>
+          <div class="hx-si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-6 3 3 5-8"/></svg></div>
+          <div class="hx-stx"><div class="hx-stt">AI 성장리포트</div><div class="hx-sts">쌓인 기록이 성장의 증거로</div></div>
+          <span class="hx-stag">증명</span>
+        </div>
+        <div class="hx-more"><span>+ 슬로우모션</span><span>+ 지원정책</span></div>
       </div>
     </div>
   </div>
