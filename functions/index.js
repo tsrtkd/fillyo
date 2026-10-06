@@ -496,23 +496,36 @@ exports.portoneWebhook = onRequest(
             }
           }
 
-          // academyId로 uid 조회 후 planType free 처리
-          const usersSnap = await db.ref('users')
-            .orderByChild('academyId').equalTo(academyId).limitToFirst(1).get();
-          if (usersSnap.exists()) {
-            const uid = Object.keys(usersSnap.val())[0];
-            await db.ref(`users/${uid}`).update({ planType: 'free', cancelledAt: now });
-            console.log(`[portoneWebhook] CANCELLED: uid=${uid} planType → free`);
-          } else {
-            console.warn('[portoneWebhook] CANCELLED: academyId로 uid 조회 실패:', academyId);
+          // uid 조회: users 전체를 읽어 academyId 필드로 메모리 필터 (색인 불필요)
+          try {
+            let uid = null;
+            const allUsersSnap = await db.ref('users').get();
+            if (allUsersSnap.exists()) {
+              const entry = Object.entries(allUsersSnap.val()).find(([, u]) => u.academyId === academyId);
+              if (entry) uid = entry[0];
+            }
+            if (uid) {
+              await db.ref(`users/${uid}`).update({ planType: 'free', planExpiry: null, cancelledAt: now });
+              console.log(`[portoneWebhook] CANCELLED: uid=${uid} planType → free`);
+            } else {
+              console.warn('[portoneWebhook] CANCELLED: academyId로 uid 조회 실패:', academyId);
+            }
+          } catch (e) {
+            console.error('[portoneWebhook] CANCELLED: users 업데이트 실패:', e.message);
           }
 
-          await db.ref(`academies/${academyId}/billing`).update({
-            paymentFailed: false,
-            cancelledAt:   now,
-            status:        'cancelled',
-            billingKey:    null,
-          });
+          try {
+            await db.ref(`academies/${academyId}/billing`).update({
+              paymentFailed: false,
+              cancelledAt:   now,
+              refundedAt:    now,
+              status:        'cancelled',
+              billingKey:    null,
+              nextPaymentAt: null,
+            });
+          } catch (e) {
+            console.error('[portoneWebhook] CANCELLED: billing 업데이트 실패:', e.message);
+          }
 
         } else {
           // ③-실패: 실패 이력 저장 + 실패 플래그
@@ -636,10 +649,17 @@ exports.cancelSubscription = onRequest(
       }
 
       // ④ users/{uid}에 해지 상태 기록
+      // billing.refundedAt 이 있으면 전액 환불 결제 → 즉시 이용 종료 (nextPaymentAt 무시)
       // nextPaymentAt이 미래이면 이미 결제된 기간까지 pro 유지
       try {
         const nextPaymentAt = billing.nextPaymentAt || null;
-        if (nextPaymentAt && nextPaymentAt > now) {
+        if (billing.refundedAt) {
+          await db.ref(`users/${uid}`).update({
+            planType:    'free',
+            planExpiry:  null,
+            cancelledAt: now,
+          });
+        } else if (nextPaymentAt && nextPaymentAt > now) {
           await db.ref(`users/${uid}`).update({
             planType:    'pro',
             planExpiry:  nextPaymentAt,
