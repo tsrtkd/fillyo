@@ -179,22 +179,6 @@
   .flow-quote .mint{color:var(--mint-deep);}
   .flow-quote .coral{color:var(--coral-deep);}
 
-  /* ── 기능 카드 ── */
-  .feat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px;}
-  .feat-card{
-    border-radius:22px;padding:30px 24px;
-  }
-  .feat-card.c1{background:var(--mint-bg);}
-  .feat-card.c2{background:var(--sun-bg);}
-  .feat-card.c3{background:var(--coral-bg);}
-  .feat-tag{font-size:12px;font-weight:800;margin-bottom:14px;}
-  .feat-card.c1 .feat-tag{color:var(--mint-deep);}
-  .feat-card.c2 .feat-tag{color:#B8860B;}
-  .feat-card.c3 .feat-tag{color:var(--coral-deep);}
-  .feat-card h3{font-size:19px;font-weight:800;margin-bottom:10px;}
-  .feat-card p.feat-lead{font-size:14px;color:var(--ink-soft);line-height:1.7;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(0,0,0,0.08);}
-  .feat-why li{font-size:13px;color:var(--ink-soft);line-height:1.6;padding-left:16px;position:relative;margin-bottom:10px;}
-  .feat-why li::before{content:'';position:absolute;left:0;top:8px;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:0.5;}
 
   /* ── 가격 ── */
   .tier-label{
@@ -359,7 +343,7 @@
   @media(max-width:600px){.c-row{grid-template-columns:1fr;}}
 
   @media(max-width:860px){
-    .feat-grid,.price-grid{grid-template-columns:1fr;}
+    .price-grid{grid-template-columns:1fr;}
     .flow-row{flex-direction:column;}
     .flow-arrow{transform:rotate(90deg);width:100%;height:36px;}
     .ref-box{grid-template-columns:1fr;text-align:center;}
@@ -445,6 +429,169 @@
   }
   @media(prefers-reduced-motion:reduce){
     .hero .btn-primary:hover,.hero .btn-ghost:hover{transform:none}
+  }
+
+  /* ===== 기능 지그재그 (fz-) ===== */
+  .fz-list{display:flex;flex-direction:column;gap:96px}
+  .fz-row{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center}
+  .fz-row.rev .fz-text{order:2}
+  .fz-row.rev .fz-vis{order:1}
+  .fz-num{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:var(--mint-deep);margin-bottom:14px}
+  .fz-num b{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--mint-bg);font-size:12px}
+  .fz-text h3{font-size:28px;font-weight:800;line-height:1.35;letter-spacing:-0.02em;margin-bottom:14px;word-break:keep-all}
+  .fz-text .fz-lead{font-size:16px;color:var(--ink-soft);line-height:1.75;margin-bottom:22px;word-break:keep-all}
+  .fz-text ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+  .fz-text li{position:relative;padding-left:26px;font-size:15px;color:var(--ink);line-height:1.6;word-break:keep-all}
+  .fz-text li::before{content:'';position:absolute;left:0;top:3px;width:18px;height:18px;border-radius:50%;background:var(--mint-bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23008F82' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E") center/11px no-repeat}
+  .fz-vis{background:var(--paper-2);border:1px solid var(--line);border-radius:28px;padding:36px;display:flex;align-items:center;justify-content:center;min-height:340px}
+  .fz-pill{display:inline-block;font-size:11px;font-weight:800;padding:3px 9px;border-radius:100px;background:var(--mint-bg);color:var(--mint-deep)}
+  .fz-pill.sun{background:var(--sun-bg);color:#946C00}
+  .fz-pill.gray{background:var(--paper-2);color:var(--ink-soft)}
+
+  /* 1 업무일지 - 달력+팀 */
+
+  /* 2 줄넘기 */
+
+  /* 3 승급심사 결과카드 */
+
+  /* 4 AI 리포트 */
+  .fz-chart{display:flex;align-items:flex-end;gap:14px;height:86px;padding:0 6px;margin-bottom:6px;border-bottom:1px solid var(--line)}
+  .fz-chart div{flex:1;background:var(--mint-bg);border-radius:6px 6px 0 0}
+  .fz-chart div.last{background:var(--mint)}
+  .fz-chart-lb{display:flex;gap:14px;padding:0 6px;margin-bottom:12px}
+  .fz-chart-lb span{flex:1;text-align:center;font-size:11px;color:var(--ink-faint)}
+
+  /* 5 슬로우모션 */
+
+  /* 그리고 */
+  .fz-more{margin-top:80px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .fz-mini{display:flex;gap:16px;align-items:flex-start;padding:24px;border:1px solid var(--line);border-radius:20px;background:#fff}
+  .fz-mini .ic{flex:none;width:44px;height:44px;border-radius:12px;background:var(--mint-bg);color:var(--mint-deep);display:flex;align-items:center;justify-content:center}
+  .fz-mini h4{font-size:17px;font-weight:800;margin:2px 0 6px;display:flex;align-items:center;gap:8px}
+  .fz-mini p{font-size:14px;color:var(--ink-soft);line-height:1.65;margin:0;word-break:keep-all}
+
+
+  /* 업무일지 v2 */
+  /* 승급심사 v2 */
+  /* 연결 문장 */
+  .fz-bridge{display:flex;align-items:center;gap:14px;margin:-40px 0 -40px;color:var(--mint-deep);font-weight:800;font-size:15px;word-break:keep-all}
+  .fz-bridge::before,.fz-bridge::after{content:'';flex:1;height:1px;background:var(--line)}
+  @media(max-width:900px){.fz-bridge{margin:-24px 0}}
+  @media(max-width:420px){.fz-radar{width:128px;height:120px}.fz-exam-top{gap:8px}.fz-lv em{font-size:10.5px;padding:2px 6px}}
+
+  /* ===== 휴대폰 목업 (v3) ===== */
+  .fz-vis{position:relative;min-height:0;padding:44px 24px}
+  .fz-phone{position:relative;width:272px;flex:none;background:#16191F;border-radius:42px;padding:10px;box-shadow:0 30px 60px rgba(23,25,35,.16)}
+  .fz-scr{position:relative;height:540px;border-radius:32px;overflow:hidden;background:#EEF2F8;font-size:11px;line-height:1.55;color:#1A2332;letter-spacing:-0.01em}
+  .fz-scr::after{content:'';position:absolute;left:0;right:0;bottom:0;height:60px;background:linear-gradient(rgba(238,242,248,0),#EEF2F8);pointer-events:none}
+  .fz-scr.dk{background:#0E0F18}.fz-scr.dk::after{background:linear-gradient(rgba(14,15,24,0),#0E0F18)}
+  .fz-scr.wh{background:#F3F4F6}.fz-scr.wh::after{background:linear-gradient(rgba(243,244,246,0),#F3F4F6)}
+  .fz-sb{display:flex;justify-content:space-between;align-items:center;height:28px;padding:0 22px;font-size:11px;font-weight:700}
+  .fz-hd{background:#0B1F3A;color:#fff}
+  .fz-hd .fz-sb{color:#fff}
+  .fz-top{display:flex;align-items:center;justify-content:space-between;padding:4px 12px 8px}
+  .fz-top b{display:block;font-size:13px;font-weight:900;letter-spacing:-0.5px}
+  .fz-top small{display:block;font-size:9.5px;color:rgba(255,255,255,.65)}
+  .fz-ibtn{display:flex;gap:4px}
+  .fz-ibtn i{position:relative;width:22px;height:22px;border-radius:6px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center}
+  .fz-ibtn i b{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:#FF5252;font-size:8px;font-style:normal;display:flex;align-items:center;justify-content:center}
+  .fz-date{display:flex;align-items:center;gap:6px;padding:6px 12px;background:rgba(255,255,255,.06);border-top:1px solid rgba(255,255,255,.07)}
+  .fz-date .ar{color:rgba(255,255,255,.5);font-weight:800}
+  .fz-date .dt{flex:1;font-weight:700;font-size:12px}
+  .fz-date .dt small{color:rgba(255,255,255,.6);font-weight:500;margin-left:3px}
+  .fz-date .td{font-size:9.5px;font-weight:800;background:rgba(255,255,255,.14);padding:2px 7px;border-radius:5px}
+  .fz-sync{display:flex;align-items:center;gap:5px;padding:4px 12px;background:rgba(255,255,255,.05);border-top:1px solid rgba(255,255,255,.06);font-size:9.5px;color:rgba(255,255,255,.55)}
+  .fz-sync i{width:6px;height:6px;border-radius:50%;background:#4CAF50}
+  .fz-sync span{margin-left:auto}
+  .fz-bd{padding:8px}
+  .fz-ms{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px}
+  .fz-ms div{background:#fff;border-radius:9px;padding:6px 2px;text-align:center;box-shadow:0 2px 8px rgba(11,31,58,.08)}
+  .fz-ms div.dk{background:#0B1F3A;color:#fff}
+  .fz-ms small{display:block;font-size:8px;font-weight:700;color:#546E7A}
+  .fz-ms div.dk small{color:rgba(255,255,255,.55)}
+  .fz-ms b{font-size:16px;font-weight:900;line-height:1.1}
+  .fz-sec{background:#fff;border-radius:10px;margin-bottom:7px;overflow:hidden;box-shadow:0 2px 8px rgba(11,31,58,.08)}
+  .fz-sh{display:flex;justify-content:space-between;align-items:center;padding:6px 10px;font-size:10.5px;font-weight:700;color:#fff}
+  .fz-sh em{font-style:normal;background:rgba(255,255,255,.25);border-radius:20px;padding:0 7px;font-size:9.5px}
+  .fz-sbd{padding:6px 10px;color:#1A2332}
+  .fz-td{display:flex;align-items:center;gap:6px;padding:3px 0}
+  .fz-td i{width:12px;height:12px;border-radius:3px;border:1.5px solid #DDE4EE;flex:none}
+  .fz-td i.on{background:#0A7C6E;border-color:#0A7C6E}
+  .fz-td.done{text-decoration:line-through;color:#90A4AE}
+  .fz-td small{margin-left:auto;font-size:9px;color:#546E7A;text-decoration:none}
+  /* 떠 있는 카드 */
+  .fz-float{position:absolute;z-index:2;background:#fff;border-radius:14px;box-shadow:0 14px 34px rgba(23,25,35,.14);padding:10px 12px;display:flex;gap:9px;align-items:flex-start;width:210px;font-size:12px;line-height:1.45;color:var(--ink)}
+  .fz-float small{display:block;color:var(--ink-faint);font-size:10.5px;margin-top:2px}
+  .fz-float .bi{flex:none;width:28px;height:28px;border-radius:8px;background:var(--mint-bg);color:var(--mint-deep);display:flex;align-items:center;justify-content:center}
+  .fz-float .bi.k{background:#FEE500;color:#3A1D1D;font-weight:900;font-size:11px}
+  .fz-float.l{left:16px;bottom:40px}.fz-float.r{right:20px;top:70px}
+  /* 줄넘기 */
+  .fz-chips{display:flex;gap:4px;margin-bottom:7px}
+  .fz-chips span{font-size:9.5px;font-weight:800;padding:3px 8px;border-radius:20px;background:#fff;color:#546E7A;border:1px solid #DDE4EE}
+  .fz-chips span.on{background:#0A7C6E;color:#fff;border-color:#0A7C6E}
+  .fz-jr{display:flex;align-items:center;gap:7px;padding:7px 10px;border-top:1px solid #EEF2F8}
+  .fz-jr:first-child{border-top:0}
+  .fz-jr .nm{flex:1;font-weight:800;font-size:11.5px}
+  .fz-jr .nm small{display:block;font-weight:500;font-size:9px;color:#546E7A}
+  .fz-jr .gd{font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;background:#FFF3E0;color:#E65100}
+  .fz-jr .ct{width:38px;text-align:center;font-weight:900;font-size:12px;border:1.5px solid #DDE4EE;border-radius:6px;padding:2px 0}
+  .fz-jr .ok{font-size:9px;font-weight:800;color:#0A7C6E}
+  /* 승급심사 결과지 */
+  .fz-rc{margin:8px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(11,31,58,.1)}
+  .fz-rc-top{background:linear-gradient(135deg,#1e3a5f,#2b4f80);color:#fff;padding:12px;text-align:center}
+  .fz-rc-top small{font-size:9px;opacity:.7;display:block}
+  .fz-rc-top b{font-size:15px;display:block;margin:2px 0}
+  .fz-rc-belt{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;margin-top:4px}
+  .fz-rc-belt i{width:26px;height:7px;border-radius:2px;display:inline-block}
+  .fz-rc-pass{display:inline-block;margin-top:6px;background:#22c55e;font-size:10px;font-weight:900;padding:2px 10px;border-radius:20px}
+  .fz-rc-mid{display:flex;align-items:center;gap:4px;padding:8px 8px 4px}
+  .fz-rc-lv{flex:1;display:flex;flex-direction:column;gap:5px}
+  .fz-rc-lv div{display:flex;justify-content:space-between;align-items:center;font-size:10px;white-space:nowrap}
+  .fz-rc-lv em{font-style:normal;font-size:9px;font-weight:800}
+  .fz-rc-cm{margin:4px 10px 8px;padding:7px 9px;background:#F8FAFC;border-radius:8px;font-size:10px;color:#475569}
+  .fz-rc-cm b{color:#1e293b}
+  .fz-rc-ft{display:flex;justify-content:space-between;padding:6px 10px 8px;font-size:9px;color:#64748b}
+  .fz-rc-bar{height:4px;background:linear-gradient(to right,#60a5fa,#a78bfa,#f472b6)}
+  .fz-btnrow{display:flex;gap:6px;margin:0 8px}
+  .fz-btnrow span{flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:8px 0;border-radius:9px;background:#0B1F3A;color:#fff}
+  .fz-btnrow span.lt{background:#fff;color:#0B1F3A;border:1px solid #DDE4EE}
+  /* 리포트 */
+  .fz-rp-st{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px 8px 0}
+  .fz-rp-st div{background:#0A7C6E;color:#fff;border-radius:9px;padding:6px;text-align:center}
+  .fz-rp-st small{display:block;font-size:8.5px;opacity:.85}
+  .fz-rp-st b{font-size:12px}
+  .fz-rp-txt{font-size:10.5px;line-height:1.7;color:#1A2332}
+  .fz-rp-txt p{margin:0 0 6px}
+  .fz-hl{background:#E4F5F3;color:#0A7C6E;font-weight:800;padding:0 3px;border-radius:3px}
+  /* 슬로우모션 (실제 앱 보라 톤) */
+  .fz-sm{padding:8px;color:#fff}
+  .fz-sm-main{position:relative;height:236px;border-radius:12px;background:linear-gradient(180deg,#252840,#171A2B);border:2px solid #7B61FF;overflow:hidden;margin-bottom:7px}
+  .fz-sm-main .fig{position:absolute;left:50%;bottom:14px;transform:translateX(-50%)}
+  .fz-sm-lb{position:absolute;left:8px;top:8px;font-size:9.5px;font-weight:800;background:rgba(123,97,255,.88);padding:2px 7px;border-radius:5px}
+  .fz-sm-fs{position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:6px;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center}
+  .fz-sm-pg{position:absolute;left:8px;right:8px;bottom:7px;height:3px;border-radius:3px;background:rgba(255,255,255,.18)}
+  .fz-sm-pg i{display:block;width:40%;height:100%;border-radius:3px;background:#7B61FF}
+  .fz-sm-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:8px}
+  .fz-sm-grid div{height:50px;border-radius:7px;background:#1C1F33;border:1.5px solid #2E3250;font-size:8.5px;color:rgba(255,255,255,.5);display:flex;align-items:flex-end;padding:3px 5px}
+  .fz-sm-grid div.f{color:#fff;background:#262A45}
+  .fz-sm-grid div:nth-child(1){border-color:#90CAF9}.fz-sm-grid div:nth-child(2){border-color:#A5D6A7}.fz-sm-grid div:nth-child(3){border-color:#FFCC80}.fz-sm-grid div:nth-child(4){border-color:#EF9A9A}
+  .fz-sm-grid div:nth-child(5){border-color:#CE93D8}.fz-sm-grid div:nth-child(6){border-color:#80CBC4}.fz-sm-grid div:nth-child(7){border-color:#F48FB1}.fz-sm-grid div:nth-child(8){border-color:#80DEEA}
+  .fz-sm-ctl{background:#fff;border-radius:12px;padding:8px;color:#1a1a2e}
+  .fz-sm-sp{display:flex;background:#f0eeff;border:1.5px solid #d8d0ff;border-radius:10px;padding:2px;margin-bottom:7px}
+  .fz-sm-sp span{flex:1;text-align:center;font-size:10.5px;font-weight:800;padding:4px 0;border-radius:8px;color:#7b7fa8}
+  .fz-sm-sp span.on{background:#7B61FF;color:#fff}
+  .fz-sm-go{text-align:center;font-size:11px;font-weight:900;padding:8px;border-radius:10px;background:linear-gradient(135deg,#7B61FF,#9F7BFF);color:#fff}
+  @media(max-width:900px){
+    .fz-vis{padding:32px 12px 120px}
+    .fz-float.l,.fz-float.r{left:50%;right:auto;top:auto;bottom:20px;transform:translateX(-50%);width:250px}
+  }
+  @media(max-width:900px){
+    .fz-list{gap:72px}
+    .fz-row,.fz-row.rev{grid-template-columns:1fr;gap:28px}
+    .fz-row.rev .fz-text,.fz-row.rev .fz-vis{order:0}
+    .fz-vis{padding:24px 16px;min-height:0;border-radius:22px}
+    .fz-text h3{font-size:23px}
+    .fz-more{grid-template-columns:1fr;margin-top:64px}
   }
 </style>
 </head>
@@ -616,31 +763,182 @@
   <div class="wrap">
     <div class="section-head">
       <div class="eyebrow">기능</div>
-      <h2>필요한 기록, 한 곳에서 모두</h2>
-      <p>업무일지·줄넘기·승급심사·AI성장리포트를 하나의 요금으로 모두 이용할 수 있습니다.</p>
+      <h2 style="word-break:keep-all;">필요한 기록, 한 곳에서 모두</h2>
+      <p style="word-break:keep-all;">업무일지·줄넘기·승급심사·AI성장리포트·슬로우모션까지, 하나의 요금으로 모두 이용할 수 있습니다.</p>
     </div>
-    <div class="feat-grid">
-      <div class="feat-card c1">
-        <div class="feat-tag">기록</div>
-        <h3>종이가 아닌, 실시간 공유 기록</h3>
-        <p class="feat-lead">수업 직후 3분이면 기록이 끝나고, 팀원과 실시간으로 공유됩니다.</p>
-        <ul class="feat-why">
-          <li>관장님과 강사님이 같은 업무일지를 실시간으로 함께 봅니다 (팀원 동기화)</li>
-          <li>종이 출석부와 달리, 날짜별로 지난 기록을 달력에서 바로 다시 열어볼 수 있습니다</li>
-          <li>도장에 안 계셔도, 강사님이 남긴 오늘 기록을 휴대폰으로 바로 확인할 수 있습니다</li>
-          <li>부별 출석·결석이 자동으로 집계되고, 월별 결산도 CSV로 바로 내보낼 수 있습니다</li>
-        </ul>
+
+    <div class="fz-list">
+
+      <!-- 1 업무일지 -->
+      <div class="fz-row">
+        <div class="fz-text">
+          <div class="fz-num"><b>1</b>업무일지</div>
+          <h3>종이 없이 휴대폰 하나로,<br>도장 식구 모두가 함께 쓰는 일지</h3>
+          <p class="fz-lead">회의 내용부터 상담 내용까지, 도장의 하루가 한 곳에 모입니다. 관장님과 사범님이 각자 휴대폰으로 같은 일지를 보고 함께 채워갑니다.</p>
+          <ul>
+            <li>회의 내용 · 교육 내용 · 할 일 · 이달 행사 · 특이사항 · 상담 내용을 한 화면에</li>
+            <li>종이 일지가 필요 없고, 지난 기록은 날짜만 눌러 바로 다시 보기</li>
+            <li>휴대폰만 있으면 어디서든 모두에게 공유 — 사범님과 실시간 협업</li>
+            <li>출석과 기록이 모여 월별 결산까지 자동 정리</li>
+          </ul>
+        </div>
+        <div class="fz-vis">
+          <div class="fz-phone"><div class="fz-scr">
+            <div class="fz-hd" style="background:#0B1F3A"><div class="fz-sb"><span>5:12</span><span>●●●</span></div><div class="fz-top"><div><b>우리태권도</b><small>업무일지</small></div><div class="fz-ibtn"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><b>1</b></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></i></div></div><div class="fz-date"><span class="ar">‹</span><span class="dt">2026.10.02 <small>(목)</small></span><span class="td">오늘</span><span class="ar">›</span></div><div class="fz-sync"><i></i>실시간 연결됨<span>김사범 · 방금 저장</span></div></div>
+            <div class="fz-bd">
+              <div class="fz-ms"><div class="dk"><small>총 원</small><b>86</b></div><div><small>신 규</small><b style="color:#1352A8">3</b></div><div><small>복 관</small><b style="color:#0A7C6E">1</b></div><div><small>휴·퇴관</small><b style="color:#C62828">2</b></div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#7B1FA2"><span>이달 주요 행사</span></div><div class="fz-sbd">18일 정기 승급심사 · 25일 할로윈 파티 · 30일 줄넘기 급수 측정</div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#0A7C6E"><span>TO DO LIST</span><em>1/3</em></div><div class="fz-sbd"><div class="fz-td done"><i class="on"></i>차량 운행표 확인<small>김사범</small></div><div class="fz-td"><i></i>심사 신청서 출력<small>이사범</small></div><div class="fz-td"><i></i>할로윈 간식 주문<small>관장</small></div></div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#C62828"><span>특이사항</span></div><div class="fz-sbd">최수아 발목 살짝 삐끗 — 어머님께 연락드림. 박지호 오늘 첫 등원</div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#0B1F3A"><span>회의 내용</span></div><div class="fz-sbd">토요일 시범단 연습 4시로 변경<br>2호차 하원 코스 조정 (다음 주부터)</div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#0A7C6E"><span>교육 내용</span></div><div class="fz-sbd">유치부: 앞차기 · 줄넘기 모아뛰기<br>초등부: 태극 4장 · 겨루기 스텝</div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#4A148C"><span>상담 내용</span></div><div class="fz-sbd">김도윤 어머님 — 겨루기반 문의, 다음 달부터 시작하기로</div></div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#1352A8"><span>출석 인원 (부별)</span></div><div class="fz-sbd">1부 18명 · 2부 24명 · 3부 21명</div></div>
+            </div>
+          </div></div>
+          <div class="fz-float l"><div class="bi"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div><div><b>김사범님이 업무일지를 저장했어요</b><small>방금 · 특이사항 1건 추가</small></div></div>
+        </div>
       </div>
-      <div class="feat-card c2">
-        <div class="feat-tag">성장리포트</div>
-        <h3>AI 성장리포트</h3>
-        <p class="feat-lead">줄넘기 기록·승급심사 평가 데이터가 자동 연동되어, AI가 학생별 성장리포트를 완성합니다.</p>
-        <ul class="feat-why">
-          <li>줄넘기 기록·급수 관리, 승급심사 채점·결과카드까지 한 번에 관리됩니다</li>
-          <li>쌓인 기록을 바탕으로 AI가 학생별 성장리포트를 자동으로 작성합니다</li>
-          <li>학부모 카카오톡 발송용 문구까지 함께 제공됩니다</li>
-          <li>재등록 상담할 때 보여줄 근거 자료가 자동으로 쌓여 있습니다</li>
-        </ul>
+
+      <!-- 2 줄넘기 -->
+      <div class="fz-row rev">
+        <div class="fz-text">
+          <div class="fz-num"><b>2</b>줄넘기 급수</div>
+          <h3>줄넘기 급수 측정,<br>수첩 대신 바로 입력</h3>
+          <p class="fz-lead">협회별 템플릿으로 급수를 측정하고, 아이마다 지금 급수와 도전 급수를 한눈에 관리합니다.</p>
+          <ul>
+            <li>협회 기준 템플릿으로 바로 측정 시작</li>
+            <li>도전 급수는 아이마다 직접 선택</li>
+            <li>이름순·학년순·급수순 정렬로 원하는 아이를 빠르게</li>
+          </ul>
+        </div>
+        <div class="fz-vis">
+          <div class="fz-phone"><div class="fz-scr">
+            <div class="fz-hd" style="background:#0B1F3A"><div class="fz-sb"><span>5:12</span><span>●●●</span></div><div class="fz-top"><div><b>우리태권도</b><small>줄넘기 급수</small></div><div class="fz-ibtn"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><b>1</b></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></i></div></div><div class="fz-date"><span class="ar">‹</span><span class="dt">10월 급수 측정</span><span class="td">오늘</span><span class="ar">›</span></div></div>
+            <div class="fz-bd">
+              <div class="fz-chips"><span class="on">급수순</span><span>이름순</span><span>학년순</span><span style="margin-left:auto">협회 템플릿</span></div>
+              <div class="fz-sec">
+                <div class="fz-sh" style="background:#0A7C6E"><span>2부 · 초등 저학년</span><em>12명</em></div>
+                <div class="fz-jr"><div class="nm">이서연<small>초3 · 현재 6급</small></div><span class="gd">도전 5급</span><span class="ct">42</span><span class="ok">통과</span></div>
+                <div class="fz-jr"><div class="nm">김도윤<small>초2 · 현재 7급</small></div><span class="gd">도전 6급</span><span class="ct">35</span><span class="ok">통과</span></div>
+                <div class="fz-jr"><div class="nm">박지호<small>초1 · 현재 8급</small></div><span class="gd">도전 7급</span><span class="ct">28</span><span class="ok" style="color:#C62828">재도전</span></div>
+                <div class="fz-jr"><div class="nm">최수아<small>초2 · 현재 7급</small></div><span class="gd">도전 6급</span><span class="ct">31</span><span class="ok">통과</span></div>
+                <div class="fz-jr"><div class="nm">정하린<small>초1 · 현재 9급</small></div><span class="gd">도전 8급</span><span class="ct">—</span><span class="ok" style="color:#90A4AE">대기</span></div>
+                <div class="fz-jr"><div class="nm">한유준<small>초3 · 현재 5급</small></div><span class="gd">도전 4급</span><span class="ct">—</span><span class="ok" style="color:#90A4AE">대기</span></div>
+              </div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#1352A8"><span>3부 · 초등 고학년</span><em>9명</em></div>
+                <div class="fz-jr"><div class="nm">윤서진<small>초5 · 현재 3급</small></div><span class="gd">도전 2급</span><span class="ct">64</span><span class="ok">통과</span></div>
+                <div class="fz-jr"><div class="nm">오민재<small>초4 · 현재 4급</small></div><span class="gd">도전 3급</span><span class="ct">—</span><span class="ok" style="color:#90A4AE">대기</span></div>
+              </div>
+            </div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- 3 승급심사 -->
+      <div class="fz-row">
+        <div class="fz-text">
+          <div class="fz-num"><b>3</b>승급심사</div>
+          <h3>엑셀 대신 프로그램으로,<br>합격 그 이상을 보여주는 심사</h3>
+          <p class="fz-lead">단순히 합격·불합격만 남기지 않습니다. 무엇을 잘했고 무엇을 더 노력해야 하는지, 아이가 어디서 자라고 있는지 그래프로 보여줍니다.</p>
+          <ul>
+            <li>영역별 점수를 그래프로 — 강점과 보완할 점이 한눈에</li>
+            <li>"최고예요"부터 "함께 성장 중"까지, 점수마다 아이에게 맞는 말로</li>
+            <li>심사 기록이 회차별로 쌓여 지난 심사 기록도 바로 다시 보기</li>
+            <li>부별 · 전체 일괄 합격으로 심사 당일 처리도 금방</li>
+            <li>결과지를 이미지로 저장해 학부모님께 카카오톡으로 보내기</li>
+          </ul>
+        </div>
+        <div class="fz-vis">
+          <div class="fz-phone"><div class="fz-scr wh">
+            <div class="fz-hd" style="background:#0B1F3A"><div class="fz-sb"><span>5:12</span><span>●●●</span></div><div class="fz-top"><div><b>우리태권도</b><small>승급심사 결과지</small></div><div class="fz-ibtn"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><b>1</b></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></i></div></div></div>
+            <div class="fz-rc">
+              <div class="fz-rc-top"><small>2026 10월 정기 승급심사</small><b>김도윤</b><span class="fz-rc-belt"><i style="background:#F5C518"></i>→<i style="background:#2E9E4F"></i>초록띠</span><br><span class="fz-rc-pass">합격</span></div>
+              <div class="fz-rc-mid"><svg width="112" height="112" viewBox="-14 0 178 150" font-family="Pretendard,sans-serif" font-size="12" font-weight="700"><g stroke="#E2E8F0" fill="none"><polygon points="75,20 130,75 75,130 20,75"/><polygon points="75,42 108,75 75,108 42,75"/><line x1="75" y1="20" x2="75" y2="130"/><line x1="20" y1="75" x2="130" y2="75"/></g><polygon points="75,26 119,75 75,108 31,75" fill="rgba(124,58,237,.18)" stroke="#7c3aed" stroke-width="2.5"/><g fill="#475569" text-anchor="middle"><text x="75" y="13">품새</text><text x="134" y="79" text-anchor="start">발차기</text><text x="75" y="147">시범</text><text x="16" y="79" text-anchor="end">인성</text></g></svg><div class="fz-rc-lv"><div>품새<em style="color:#7c3aed">5점 최고예요!</em></div><div>발차기<em style="color:#2563eb">4점 훌륭해요</em></div><div>시범<em style="color:#f97316">2점 노력하고 있어요</em></div><div>인성<em style="color:#2563eb">4점 훌륭해요</em></div></div></div>
+              <div class="fz-rc-cm"><b>사범님 한마디</b> · 품새 동작이 정확해졌어요. 시범 동작은 힘 조절을 함께 연습해요.</div>
+              <div class="fz-rc-ft"><span>우리태권도 · 공식 발행 결과지</span><span>담당 사범</span></div>
+              <div class="fz-rc-bar"></div>
+            </div>
+            <div class="fz-btnrow"><span class="lt">이 부 전체 합격</span><span>결과지 이미지 저장</span></div>
+            <div class="fz-bd"><div class="fz-sec"><div class="fz-sh" style="background:#0B1F3A"><span>김도윤 심사 기록</span><em>3회</em></div><div class="fz-sbd" style="font-size:10px;line-height:1.8">2026.10 노란띠→초록띠 · 합격<br>2026.07 주황띠→노란띠 · 합격<br>2026.04 흰띠→주황띠 · 합격</div></div></div>
+          </div></div>
+          <div class="fz-float r"><div class="bi k">톡</div><div><b>도윤이 승급심사 결과지입니다</b><small>이미지로 저장해 학부모님께 카톡 전송</small></div></div>
+        </div>
+      </div>
+
+      <div class="fz-bridge">이렇게 쌓인 기록이, 학부모님의 신뢰가 됩니다</div>
+
+      <!-- 4 AI 성장리포트 -->
+      <div class="fz-row rev">
+        <div class="fz-text">
+          <div class="fz-num"><b>4</b>AI 성장리포트</div>
+          <h3>매일의 기록이 모여,<br>학부모님이 믿는 성장 리포트로</h3>
+          <p class="fz-lead">출석 · 줄넘기 · 승급심사 기록을 모아 AI가 아이마다 성장리포트를 써 드립니다. "우리 아이가 이만큼 자랐구나"를 학부모님이 직접 느끼게 됩니다.</p>
+          <ul>
+            <li>쌓인 기록을 근거로 아이별 성장 흐름을 한 장에</li>
+            <li>지난 리포트와 비교해 무엇이 자랐는지 문장으로</li>
+            <li>학부모님께 보낼 카카오톡 문구까지 함께</li>
+            <li>재등록 상담 때 꺼내 보여드릴 근거가 자동으로 준비</li>
+          </ul>
+        </div>
+        <div class="fz-vis">
+          <div class="fz-phone"><div class="fz-scr wh">
+            <div class="fz-hd" style="background:#1e3a5f"><div class="fz-sb"><span>5:12</span><span>●●●</span></div><div class="fz-top"><div><b>우리태권도</b><small>AI 성장리포트</small></div><div class="fz-ibtn"><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21H3z"/></svg></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/></svg><b>1</b></i><i><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></i></div></div></div>
+            <div class="fz-rp-st"><div><small>출석</small><b>96%</b></div><div><small>승급심사</small><b>초록띠</b></div><div><small>줄넘기</small><b>6급</b></div></div>
+            <div class="fz-bd">
+              <div class="fz-sec">
+                <div class="fz-sh" style="background:#0A7C6E"><span>이서연 · 10월 성장리포트</span><em>AI 작성</em></div>
+                <div class="fz-sbd fz-rp-txt">
+                  <p>서연이는 이번 달 <span class="fz-hl">출석률 96%</span>로 꾸준히 수련했어요.</p>
+                  <p>지난 리포트와 비교하면 줄넘기가 <span class="fz-hl">8급 → 6급</span>으로 올랐고, 승급심사에서는 품새가 가장 좋은 평가를 받았어요.</p>
+                  <p>다음 달에는 겨루기 스텝을 함께 연습하며 자신감을 키워갈 예정입니다.</p>
+                </div>
+              </div>
+              <div class="fz-sec"><div class="fz-sh" style="background:#1352A8"><span>최근 3개월 줄넘기 급수</span></div><div class="fz-sbd"><div class="fz-chart" style="height:64px"><div style="height:35%"></div><div style="height:60%"></div><div class="last" style="height:90%"></div></div><div class="fz-chart-lb" style="margin-bottom:2px"><span>8월 8급</span><span>9월 7급</span><span>10월 6급</span></div></div></div>
+              <div class="fz-btnrow" style="margin:0"><span style="background:#FEE500;color:#3A1D1D">카카오톡 문구 복사</span></div>
+            </div>
+          </div></div>
+          <div class="fz-float l"><div class="bi k">톡</div><div><b>"선생님 덕분에 아이가 이렇게 자란 걸 알았어요"</b><small>학부모님 답장 · 예시</small></div></div>
+        </div>
+      </div>
+
+      <!-- 5 슬로우모션 -->
+      <div class="fz-row">
+        <div class="fz-text">
+          <div class="fz-num"><b>5</b>슬로우모션 자세교정</div>
+          <h3>내 발차기, 내 품새, 내 시범 동작<br>무엇을 고쳐야 할지 느리게 봅니다</h3>
+          <p class="fz-lead">휴대폰으로 찍고 바로 큰 화면에서 느리게. 아이가 자기 동작을 눈으로 보고, 어디를 고쳐야 할지 스스로 알게 됩니다.</p>
+          <ul>
+            <li>휴대폰으로 찍어 전체 화면으로 크게 — 수업 중 바로 확인</li>
+            <li>0.5배 · 0.33배 · 0.25배, 놓치기 쉬운 순간까지 느리게</li>
+            <li>최대 8개 영상을 찍어 이전 동작과 나란히 비교</li>
+            <li>잘 나온 슬로우모션 영상은 저장해서 보관</li>
+          </ul>
+        </div>
+        <div class="fz-vis">
+          <div class="fz-phone"><div class="fz-scr dk">
+            <div class="fz-sb" style="color:#fff"><span>5:12</span><span>●●●</span></div>
+            <div class="fz-sm">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;font-weight:900;font-size:12px">FILLYO 슬로우모션<span style="font-size:9.5px;color:rgba(255,255,255,.55);font-weight:700">SLOT 3 / 8</span></div>
+              <div class="fz-sm-main"><span class="fz-sm-lb">0.25× SLOW</span><span class="fz-sm-fs"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></span><svg class="fig" width="110" height="112" viewBox="0 0 120 118" fill="none" stroke="#E8ECF2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><circle cx="38" cy="16" r="10" fill="#E8ECF2" stroke="none"/><path d="M40 28 44 62"/><path d="M42 38 22 52"/><path d="M42 38 60 30"/><path d="M44 62 30 108"/><path d="M44 62 82 46 112 40"/></svg><div class="fz-sm-pg"><i></i></div></div>
+              <div class="fz-sm-grid"><div class="f">1 발차기</div><div class="f">2 발차기</div><div class="f">3 품새</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div></div>
+              <div class="fz-sm-ctl"><div class="fz-sm-sp"><span>0.5×</span><span>0.33×</span><span class="on">0.25×</span></div><div class="fz-sm-go">▶ START</div></div>
+            </div>
+          </div></div>
+          <div class="fz-float r"><div class="bi"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></div><div><b>전체 화면으로 크게</b><small>도장 TV·태블릿으로 함께 보기 좋아요</small></div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="fz-more">
+      <div class="fz-mini">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V10l7-5 7 5v11"/><path d="M9 21v-6h6v6"/></svg></div>
+        <div><h4>소상공인 지원정책</h4><p>원장님이 받을 수 있는 정부 지원사업을 골라서 모아 보여드립니다.</p></div>
+      </div>
+      <div class="fz-mini">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div><h4>AI 안내데스크 <span class="fz-pill gray">출시예정</span></h4><p>학부모님의 자주 묻는 질문에 카카오톡으로 대신 답해 드립니다.</p></div>
       </div>
     </div>
   </div>
