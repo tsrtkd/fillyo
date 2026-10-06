@@ -245,33 +245,6 @@
   }
   .total-example-note{font-size:13px;color:var(--ink-soft);line-height:1.7;}
 
-  .free-note{
-    display:flex;align-items:center;gap:10px;
-    margin-top:16px;padding:14px 18px;
-    background:var(--sun-bg);border:1px solid rgba(184,134,11,0.25);border-radius:14px;
-  }
-  .free-note svg{color:#B8860B;flex-shrink:0;}
-  .free-note p{font-size:13.5px;color:var(--ink);}
-  .free-note b{color:#B8860B;}
-
-  .program-list{margin-top:40px;}
-  .program-list-label{font-size:13px;font-weight:800;color:var(--ink-faint);margin-bottom:14px;}
-  .program-chips{display:flex;flex-wrap:wrap;gap:10px;}
-  .chip{
-    display:flex;align-items:center;gap:8px;
-    background:#fff;border:1px solid var(--line);border-radius:100px;
-    padding:9px 16px 9px 16px;font-size:13.5px;font-weight:700;color:var(--ink);
-  }
-  .chip span{
-    font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:100px;
-    background:var(--paper-2);color:var(--ink-soft);
-  }
-  .chip-base{border-color:var(--primary);}
-  .chip-base span{background:var(--primary-bg);color:var(--primary-deep);}
-  .chip-free span{background:var(--sun-bg);color:#B8860B;}
-  .chip-soon{opacity:0.65;}
-  .chip-soon span{background:var(--paper-2);color:var(--ink-faint);}
-
   /* ── 레퍼런스 ── */
   .ref-box{
     display:grid;grid-template-columns:auto 1fr;gap:28px;
@@ -949,7 +922,7 @@
     <div class="section-head">
       <div class="eyebrow">가격</div>
       <h2>하나의 요금으로 모든 기능</h2>
-      <p>업무일지·AI성장리포트·줄넘기·승급심사까지, 하나의 구독에 모두 포함됩니다. 약정도, 위약금도 없습니다.</p>
+      <p style="word-break:keep-all;">업무일지·줄넘기·승급심사·AI성장리포트·슬로우모션까지, 하나의 구독에 모두 포함됩니다. 약정도, 위약금도 없습니다.</p>
     </div>
 
     <div class="price-grid" style="grid-template-columns:1fr;max-width:480px;">
@@ -971,30 +944,15 @@
         </div>
         <ul>
           <li>업무일지 (출석·특이사항·팀 공유)</li>
-          <li>AI 성장리포트 자동 생성</li>
           <li>줄넘기 급수 평가 관리</li>
-          <li>승급심사 채점·결과카드</li>
+          <li>승급심사 채점·결과지</li>
+          <li>AI 성장리포트 자동 생성</li>
+          <li>슬로우모션 자세교정</li>
+          <li>소상공인 지원정책</li>
         </ul>
       </div>
     </div>
 
-    <div class="free-note" style="margin-top:20px;">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-      <p><b>슬로우모션 분석</b>과 <b>소상공인 지원정책</b>도 함께 이용할 수 있습니다.</p>
-    </div>
-
-    <div class="program-list">
-      <p class="program-list-label">FILLYO 전체 프로그램 한눈에 보기</p>
-      <div class="program-chips">
-        <div class="chip chip-base">업무일지 <span>포함</span></div>
-        <div class="chip chip-base">AI성장리포트 <span>포함</span></div>
-        <div class="chip chip-base">줄넘기 급수 <span>포함</span></div>
-        <div class="chip chip-base">승급심사 <span>포함</span></div>
-        <div class="chip chip-base">슬로우모션 분석 <span>포함</span></div>
-        <div class="chip chip-base">소상공인 지원정책 <span>포함</span></div>
-        <div class="chip chip-soon">AI 안내데스크 <span>출시예정</span></div>
-      </div>
-    </div>
   </div>
 </section>
 
