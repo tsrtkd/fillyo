@@ -185,6 +185,7 @@ exports.scheduleNextPayment = onRequest(
           regularAmount: price, // 약정 없음 → 위약금 0
           paidCount:     0,
           status:        'active',
+          refundedAt:    null,
         });
 
         // ── 2. 주문 정보 선저장 (웹훅이 paymentOrders를 참조해 처리하므로 결제 전에 저장) ──
@@ -431,6 +432,7 @@ exports.portoneWebhook = onRequest(
             paymentFailed: false,
             lastPaidAt:    now,
             paidCount:     newPaidCount,
+            refundedAt:    null,
           });
 
           // 다음 달 자동 재예약
