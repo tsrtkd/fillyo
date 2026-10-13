@@ -61,13 +61,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .card-body{padding:12px 14px;}
 .car-item{border-bottom:1px solid var(--border);padding:10px 0;}
 .car-item:last-child{border-bottom:none;}
-.car-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.car-hd{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;margin-bottom:6px;}
+.car-hd:active{opacity:0.7;}
+.car-hd-left{display:flex;align-items:center;gap:8px;}
+.car-arrow{color:var(--navy);font-size:13px;transition:transform 0.22s;display:inline-block;flex-shrink:0;}
+.car-arrow.collapsed{transform:rotate(-90deg);}
+.car-body{overflow:hidden;max-height:3000px;transition:max-height 0.35s ease;}
+.car-body.collapsed{max-height:0;}
 .car-icon{font-size:20px;}
 .car-label{font-size:13px;font-weight:900;color:var(--navy);}
 .car-content{font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.7;padding-left:4px;}
 .car-content.empty{color:var(--text2);font-style:italic;}
 .car-img{width:100%;border-radius:8px;margin-top:8px;display:block;}
-.note-box{background:#FFF8E1;border:1.5px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-top:10px;}
+.note-box{background:#FFF8E1;border:1.5px solid var(--yellow);border-radius:10px;padding:10px 14px;margin-bottom:10px;}
 .note-label{font-size:11px;font-weight:900;color:#E65100;margin-bottom:4px;}
 .note-text{font-size:13px;color:var(--text);white-space:pre-wrap;line-height:1.7;}
 .weekend-msg{text-align:center;padding:28px 16px;color:var(--text2);font-size:14px;line-height:1.7;}
@@ -178,8 +184,18 @@ const academyId = params.get('a') || '';
 // Session state
 let _sessionToken = null;
 
-const LS_TOKEN   = 'fillyo_staff_token';
-const LS_ACADEMY = 'fillyo_staff_acid';
+const LS_TOKEN     = 'fillyo_staff_token';
+const LS_ACADEMY   = 'fillyo_staff_acid';
+const LS_COLLAPSED = `fillyo_staff_collapsed_${academyId}`;
+
+function _loadCollapsed() {
+  try { return new Set(JSON.parse(localStorage.getItem(LS_COLLAPSED) || '[]')); }
+  catch { return new Set(); }
+}
+function _saveCollapsed(s) {
+  try { localStorage.setItem(LS_COLLAPSED, JSON.stringify([...s])); }
+  catch { /* ignore */ }
+}
 
 function loadSession() {
   try {
@@ -221,31 +237,38 @@ function renderVehicle(vehicle, title) {
   const t = title || '🚗 오늘의 운행표';
   let html = `<div class="card"><div class="card-hd navy">${t}</div><div class="card-body">`;
 
-  if (vehicle.isWeekend) {
-    html += `<div class="weekend-msg">🏖️ 오늘은 주말입니다<br>정기 운행 없음</div>`;
-  } else {
-    const sch = vehicle.schedule || {};
-    const cnt = vehicle.carCount || 2;
-    for (let c = 1; c <= cnt; c++) {
-      const ck  = 'car' + c;
-      const val = sch[ck] || '';
-      const img = sch[ck + 'Image'] || '';
-      html += `<div class="car-item">
-        <div class="car-hd">
-          <span class="car-icon">${CAR_ICONS[c-1] || '🚗'}</span>
-          <span class="car-label">${c}호차</span>
-        </div>
-        <div class="car-content${val ? '' : ' empty'}">${val ? esc(val) : '등록된 운행 없음'}</div>
-        ${img && img.startsWith('data:image/') ? `<img class="car-img" src="${img}" alt="${c}호차 운행표 사진">` : ''}
-      </div>`;
-    }
-  }
-
   if (vehicle.vehicleNote) {
     html += `<div class="note-box">
       <div class="note-label">🔔 오늘 변경사항</div>
       <div class="note-text">${esc(vehicle.vehicleNote)}</div>
     </div>`;
+  }
+
+  if (vehicle.isWeekend) {
+    html += `<div class="weekend-msg">🏖️ 오늘은 주말입니다<br>정기 운행 없음</div>`;
+  } else {
+    const sch       = vehicle.schedule || {};
+    const cnt       = vehicle.carCount || 2;
+    const collapsed = _loadCollapsed();
+    for (let c = 1; c <= cnt; c++) {
+      const ck  = 'car' + c;
+      const val = sch[ck] || '';
+      const img = sch[ck + 'Image'] || '';
+      const cls = collapsed.has(c) ? ' collapsed' : '';
+      html += `<div class="car-item">
+        <div class="car-hd" onclick="toggleCar(${c})">
+          <div class="car-hd-left">
+            <span class="car-icon">${CAR_ICONS[c-1] || '🚗'}</span>
+            <span class="car-label">${c}호차</span>
+          </div>
+          <span class="car-arrow${cls}" id="carArrow_${c}">▼</span>
+        </div>
+        <div class="car-body${cls}" id="carBody_${c}">
+          <div class="car-content${val ? '' : ' empty'}">${val ? esc(val) : '등록된 운행 없음'}</div>
+          ${img && img.startsWith('data:image/') ? `<img class="car-img" src="${img}" alt="${c}호차 운행표 사진">` : ''}
+        </div>
+      </div>`;
+    }
   }
 
   html += '</div></div>';
@@ -376,6 +399,17 @@ async function init() {
 }
 
 // ── Handlers ─────────────────────────────────────────────────────
+window.toggleCar = (carNum) => {
+  const body  = document.getElementById('carBody_' + carNum);
+  const arrow = document.getElementById('carArrow_' + carNum);
+  if (!body) return;
+  const isCollapsed = body.classList.toggle('collapsed');
+  if (arrow) arrow.classList.toggle('collapsed', isCollapsed);
+  const s = _loadCollapsed();
+  if (isCollapsed) s.add(carNum); else s.delete(carNum);
+  _saveCollapsed(s);
+};
+
 window.onCodeInput = () => {
   const v = document.getElementById('codeInput').value;
   document.getElementById('codeBtn').disabled = v.length !== 6;
