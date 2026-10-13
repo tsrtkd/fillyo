@@ -373,6 +373,25 @@ async function run() {
   } catch { log('차단: 관리자 이메일로도 staffSecrets 읽기 차단', false); }
 
   // ═══════════════════════════════════════════════════════════════════
+  // [차단] 관장님이 aiCredits 읽기 차단 (서버 전용 경로)
+  // ═══════════════════════════════════════════════════════════════════
+  await adminSet(`aiCredits/${TEST_ACAD_A}`, { month: '2026-10', freeUsed: 5, packs: {} });
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(get(ref(db, `aiCredits/${TEST_ACAD_A}`)));
+    log('차단: 관장님이 aiCredits 읽기 차단', true);
+  } catch { log('차단: 관장님이 aiCredits 읽기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // [차단] 관장님이 aiCredits 쓰기 차단 (서버 전용 경로)
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(set(ref(db, `aiCredits/${TEST_ACAD_A}/freeUsed`), 0));
+    log('차단: 관장님이 aiCredits 쓰기 차단', true);
+  } catch { log('차단: 관장님이 aiCredits 쓰기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
   // 결과 요약
   // ═══════════════════════════════════════════════════════════════════
   const passed = results.filter(r => r.passed).length;

@@ -1339,6 +1339,56 @@ exports.parentDeskKakao = onRequest(
   },
 );
 
+// ── AI 크레딧 순수 함수 ────────────────────────────────────────────────
+// aiCredits/{academyId} = { month: 'YYYY-MM', freeUsed: number, packs: { {packId}: { total, remaining, purchasedAt, expiresAt, paymentId } } }
+// 서버(Admin SDK)만 읽고 씀 — 브라우저 직접 접근 차단됨(DB 규칙 기본 deny)
+
+const FREE_LIMIT = 30;
+
+// 1건 차감. 크레딧 부족 시 null 반환.
+function _reserveCredit(current, now, monthKey) {
+  let s = current
+    ? { month: current.month, freeUsed: current.freeUsed || 0, packs: current.packs ? { ...current.packs } : {} }
+    : { month: monthKey, freeUsed: 0, packs: {} };
+  if (s.month !== monthKey) { s.month = monthKey; s.freeUsed = 0; }
+  if (s.freeUsed < FREE_LIMIT) {
+    return { next: { ...s, freeUsed: s.freeUsed + 1 }, usedFrom: 'free' };
+  }
+  const validPacks = Object.entries(s.packs)
+    .filter(([, p]) => p.remaining > 0 && p.expiresAt > now)
+    .sort(([, a], [, b]) => a.expiresAt - b.expiresAt);
+  if (validPacks.length > 0) {
+    const [packId, pack] = validPacks[0];
+    return { next: { ...s, packs: { ...s.packs, [packId]: { ...pack, remaining: pack.remaining - 1 } } }, usedFrom: packId };
+  }
+  return null;
+}
+
+// AI 호출 실패 시 차감한 1건 복구
+function _refundCredit(current, usedFrom, monthKey) {
+  if (!current) return current;
+  const s = { month: current.month, freeUsed: current.freeUsed || 0, packs: current.packs ? { ...current.packs } : {} };
+  if (usedFrom === 'free') {
+    if (s.month === monthKey) s.freeUsed = Math.max(0, s.freeUsed - 1);
+  } else {
+    const pack = s.packs[usedFrom];
+    if (pack) s.packs[usedFrom] = { ...pack, remaining: pack.remaining + 1 };
+  }
+  return s;
+}
+
+// 쓰기 없이 크레딧 잔여량 계산
+function _computeCreditsInfo(state, now, monthKey) {
+  const s = (!state || state.month !== monthKey)
+    ? { freeUsed: 0, packs: {} }
+    : { freeUsed: state.freeUsed || 0, packs: state.packs || {} };
+  const freeRemaining = Math.max(0, FREE_LIMIT - s.freeUsed);
+  const packRemaining = Object.values(s.packs)
+    .filter(p => p.remaining > 0 && p.expiresAt > now)
+    .reduce((sum, p) => sum + p.remaining, 0);
+  return { freeRemaining, packRemaining, freeLimit: FREE_LIMIT, unlimited: false };
+}
+
 // ──────────────────────────────────────────────────────────────────
 // generateGrowthReport  (Callable)
 // AI성장리포트 생성 — FILLYO 자체 Anthropic API 키로 서버에서 처리
@@ -1386,6 +1436,24 @@ exports.generateGrowthReport = onCall(
     }
     if (todayCount >= 50) {
       throw new HttpsError('resource-exhausted', '오늘 AI 리포트 생성 한도(50회)에 도달했습니다. 내일 다시 시도해주세요.');
+    }
+
+    // aiCredits 차감 (관리자 제외)
+    const _credMonthKey = _seoulMonthKey(_seoulNow());
+    let _usedFrom = null;
+    if (!isAdmin) {
+      const credRef = db.ref(`aiCredits/${academyId}`);
+      let lastReserveResult = null;
+      const txResult = await credRef.transaction(current => {
+        const r = _reserveCredit(current, Date.now(), _credMonthKey);
+        lastReserveResult = r;
+        if (!r) return; // undefined = abort (크레딧 없음)
+        return r.next;
+      });
+      if (!txResult.committed) {
+        throw new HttpsError('resource-exhausted', '이번 달 무료 30건을 모두 사용했습니다. 충전 후 이용해주세요.');
+      }
+      _usedFrom = lastReserveResult?.usedFrom ?? null;
     }
 
     // 시스템 프롬프트 (report/index.html의 generateReport()에서 그대로 이식)
@@ -1548,6 +1616,9 @@ ${dojanKeyword ? `
     if (!anthropicRes.ok) {
       const errData = await anthropicRes.text();
       console.error('[generateGrowthReport] Anthropic API 오류:', errData);
+      if (_usedFrom !== null) {
+        await db.ref(`aiCredits/${academyId}`).transaction(cur => _refundCredit(cur, _usedFrom, _credMonthKey)).catch(() => {});
+      }
       throw new HttpsError('internal', 'AI 리포트 생성 실패');
     }
 
@@ -1556,7 +1627,48 @@ ${dojanKeyword ? `
     const usage = data?.usage || {};
 
     console.log(`[generateGrowthReport] 완료: ${academyId}/${studentId} usage=${JSON.stringify(usage)}`);
-    return { text, usage };
+
+    const credSnap = isAdmin ? null : await db.ref(`aiCredits/${academyId}`).get();
+    const creditsInfo = isAdmin
+      ? { freeRemaining: FREE_LIMIT, packRemaining: 0, freeLimit: FREE_LIMIT, unlimited: true }
+      : _computeCreditsInfo(credSnap.val(), Date.now(), _credMonthKey);
+
+    return { text, usage, credits: creditsInfo };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// getAiCredits  (Callable)
+// 이번 달 AI 크레딧 잔여량 조회 — 쓰기 없음
+// 입력: { academyId }
+// 반환: { freeRemaining, packRemaining, freeLimit, unlimited }
+// ──────────────────────────────────────────────────────────────────
+exports.getAiCredits = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId } = request.data;
+    if (!academyId) throw new HttpsError('invalid-argument', 'academyId 필수');
+    _validateAcademyId(academyId);
+
+    const isAdmin = request.auth?.token?.email === 'audtls2g@gmail.com';
+    if (!isAdmin) {
+      const userSnap = await db.ref(`users/${uid}/academyId`).get();
+      if (!userSnap.exists() || userSnap.val() !== academyId) {
+        throw new HttpsError('permission-denied', '본인 학원만 조회할 수 있습니다');
+      }
+    }
+
+    if (isAdmin) {
+      return { freeRemaining: FREE_LIMIT, packRemaining: 0, freeLimit: FREE_LIMIT, unlimited: true };
+    }
+
+    const now = Date.now();
+    const monthKey = _seoulMonthKey(_seoulNow());
+    const snap = await db.ref(`aiCredits/${academyId}`).get();
+    return _computeCreditsInfo(snap.exists() ? snap.val() : null, now, monthKey);
   },
 );
 

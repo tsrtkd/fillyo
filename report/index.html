@@ -248,6 +248,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
                 <button class="btn-gen" id="btnSaveKeyword" onclick="saveKeyword()" style="padding:9px 14px;">저장</button>
               </div>
             </div>
+            <div id="aiCreditsInfo" style="display:none;text-align:center;padding:4px 0 2px;color:var(--gray);"></div>
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()" style="width:100%;">리포트 생성</button>
           </div>
           <div id="dataSummary" style="display:none;margin-bottom:12px;">
@@ -361,6 +362,7 @@ const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
 const fns   = getFunctions(fbApp, 'asia-northeast3');
 const fnGenerateGrowthReport = httpsCallable(fns, 'generateGrowthReport', { timeout: 60000 });
+const fnGetAiCredits         = httpsCallable(fns, 'getAiCredits',         { timeout: 10000 });
 
 function todayKST() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
@@ -471,6 +473,30 @@ function beltBadge(belt, grade) {
   );
 }
 
+// ── AI 크레딧 표시 ────────────────────────────────────────────────────
+function renderCredits(credits) {
+  const el = document.getElementById('aiCreditsInfo');
+  if (!el) return;
+  if (!credits || credits.unlimited) {
+    el.textContent = '이번 달 무제한';
+  } else {
+    const free = credits.freeRemaining ?? 0;
+    const pack = credits.packRemaining ?? 0;
+    el.textContent = `이번 달 남은 무료 ${free}건 · 충전 ${pack}건`;
+  }
+  el.style.display = '';
+}
+
+async function loadAiCredits() {
+  if (!academyId) return;
+  try {
+    const result = await fnGetAiCredits({ academyId });
+    renderCredits(result.data);
+  } catch(e) {
+    console.warn('[aiCredits] 로드 실패:', e.message);
+  }
+}
+
 // ── 인증 ─────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   try {
@@ -528,6 +554,7 @@ onAuthStateChanged(auth, async user => {
     loadKeyword(thisMonth);
 
     loadStudents();
+    loadAiCredits();
   } catch(e) {
     console.error('auth error:', e);
     document.getElementById('loadingScreen').style.display = 'none';
@@ -1007,9 +1034,14 @@ window.generateReport = async function(){
       }
     }
     await loadPrevReports(true);
+    if (result.data.credits) renderCredits(result.data.credits);
 
   } catch(e) {
-    statusEl.textContent = `오류: ${e.message}`;
+    if (e.code === 'functions/resource-exhausted' && e.message.includes('충전')) {
+      statusEl.innerHTML = `<span style="color:var(--red)">${e.message}</span><br><button class="btn-add" disabled style="margin-top:8px;opacity:.5;cursor:not-allowed;">충전하기 (준비 중)</button>`;
+    } else {
+      statusEl.textContent = `오류: ${e.message}`;
+    }
     console.error(e);
   } finally {
     btn.disabled = false;
