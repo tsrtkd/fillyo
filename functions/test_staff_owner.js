@@ -82,6 +82,29 @@ async function runTests() {
     ok('members에 owner role 없음 + callerUid 일치 → callerUid');
   } catch (e) { ng('members에 owner role 없음 + callerUid 일치', e); }
 
+  // Case 6: 관리자 계정이 자기 도장(academyId 일치, members null) → 관리자 uid 반환
+  // 태사랑태권도(ac_mq2avp88kwmd) 케이스: 관리자 = 관장님, members 없음
+  try {
+    const db = {
+      members: async () => null,
+      userAcademyId: async (uid) => uid === 'uid_admin_owner' ? 'ac_taesarang' : null,
+    };
+    const result = await _resolveOwnerUid('ac_taesarang', 'uid_admin_owner', db);
+    assert.strictEqual(result, 'uid_admin_owner');
+    ok('관리자=관장님, members null, academyId 일치 → uid 반환 (태사랑 실제 케이스)');
+  } catch (e) { ng('관리자=관장님, members null, academyId 일치', e); }
+
+  // Case 7: 관리자가 다른 도장(academyId 불일치, members null) → null (엉뚱한 기록 방지)
+  try {
+    const db = {
+      members: async () => null,
+      userAcademyId: async (uid) => uid === 'uid_admin' ? 'ac_admin_own' : null,
+    };
+    const result = await _resolveOwnerUid('ac_other_dojang', 'uid_admin', db);
+    assert.strictEqual(result, null);
+    ok('관리자가 다른 도장, members null, academyId 불일치 → null (관리자 uid 오기록 없음)');
+  } catch (e) { ng('관리자가 다른 도장, academyId 불일치', e); }
+
   console.log(`\n결과: ${pass} 통과, ${fail} 실패`);
   if (fail > 0) process.exit(1);
 }

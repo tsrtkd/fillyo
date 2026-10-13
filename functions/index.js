@@ -2229,7 +2229,7 @@ exports.createStaffMember = onCall(
     // ownerUid 최초 기록 — 해결 못하면 고장난 직원이 생기지 않도록 차단
     const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
     if (!ownerUidSnap.exists()) {
-      const ownerUid = await _resolveOwnerUid(academyId, isAdmin ? null : uid);
+      const ownerUid = await _resolveOwnerUid(academyId, uid);
       if (!ownerUid) {
         throw new HttpsError('failed-precondition', '관장님 계정 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
       }
@@ -2275,7 +2275,7 @@ exports.reissueStaffCode = onCall(
     // ownerUid 없으면 resolve & 기록 — 실패 시 코드 변경 차단
     const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
     if (!ownerUidSnap.exists()) {
-      const ownerUid = await _resolveOwnerUid(academyId, isAdmin ? null : uid);
+      const ownerUid = await _resolveOwnerUid(academyId, uid);
       if (!ownerUid) {
         throw new HttpsError('failed-precondition', '관장님 계정 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
       }
