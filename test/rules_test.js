@@ -342,6 +342,37 @@ async function run() {
   } catch { log('통과: failedSubscriptions 신규 기록', false); }
 
   // ═══════════════════════════════════════════════════════════════════
+  // [차단] 관장님이 staffSecrets 읽기 (브라우저 완전 차단 경로)
+  // ═══════════════════════════════════════════════════════════════════
+  await adminSet(`staffSecrets/${TEST_ACAD_A}/ownerUid`, TEST_UID_A);
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(get(ref(db, `staffSecrets/${TEST_ACAD_A}`)));
+    log('차단: 관장님이 staffSecrets 읽기', true);
+  } catch { log('차단: 관장님이 staffSecrets 읽기', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // [차단] 관장님이 staffSecrets 쓰기 (브라우저 완전 차단 경로)
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(set(
+      ref(db, `staffSecrets/${TEST_ACAD_A}/codes/staff_test`),
+      { codeHash: 'fakehash', codeSalt: 'fakesalt' }
+    ));
+    log('차단: 관장님이 staffSecrets 쓰기', true);
+  } catch { log('차단: 관장님이 staffSecrets 쓰기', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // [차단] 관리자 이메일로도 staffSecrets 읽기 차단 (브라우저 규칙)
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const db = adminCtx.database();
+    await assertFails(get(ref(db, `staffSecrets/${TEST_ACAD_A}`)));
+    log('차단: 관리자 이메일로도 staffSecrets 읽기 차단', true);
+  } catch { log('차단: 관리자 이메일로도 staffSecrets 읽기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
   // 결과 요약
   // ═══════════════════════════════════════════════════════════════════
   const passed = results.filter(r => r.passed).length;

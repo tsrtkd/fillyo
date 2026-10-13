@@ -563,6 +563,17 @@
           <div class="arrow">›</div>
         </div>
 
+        <div class="quick-item" id="quickStaff" style="display:none;" onclick="window.openStaffModal && window.openStaffModal()">
+          <div class="quick-left">
+            <div class="quick-icon" style="background:#e8f1ff;">👥</div>
+            <div class="quick-text">
+              <h4>직원 관리</h4>
+              <p>차량기사 · 도우미 입장 코드 발급</p>
+            </div>
+          </div>
+          <div class="arrow">›</div>
+        </div>
+
         <div class="quick-item" id="quickAdmin" style="display:none;">
           <div class="quick-left">
             <div class="quick-icon" style="background:#e8eaf6;">🛠️</div>
@@ -633,6 +644,8 @@ import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, get, set, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 let _uid      = null;
 let _academyId = null;
@@ -650,6 +663,10 @@ const FB_CONFIG = {
 const fbApp = initializeApp(FB_CONFIG);
 const auth  = getAuth(fbApp);
 const db    = getDatabase(fbApp);
+const _fns          = getFunctions(fbApp, 'asia-northeast3');
+const _fnCreateStaff = httpsCallable(_fns, 'createStaffMember');
+const _fnReissueCode = httpsCallable(_fns, 'reissueStaffCode');
+const _fnDeleteStaff = httpsCallable(_fns, 'deleteStaffMember');
 
 // ── 인증 체크 & 데이터 로드 ───────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -786,6 +803,10 @@ onAuthStateChanged(auth, async (user) => {
 
   if (user.email === 'audtls2g@gmail.com') {
     document.getElementById('quickAdmin').style.display = '';
+  }
+
+  if (_academyId) {
+    document.getElementById('quickStaff').style.display = '';
   }
 
   document.getElementById('loadingScreen').style.display = 'none';
@@ -1025,6 +1046,142 @@ window.submitCustomRequest = async () => {
   document.getElementById('customReqText').value = '';
 };
 
+// ── 직원 관리 ────────────────────────────────────────────────────
+window.openStaffModal = async () => {
+  if (!_academyId) return;
+  document.getElementById('staffModal').style.display = 'flex';
+  document.getElementById('smCodeReveal').style.display = 'none';
+  document.getElementById('staffNameInp').value = '';
+  document.getElementById('staffRoleSel').value = 'driver';
+  document.getElementById('helperItemsSec').style.display = 'none';
+  document.getElementById('smError').textContent = '';
+  document.querySelectorAll('#helperItemsSec input[type=checkbox]').forEach(cb => { cb.checked = false; });
+  await _loadStaffList();
+};
+
+window.closeStaffModal = () => {
+  document.getElementById('staffModal').style.display = 'none';
+};
+
+async function _loadStaffList() {
+  const el = document.getElementById('smStaffList');
+  el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">불러오는 중...</div>';
+  try {
+    const snap = await get(ref(db, `academies/${_academyId}/staff`));
+    if (!snap.exists()) {
+      el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">등록된 직원이 없습니다</div>';
+      return;
+    }
+    const list = Object.entries(snap.val())
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(s => s.active !== false)
+      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    if (!list.length) {
+      el.innerHTML = '<div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">등록된 직원이 없습니다</div>';
+      return;
+    }
+    const ROLE  = { driver: '차량기사', helper: '도우미' };
+    const ITEMS = { todo: '할 일', monthEvent: '이달 행사', edu: '교육', absList: '결석자', vehicle: '운행표' };
+    el.innerHTML = list.map(s => {
+      const items = (s.allowedItems || []).map(i => ITEMS[i] || i).join(', ');
+      const nm    = xss(s.name);
+      const nmEsc = nm.replace(/'/g, "\\'");
+      const sid   = s.id;
+      return `<div class="sm-staff-row">
+        <div class="sm-staff-info">
+          <div class="sm-staff-name">${nm}</div>
+          <div class="sm-staff-role">${ROLE[s.role] || s.role}${items ? ' · ' + xss(items) : ''}</div>
+        </div>
+        <div class="sm-staff-btns">
+          <button class="sm-btn-reissue" onclick="window.smReissue('${sid}','${nmEsc}')">코드 재발급</button>
+          <button class="sm-btn-delete"  onclick="window.smDelete('${sid}','${nmEsc}')">삭제</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div style="color:#c62828;font-size:13px;padding:12px;">목록 로드 실패: ${xss(e.message)}</div>`;
+  }
+}
+
+window.toggleHelperItems = () => {
+  const role = document.getElementById('staffRoleSel').value;
+  document.getElementById('helperItemsSec').style.display = role === 'helper' ? 'block' : 'none';
+};
+
+window.submitAddStaff = async () => {
+  const name  = document.getElementById('staffNameInp').value.trim();
+  const role  = document.getElementById('staffRoleSel').value;
+  const errEl = document.getElementById('smError');
+  const btn   = document.getElementById('smAddBtn');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = '이름을 입력해주세요'; return; }
+  const allowedItems = [];
+  if (role === 'helper') {
+    document.querySelectorAll('#helperItemsSec input[type=checkbox]:checked').forEach(cb => {
+      allowedItems.push(cb.value);
+    });
+  }
+  btn.disabled    = true;
+  btn.textContent = '추가 중...';
+  try {
+    const res = await _fnCreateStaff({ academyId: _academyId, name, role, allowedItems });
+    const { code, staffId } = res.data;
+    document.getElementById('staffNameInp').value = '';
+    document.querySelectorAll('#helperItemsSec input[type=checkbox]').forEach(cb => { cb.checked = false; });
+    await _loadStaffList();
+    _showCodeReveal(code, name);
+  } catch (e) {
+    errEl.textContent = e?.message || '추가에 실패했습니다';
+  } finally {
+    btn.disabled    = false;
+    btn.textContent = '직원 추가';
+  }
+};
+
+window.smReissue = async (staffId, staffName) => {
+  document.getElementById('smError').textContent = '';
+  try {
+    const res = await _fnReissueCode({ academyId: _academyId, staffId });
+    _showCodeReveal(res.data.code, staffName);
+  } catch (e) {
+    document.getElementById('smError').textContent = '코드 재발급 실패: ' + (e?.message || '');
+  }
+};
+
+window.smDelete = async (staffId, staffName) => {
+  if (!confirm(`"${staffName}" 직원을 삭제하시겠습니까?\n삭제하면 즉시 접속이 차단됩니다.`)) return;
+  document.getElementById('smError').textContent = '';
+  try {
+    await _fnDeleteStaff({ academyId: _academyId, staffId });
+    await _loadStaffList();
+    document.getElementById('smCodeReveal').style.display = 'none';
+  } catch (e) {
+    document.getElementById('smError').textContent = '삭제 실패: ' + (e?.message || '');
+  }
+};
+
+function _showCodeReveal(code, staffName) {
+  const el = document.getElementById('smCodeReveal');
+  document.getElementById('smRevealCode').textContent = code;
+  document.getElementById('smRevealName').textContent = staffName + ' 님';
+  el.dataset.code = code;
+  el.dataset.name = staffName;
+  el.style.display = 'block';
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 80);
+}
+
+window.copyKakaoMsg = () => {
+  const el    = document.getElementById('smCodeReveal');
+  const code  = el.dataset.code || '';
+  const sName = el.dataset.name || '';
+  const aName = document.getElementById('academyName')?.textContent?.trim() || 'FILLYO';
+  const msg   = `[${aName}] 직원 화면 입장 안내\n주소: https://fillyo.kr/staff/?a=${_academyId}\n입장 코드: ${code}`;
+  navigator.clipboard.writeText(msg).then(() => {
+    const btn = document.getElementById('smCopyBtn');
+    if (btn) { btn.textContent = '✅ 복사됨!'; setTimeout(() => { btn.textContent = '카카오톡으로 보낼 문구 복사'; }, 2000); }
+  }).catch(() => { prompt('아래 문구를 복사해 전달해주세요:', msg); });
+};
+
 // ── 정책 배너 애니메이션 ──────────────────────────────────────────
 async function loadPolicyBanner() {
   try {
@@ -1077,6 +1234,39 @@ loadPolicyBanner();
   .crm-textarea{width:100%;border:1.5px solid #DDE4EE;border-radius:10px;padding:10px 12px;font-size:13px;font-family:inherit;color:#1A2332;background:#FAFBFF;resize:vertical;min-height:80px;outline:none;transition:border-color .15s;margin-bottom:12px;box-sizing:border-box;}
   .crm-textarea:focus{border-color:#1352A8;}
   @media(max-width:480px){.crm-cards{flex-direction:column;}.crm-box{padding:22px 18px;}}
+
+  /* ── 직원 관리 모달 ───────────────────────────────────────────── */
+  #staffModal{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:flex-start;justify-content:center;z-index:9100;padding:16px;overflow-y:auto;}
+  .sm-box{background:#fff;border-radius:24px;width:100%;max-width:480px;padding:24px;box-shadow:0 24px 60px rgba(0,0,0,0.25);margin:16px auto;}
+  .sm-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .sm-title{font-size:18px;font-weight:900;color:#0B1F3A;}
+  .sm-close{background:none;border:none;font-size:22px;color:#999;cursor:pointer;line-height:1;padding:0 4px;font-family:inherit;}
+  .sm-sec-title{font-size:13px;font-weight:900;color:#0B1F3A;margin-bottom:10px;}
+  .sm-staff-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eef2f8;}
+  .sm-staff-row:last-child{border-bottom:none;}
+  .sm-staff-info{flex:1;min-width:0;}
+  .sm-staff-name{font-size:14px;font-weight:700;color:#1A2332;}
+  .sm-staff-role{font-size:12px;color:#6b7a8d;margin-top:2px;}
+  .sm-staff-btns{display:flex;gap:6px;flex-shrink:0;margin-left:10px;}
+  .sm-btn-reissue{background:#e8f1ff;color:#1352A8;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .sm-btn-delete{background:#ffebee;color:#c62828;border:none;border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .sm-form{margin-top:18px;padding-top:18px;border-top:1px solid #eef2f8;}
+  .sm-inp{width:100%;border:1.5px solid #DDE4EE;border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1A2332;outline:none;transition:border-color .15s;}
+  .sm-inp:focus{border-color:#0B7B6B;}
+  .sm-sel{width:100%;border:1.5px solid #DDE4EE;border-radius:10px;padding:11px 13px;font-size:14px;font-family:inherit;color:#1A2332;outline:none;background:white;margin-top:8px;}
+  .sm-helper-items{margin-top:10px;background:#f8fafc;border-radius:10px;padding:12px 14px;}
+  .sm-helper-title{font-size:12px;font-weight:700;color:#546E7A;margin-bottom:8px;}
+  .sm-check-item{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;color:#1A2332;cursor:pointer;}
+  .sm-check-item input{accent-color:#0B7B6B;width:16px;height:16px;}
+  .sm-error{color:#c62828;font-size:13px;margin-top:8px;min-height:18px;}
+  .sm-add-btn{margin-top:12px;width:100%;background:#0B1F3A;color:white;border:none;border-radius:12px;padding:13px;font-size:15px;font-weight:900;cursor:pointer;font-family:inherit;}
+  .sm-add-btn:disabled{background:#9ca3af;cursor:not-allowed;}
+  .sm-code-reveal{background:#f0fdf8;border:2px solid #0B7B6B;border-radius:14px;padding:18px;margin-top:16px;}
+  .sm-code-label{font-size:12px;font-weight:700;color:#0B7B6B;margin-bottom:4px;}
+  .sm-code-name{font-size:13px;color:#0B1F3A;font-weight:700;margin-bottom:8px;}
+  .sm-code-num{font-size:36px;font-weight:900;color:#0B1F3A;letter-spacing:6px;text-align:center;margin:8px 0;font-family:monospace;}
+  .sm-code-warn{font-size:12px;color:#c62828;font-weight:700;margin-bottom:10px;text-align:center;}
+  .sm-copy-btn{width:100%;background:#FEE500;color:#191919;border:none;border-radius:10px;padding:12px;font-size:14px;font-weight:900;cursor:pointer;font-family:inherit;}
 </style>
 
 <div id="customRequestModal" onclick="if(event.target===this)this.style.display='none'">
@@ -1134,6 +1324,48 @@ loadPolicyBanner();
     <button id="btnCustomReqSubmit" class="crm-kakao" onclick="submitCustomRequest()">카카오로 요청하기 💬</button>
   </div>
 </div>
+<!-- ── 직원 관리 모달 ─────────────────────────────────────────── -->
+<div id="staffModal" onclick="if(event.target===this)window.closeStaffModal()">
+  <div class="sm-box">
+    <div class="sm-hdr">
+      <span class="sm-title">👥 직원 관리</span>
+      <button class="sm-close" onclick="window.closeStaffModal()">✕</button>
+    </div>
+
+    <div class="sm-sec-title">등록된 직원</div>
+    <div id="smStaffList">
+      <div style="text-align:center;color:#9ca3af;font-size:13px;padding:16px;">불러오는 중...</div>
+    </div>
+
+    <div class="sm-form">
+      <div class="sm-sec-title">직원 추가</div>
+      <input class="sm-inp" id="staffNameInp" type="text" maxlength="20" placeholder="이름 (최대 20자)" autocomplete="off">
+      <select class="sm-sel" id="staffRoleSel" onchange="window.toggleHelperItems()">
+        <option value="driver">차량기사</option>
+        <option value="helper">도우미</option>
+      </select>
+      <div class="sm-helper-items" id="helperItemsSec" style="display:none;">
+        <div class="sm-helper-title">보여줄 항목 선택 (복수 선택 가능)</div>
+        <label class="sm-check-item"><input type="checkbox" value="todo"> 오늘의 할 일</label>
+        <label class="sm-check-item"><input type="checkbox" value="monthEvent"> 이달 행사</label>
+        <label class="sm-check-item"><input type="checkbox" value="edu"> 교육 내용</label>
+        <label class="sm-check-item"><input type="checkbox" value="absList"> 결석자 명단</label>
+        <label class="sm-check-item"><input type="checkbox" value="vehicle"> 차량 운행표</label>
+      </div>
+      <div class="sm-error" id="smError"></div>
+      <button class="sm-add-btn" id="smAddBtn" onclick="window.submitAddStaff()">직원 추가</button>
+    </div>
+
+    <div class="sm-code-reveal" id="smCodeReveal" style="display:none;">
+      <div class="sm-code-label">발급된 코드 — 직원에게 전달 후 이 화면을 닫아주세요</div>
+      <div class="sm-code-name" id="smRevealName"></div>
+      <div class="sm-code-num" id="smRevealCode"></div>
+      <div class="sm-code-warn">⚠️ 이 코드는 다시 볼 수 없으니 지금 전달하세요</div>
+      <button class="sm-copy-btn" id="smCopyBtn" onclick="window.copyKakaoMsg()">카카오톡으로 보낼 문구 복사</button>
+    </div>
+  </div>
+</div>
+
 <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">© 2026 FILLYO · fillyo.kr</div>
 </body>
 </html>

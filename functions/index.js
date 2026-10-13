@@ -1880,3 +1880,398 @@ exports.dailyRtdbBackup = onSchedule(
     console.log(`[dailyRtdbBackup] 완료: ${fileName} (${(bytes / 1024).toFixed(1)} KB)`);
   },
 );
+
+// ══════════════════════════════════════════════════════════════════════
+// 직원 입장 코드 v1 — createStaffMember / reissueStaffCode /
+//   deleteStaffMember / verifyStaffCode / getStaffData
+// ══════════════════════════════════════════════════════════════════════
+
+const _crypto = require('crypto');
+
+const _STAFF_ROLES        = ['driver', 'helper'];
+const _STAFF_HELPER_ITEMS = ['todo', 'monthEvent', 'edu', 'absList', 'vehicle'];
+
+function _sha256(text) {
+  return _crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+// 서버(UTC) → 한국시간(UTC+9)
+function _seoulNow()      { return new Date(Date.now() + 9 * 3600 * 1000); }
+function _seoulDateKey(d) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+function _seoulMonthKey(d) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+}
+function _seoulDowKey(d) {
+  return ['sun','mon','tue','wed','thu','fri','sat'][d.getUTCDay()];
+}
+
+// 관장님 또는 관리자 확인
+async function _assertStaffManager(academyId, uid, isAdmin) {
+  if (isAdmin) return;
+  const snap = await db.ref(`users/${uid}/academyId`).get();
+  if (!snap.exists() || snap.val() !== academyId) {
+    throw new HttpsError('permission-denied', '관장님만 직원 정보를 관리할 수 있습니다');
+  }
+}
+
+async function _getAcademyOwnerUid(academyId) {
+  const snap = await db.ref(`academies/${academyId}/members`).get();
+  if (!snap.exists()) return null;
+  const entry = Object.entries(snap.val()).find(([, v]) => v === 'owner');
+  return entry ? entry[0] : null;
+}
+
+// 관장님 구독 상태 확인 (generateGrowthReport와 동일 기준)
+async function _checkOwnerSubscription(academyId) {
+  const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
+  if (!ownerUidSnap.exists()) {
+    throw new HttpsError('failed-precondition', '관장님 구독이 만료되어 이용할 수 없습니다');
+  }
+  const ownerUid = ownerUidSnap.val();
+  const ucSnap   = await db.ref(`users/${ownerUid}`).get();
+  const uc       = ucSnap.val() || {};
+  const isPro    = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
+  const ts       = uc.trialStart || null;
+  const isTrial  = !isPro && ts !== null && Math.floor((Date.now() - ts) / 86400000) < 90;
+  if (!isPro && !isTrial) {
+    throw new HttpsError('failed-precondition', '관장님 구독이 만료되어 이용할 수 없습니다');
+  }
+}
+
+async function _buildVehicleData(academyId) {
+  const sNow      = _seoulNow();
+  const dayKey    = _seoulDowKey(sNow);
+  const dateStr   = _seoulDateKey(sNow);
+  const isWeekend = dayKey === 'sat' || dayKey === 'sun';
+  const [cntSnap, schSnap, noteSnap] = await Promise.all([
+    db.ref(`academies/${academyId}/settings/carCount`).get(),
+    isWeekend ? Promise.resolve(null) : db.ref(`academies/${academyId}/vehicleSchedule/${dayKey}`).get(),
+    db.ref(`academies/${academyId}/days/${dateStr}/vehicleNote`).get(),
+  ]);
+  return {
+    carCount:    cntSnap.val() || 2,
+    schedule:    (!isWeekend && schSnap && schSnap.exists()) ? schSnap.val() : {},
+    vehicleNote: noteSnap.exists() ? (noteSnap.val() || '') : '',
+    dayKey,
+    dateStr,
+    isWeekend,
+  };
+}
+
+async function _buildStaffData(academyId, role, allowedItems) {
+  const sNow     = _seoulNow();
+  const todayStr = _seoulDateKey(sNow);
+  const monthStr = _seoulMonthKey(sNow);
+  const data     = {};
+
+  if (role === 'driver') {
+    data.vehicle = await _buildVehicleData(academyId);
+    return data;
+  }
+
+  const items = Array.isArray(allowedItems) ? allowedItems : [];
+  await Promise.all(items.map(async item => {
+    switch (item) {
+      case 'todo': {
+        const snap = await db.ref(`academies/${academyId}/todos`).get();
+        const all  = snap.exists() ? Object.values(snap.val()) : [];
+        data.todo  = all.filter(t => {
+          if (t.createdDate && t.createdDate > todayStr) return false;
+          if (t.done && t.doneDate && t.doneDate < todayStr) return false;
+          return true;
+        });
+        break;
+      }
+      case 'monthEvent': {
+        const snap      = await db.ref(`academies/${academyId}/months/${monthStr}/monthEvent`).get();
+        data.monthEvent = snap.exists() ? (snap.val() || '') : '';
+        break;
+      }
+      case 'edu': {
+        const snap = await db.ref(`academies/${academyId}/days/${todayStr}/edu`).get();
+        data.edu   = snap.exists() ? (snap.val() || '') : '';
+        break;
+      }
+      case 'absList': {
+        const snap    = await db.ref(`academies/${academyId}/days/${todayStr}/absList`).get();
+        data.absList  = snap.exists() ? (snap.val() || '') : '';
+        break;
+      }
+      case 'vehicle': {
+        data.vehicle = await _buildVehicleData(academyId);
+        break;
+      }
+    }
+  }));
+  return data;
+}
+
+async function _incrementRateLimit(academyId, currentCount, windowStart, now) {
+  const inWindow = (now - (windowStart || 0)) < (10 * 60 * 1000);
+  if (inWindow) {
+    await db.ref(`staffRateLimit/${academyId}/count`).set(currentCount + 1);
+  } else {
+    await db.ref(`staffRateLimit/${academyId}`).set({ count: 1, windowStart: now });
+  }
+}
+
+async function _generateUniqueCode(existingCodesVal) {
+  for (let i = 0; i < 200; i++) {
+    const code = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+    let collision = false;
+    for (const entry of Object.values(existingCodesVal)) {
+      if (entry.codeHash && entry.codeSalt && _sha256(code + entry.codeSalt) === entry.codeHash) {
+        collision = true;
+        break;
+      }
+    }
+    if (!collision) return code;
+  }
+  throw new HttpsError('internal', '코드 생성에 실패했습니다. 잠시 후 다시 시도해주세요.');
+}
+
+// ── createStaffMember ─────────────────────────────────────────────
+exports.createStaffMember = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid     = request.auth?.uid;
+    const isAdmin = request.auth?.token?.email === 'audtls2g@gmail.com';
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, name, role, allowedItems = [] } = request.data;
+    if (!academyId || !name || !role) {
+      throw new HttpsError('invalid-argument', 'academyId, name, role 필수');
+    }
+    const trimmedName = typeof name === 'string' ? name.trim() : '';
+    if (!trimmedName || trimmedName.length > 20) {
+      throw new HttpsError('invalid-argument', '이름은 1~20자 이내여야 합니다');
+    }
+    if (!_STAFF_ROLES.includes(role)) {
+      throw new HttpsError('invalid-argument', 'role은 driver 또는 helper 만 허용됩니다');
+    }
+    const validItems = (role === 'helper' && Array.isArray(allowedItems))
+      ? allowedItems.filter(i => _STAFF_HELPER_ITEMS.includes(i))
+      : [];
+
+    await _assertStaffManager(academyId, uid, isAdmin);
+
+    const codesSnap = await db.ref(`staffSecrets/${academyId}/codes`).get();
+    const codesVal  = codesSnap.exists() ? codesSnap.val() : {};
+    const code      = await _generateUniqueCode(codesVal);
+    const salt      = _crypto.randomBytes(16).toString('hex');
+    const codeHash  = _sha256(code + salt);
+    const staffId   = `staff_${Date.now()}_${_crypto.randomBytes(3).toString('hex')}`;
+    const now       = Date.now();
+
+    // ownerUid 최초 기록 (구독 확인용)
+    const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
+    if (!ownerUidSnap.exists()) {
+      const ownerUid = isAdmin ? await _getAcademyOwnerUid(academyId) : uid;
+      if (ownerUid) await db.ref(`staffSecrets/${academyId}/ownerUid`).set(ownerUid);
+    }
+
+    await Promise.all([
+      db.ref(`staffSecrets/${academyId}/codes/${staffId}`).set({ codeHash, codeSalt: salt }),
+      db.ref(`academies/${academyId}/staff/${staffId}`).set({
+        name: trimmedName,
+        role,
+        ...(role === 'helper' ? { allowedItems: validItems } : {}),
+        createdAt: now,
+        active:    true,
+      }),
+    ]);
+
+    console.log(`[createStaffMember] 완료: ${academyId}/${staffId} role=${role}`);
+    return { staffId, code };
+  },
+);
+
+// ── reissueStaffCode ──────────────────────────────────────────────
+exports.reissueStaffCode = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid     = request.auth?.uid;
+    const isAdmin = request.auth?.token?.email === 'audtls2g@gmail.com';
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, staffId } = request.data;
+    if (!academyId || !staffId) {
+      throw new HttpsError('invalid-argument', 'academyId, staffId 필수');
+    }
+    await _assertStaffManager(academyId, uid, isAdmin);
+
+    const staffSnap = await db.ref(`academies/${academyId}/staff/${staffId}`).get();
+    if (!staffSnap.exists()) {
+      throw new HttpsError('not-found', '직원 정보를 찾을 수 없습니다');
+    }
+
+    const codesSnap = await db.ref(`staffSecrets/${academyId}/codes`).get();
+    const codesVal  = codesSnap.exists()
+      ? Object.fromEntries(Object.entries(codesSnap.val()).filter(([k]) => k !== staffId))
+      : {};
+    const code      = await _generateUniqueCode(codesVal);
+    const salt      = _crypto.randomBytes(16).toString('hex');
+    const codeHash  = _sha256(code + salt);
+
+    // 기존 세션 전부 삭제 + 코드 교체
+    const sessSnap = await db.ref(`staffSecrets/${academyId}/sessions`).get();
+    const ops = [db.ref(`staffSecrets/${academyId}/codes/${staffId}`).set({ codeHash, codeSalt: salt })];
+    if (sessSnap.exists()) {
+      sessSnap.forEach(child => {
+        if (child.val().staffId === staffId) {
+          ops.push(db.ref(`staffSecrets/${academyId}/sessions/${child.key}`).remove());
+        }
+      });
+    }
+    await Promise.all(ops);
+
+    console.log(`[reissueStaffCode] 완료: ${academyId}/${staffId}`);
+    return { staffId, code };
+  },
+);
+
+// ── deleteStaffMember ─────────────────────────────────────────────
+exports.deleteStaffMember = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid     = request.auth?.uid;
+    const isAdmin = request.auth?.token?.email === 'audtls2g@gmail.com';
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, staffId } = request.data;
+    if (!academyId || !staffId) {
+      throw new HttpsError('invalid-argument', 'academyId, staffId 필수');
+    }
+    await _assertStaffManager(academyId, uid, isAdmin);
+
+    const sessSnap = await db.ref(`staffSecrets/${academyId}/sessions`).get();
+    const ops = [
+      db.ref(`staffSecrets/${academyId}/codes/${staffId}`).remove(),
+      db.ref(`academies/${academyId}/staff/${staffId}`).remove(),
+    ];
+    if (sessSnap.exists()) {
+      sessSnap.forEach(child => {
+        if (child.val().staffId === staffId) {
+          ops.push(db.ref(`staffSecrets/${academyId}/sessions/${child.key}`).remove());
+        }
+      });
+    }
+    await Promise.all(ops);
+
+    console.log(`[deleteStaffMember] 완료: ${academyId}/${staffId}`);
+    return { ok: true };
+  },
+);
+
+// ── verifyStaffCode ───────────────────────────────────────────────
+exports.verifyStaffCode = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    // 인증 불필요
+    const { academyId, code } = request.data;
+    if (!academyId || !code) {
+      throw new HttpsError('invalid-argument', 'academyId, code 필수');
+    }
+    if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
+      throw new HttpsError('invalid-argument', '코드는 6자리 숫자여야 합니다');
+    }
+
+    const now     = Date.now();
+    const TEN_MIN = 10 * 60 * 1000;
+
+    // 횟수 제한 확인
+    const limitSnap = await db.ref(`staffRateLimit/${academyId}`).get();
+    const limit     = limitSnap.exists() ? limitSnap.val() : { count: 0, windowStart: 0 };
+    const inWindow  = (now - (limit.windowStart || 0)) < TEN_MIN;
+    if (inWindow && (limit.count || 0) >= 10) {
+      throw new HttpsError('resource-exhausted', '잠시 후 다시 시도해주세요 (10분 내 10회 초과)');
+    }
+
+    // 코드 매칭
+    const codesSnap = await db.ref(`staffSecrets/${academyId}/codes`).get();
+    let matchedStaffId = null;
+    if (codesSnap.exists()) {
+      codesSnap.forEach(child => {
+        const e = child.val();
+        if (!matchedStaffId && e.codeHash && e.codeSalt && _sha256(code + e.codeSalt) === e.codeHash) {
+          matchedStaffId = child.key;
+        }
+      });
+    }
+
+    if (!matchedStaffId) {
+      await _incrementRateLimit(academyId, limit.count || 0, limit.windowStart || 0, now);
+      throw new HttpsError('unauthenticated', '코드가 올바르지 않습니다');
+    }
+
+    // 맞히면 횟수 초기화
+    await db.ref(`staffRateLimit/${academyId}`).set({ count: 0, windowStart: now });
+
+    const staffSnap = await db.ref(`academies/${academyId}/staff/${matchedStaffId}`).get();
+    if (!staffSnap.exists() || !staffSnap.val().active) {
+      throw new HttpsError('unauthenticated', '비활성화된 직원 코드입니다');
+    }
+    const staff = staffSnap.val();
+
+    await _checkOwnerSubscription(academyId);
+
+    const nameSnap    = await db.ref(`academies/${academyId}/settings/academyName`).get();
+    const academyName = nameSnap.exists() ? (nameSnap.val() || '') : '';
+
+    const data = await _buildStaffData(academyId, staff.role, staff.allowedItems);
+
+    // 세션 토큰 발급 (원문은 반환, 해시만 저장)
+    const sessionToken = _crypto.randomBytes(32).toString('hex');
+    const tokenHash    = _sha256(sessionToken);
+    const expiresAt    = now + 30 * 24 * 3600 * 1000; // 30일
+
+    await db.ref(`staffSecrets/${academyId}/sessions/${tokenHash}`).set({
+      staffId:   matchedStaffId,
+      createdAt: now,
+      expiresAt,
+    });
+
+    console.log(`[verifyStaffCode] 완료: ${academyId}/${matchedStaffId}`);
+    return { sessionToken, name: staff.name, role: staff.role, academyName, data };
+  },
+);
+
+// ── getStaffData ──────────────────────────────────────────────────
+exports.getStaffData = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    // 인증 불필요 — 세션 토큰으로 확인
+    const { academyId, sessionToken } = request.data;
+    if (!academyId || !sessionToken) {
+      throw new HttpsError('invalid-argument', 'academyId, sessionToken 필수');
+    }
+
+    const tokenHash = _sha256(sessionToken);
+    const sessSnap  = await db.ref(`staffSecrets/${academyId}/sessions/${tokenHash}`).get();
+    if (!sessSnap.exists()) {
+      throw new HttpsError('unauthenticated', '세션이 유효하지 않습니다. 코드를 다시 입력해주세요.');
+    }
+    const sess = sessSnap.val();
+    if (sess.expiresAt < Date.now()) {
+      await db.ref(`staffSecrets/${academyId}/sessions/${tokenHash}`).remove();
+      throw new HttpsError('unauthenticated', '세션이 만료되었습니다. 코드를 다시 입력해주세요.');
+    }
+
+    const staffSnap = await db.ref(`academies/${academyId}/staff/${sess.staffId}`).get();
+    if (!staffSnap.exists() || !staffSnap.val().active) {
+      throw new HttpsError('unauthenticated', '직원 정보가 없거나 비활성화되었습니다.');
+    }
+    const staff = staffSnap.val();
+
+    await _checkOwnerSubscription(academyId);
+
+    const nameSnap    = await db.ref(`academies/${academyId}/settings/academyName`).get();
+    const academyName = nameSnap.exists() ? (nameSnap.val() || '') : '';
+
+    const data = await _buildStaffData(academyId, staff.role, staff.allowedItems);
+
+    return { name: staff.name, role: staff.role, academyName, data };
+  },
+);
