@@ -1,0 +1,12 @@
+{
+  "name": "fillyo-rules-test",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node rules_test.js"
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.0.0"
+  }
+}
