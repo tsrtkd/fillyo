@@ -1,0 +1,25 @@
+{
+  "rules": {
+    "users": {
+      ".read": "auth.token.email === 'audtls2g@gmail.com'",
+      "$uid": {
+        ".read": "auth.uid === $uid || auth.token.email === 'audtls2g@gmail.com'",
+        ".write": "auth.uid === $uid || auth.token.email === 'audtls2g@gmail.com'"
+      }
+    },
+    "academies": {
+      ".read": "auth != null",
+      "$acadId": { ".write": "auth != null" }
+    },
+    "notices": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+    "policy": {
+      "curated": {
+        ".read": "auth != null",
+        ".write": "auth.token.email === 'audtls2g@gmail.com'"
+      }
+    }
+  }
+}
