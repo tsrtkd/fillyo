@@ -1597,34 +1597,45 @@ ${dojanKeyword ? `
 ④ "○○이(가) 도장에서 보내는 시간이 헛되지 않도록, 저희도 최선을 다하겠습니다. 감사합니다."
 ⑤ "오늘도 도장에 나와 준 ○○이(가) 고맙습니다. 다음 달 어떤 모습을 보여줄지 벌써 기대됩니다."`;
 
-    // Anthropic API 호출 (서버에서 직접, FILLYO 자체 API 키 사용)
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key':          process.env.ANTHROPIC_API_KEY,
-        'anthropic-version':  '2023-06-01',
-        'content-type':       'application/json',
-      },
-      body: JSON.stringify({
-        model:      'claude-sonnet-4-6',
-        max_tokens: 2048,
-        system: [{ type: 'text', cache_control: { type: 'ephemeral' }, text: systemPromptText }],
-        messages: [{ role: 'user', content: userContent }],
-      }),
-    });
+    // Anthropic API 호출 — fetch·응답확인·JSON파싱·빈텍스트 검사를 모두 포함
+    // 어떤 이유로든 실패하면 차감한 크레딧을 한 번만 환불하고 internal 에러를 던짐
+    let text, usage;
+    try {
+      const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key':          process.env.ANTHROPIC_API_KEY,
+          'anthropic-version':  '2023-06-01',
+          'content-type':       'application/json',
+        },
+        body: JSON.stringify({
+          model:      'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: [{ type: 'text', cache_control: { type: 'ephemeral' }, text: systemPromptText }],
+          messages: [{ role: 'user', content: userContent }],
+        }),
+      });
 
-    if (!anthropicRes.ok) {
-      const errData = await anthropicRes.text();
-      console.error('[generateGrowthReport] Anthropic API 오류:', errData);
+      if (!anthropicRes.ok) {
+        const errData = await anthropicRes.text();
+        console.error('[generateGrowthReport] Anthropic API 오류:', errData);
+        throw new Error('Anthropic API 오류');
+      }
+
+      const data = await anthropicRes.json();
+      text  = data?.content?.[0]?.text || '';
+      usage = data?.usage || {};
+
+      if (!text) throw new Error('응답 텍스트 빈 문자열');
+    } catch (aiErr) {
       if (_usedFrom !== null) {
-        await db.ref(`aiCredits/${academyId}`).transaction(cur => _refundCredit(cur, _usedFrom, _credMonthKey)).catch(() => {});
+        await db.ref(`aiCredits/${academyId}`)
+          .transaction(cur => _refundCredit(cur, _usedFrom, _credMonthKey))
+          .catch(() => {});
+        _usedFrom = null; // 중복 환불 방지
       }
       throw new HttpsError('internal', 'AI 리포트 생성 실패');
     }
-
-    const data  = await anthropicRes.json();
-    const text  = data?.content?.[0]?.text || '';
-    const usage = data?.usage || {};
 
     console.log(`[generateGrowthReport] 완료: ${academyId}/${studentId} usage=${JSON.stringify(usage)}`);
 

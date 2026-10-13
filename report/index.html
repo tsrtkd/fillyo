@@ -477,7 +477,8 @@ function beltBadge(belt, grade) {
 function renderCredits(credits) {
   const el = document.getElementById('aiCreditsInfo');
   if (!el) return;
-  if (!credits || credits.unlimited) {
+  if (!credits) { el.style.display = 'none'; return; }
+  if (credits.unlimited === true) {
     el.textContent = '이번 달 무제한';
   } else {
     const free = credits.freeRemaining ?? 0;
