@@ -2052,19 +2052,43 @@ async function _getAcademyOwnerUid(academyId) {
   return entry ? entry[0] : null;
 }
 
+// ① members에서 owner 찾기 ② 없으면 callerUid가 이 academyId 소유자인지 확인 ③ 없으면 null
+async function _resolveOwnerUid(academyId, callerUid) {
+  const snap = await db.ref(`academies/${academyId}/members`).get();
+  if (snap.exists()) {
+    const entry = Object.entries(snap.val()).find(([, v]) => v === 'owner');
+    if (entry) return entry[0];
+  }
+  if (callerUid) {
+    const userAcSnap = await db.ref(`users/${callerUid}/academyId`).get();
+    if (userAcSnap.exists() && userAcSnap.val() === academyId) return callerUid;
+  }
+  return null;
+}
+
 // 관장님 구독 상태 확인 (generateGrowthReport와 동일 기준)
 async function _checkOwnerSubscription(academyId) {
+  let ownerUid;
   const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
-  if (!ownerUidSnap.exists()) {
+  if (ownerUidSnap.exists()) {
+    ownerUid = ownerUidSnap.val();
+  } else {
+    // ownerUid 미기록: members에서 한 번 더 찾기 (쓰기 없음)
+    const membersSnap = await db.ref(`academies/${academyId}/members`).get();
+    if (membersSnap.exists()) {
+      const entry = Object.entries(membersSnap.val()).find(([, v]) => v === 'owner');
+      if (entry) ownerUid = entry[0];
+    }
+  }
+  if (!ownerUid) {
     throw new HttpsError('failed-precondition', '관장님 구독이 만료되어 이용할 수 없습니다');
   }
-  const ownerUid = ownerUidSnap.val();
-  const ucSnap   = await db.ref(`users/${ownerUid}`).get();
-  const uc       = ucSnap.val() || {};
+  const ucSnap  = await db.ref(`users/${ownerUid}`).get();
+  const uc      = ucSnap.val() || {};
   if (uc.role === 'admin' || uc.email === 'audtls2g@gmail.com') return;
-  const isPro    = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
-  const ts       = uc.trialStart || null;
-  const isTrial  = !isPro && ts !== null && Math.floor((Date.now() - ts) / 86400000) < 90;
+  const isPro   = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
+  const ts      = uc.trialStart || null;
+  const isTrial = !isPro && ts !== null && Math.floor((Date.now() - ts) / 86400000) < 90;
   if (!isPro && !isTrial) {
     throw new HttpsError('failed-precondition', '관장님 구독이 만료되어 이용할 수 없습니다');
   }
@@ -2202,11 +2226,14 @@ exports.createStaffMember = onCall(
     const staffId   = `staff_${Date.now()}_${_crypto.randomBytes(3).toString('hex')}`;
     const now       = Date.now();
 
-    // ownerUid 최초 기록 (구독 확인용)
+    // ownerUid 최초 기록 — 해결 못하면 고장난 직원이 생기지 않도록 차단
     const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
     if (!ownerUidSnap.exists()) {
-      const ownerUid = isAdmin ? await _getAcademyOwnerUid(academyId) : uid;
-      if (ownerUid) await db.ref(`staffSecrets/${academyId}/ownerUid`).set(ownerUid);
+      const ownerUid = await _resolveOwnerUid(academyId, uid);
+      if (!ownerUid) {
+        throw new HttpsError('failed-precondition', '관장님 계정 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
+      }
+      await db.ref(`staffSecrets/${academyId}/ownerUid`).set(ownerUid);
     }
 
     await Promise.all([
@@ -2243,6 +2270,16 @@ exports.reissueStaffCode = onCall(
     const staffSnap = await db.ref(`academies/${academyId}/staff/${staffId}`).get();
     if (!staffSnap.exists()) {
       throw new HttpsError('not-found', '직원 정보를 찾을 수 없습니다');
+    }
+
+    // ownerUid 없으면 resolve & 기록 — 실패 시 코드 변경 차단
+    const ownerUidSnap = await db.ref(`staffSecrets/${academyId}/ownerUid`).get();
+    if (!ownerUidSnap.exists()) {
+      const ownerUid = await _resolveOwnerUid(academyId, uid);
+      if (!ownerUid) {
+        throw new HttpsError('failed-precondition', '관장님 계정 정보를 찾을 수 없습니다. 관리자에게 문의해주세요.');
+      }
+      await db.ref(`staffSecrets/${academyId}/ownerUid`).set(ownerUid);
     }
 
     const codesSnap = await db.ref(`staffSecrets/${academyId}/codes`).get();

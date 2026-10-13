@@ -1093,8 +1093,8 @@ async function _loadStaffList() {
           <div class="sm-staff-role">${ROLE[s.role] || s.role}${items ? ' · ' + xss(items) : ''}</div>
         </div>
         <div class="sm-staff-btns">
-          <button class="sm-btn-reissue" onclick="window.smReissue('${sid}','${nmEsc}')">코드 재발급</button>
-          <button class="sm-btn-delete"  onclick="window.smDelete('${sid}','${nmEsc}')">삭제</button>
+          <button class="sm-btn-reissue" onclick="window.smReissue(this,'${sid}','${nmEsc}')">코드 재발급</button>
+          <button class="sm-btn-delete"  onclick="window.smDelete(this,'${sid}','${nmEsc}')">삭제</button>
         </div>
       </div>`;
     }).join('');
@@ -1138,18 +1138,24 @@ window.submitAddStaff = async () => {
   }
 };
 
-window.smReissue = async (staffId, staffName) => {
+window.smReissue = async (btn, staffId, staffName) => {
+  if (btn.disabled) return;
+  btn.disabled = true;
   document.getElementById('smError').textContent = '';
   try {
     const res = await _fnReissueCode({ academyId: _academyId, staffId });
     _showCodeReveal(res.data.code, staffName);
   } catch (e) {
     document.getElementById('smError').textContent = '코드 재발급 실패: ' + (e?.message || '');
+  } finally {
+    btn.disabled = false;
   }
 };
 
-window.smDelete = async (staffId, staffName) => {
+window.smDelete = async (btn, staffId, staffName) => {
   if (!confirm(`"${staffName}" 직원을 삭제하시겠습니까?\n삭제하면 즉시 접속이 차단됩니다.`)) return;
+  if (btn.disabled) return;
+  btn.disabled = true;
   document.getElementById('smError').textContent = '';
   try {
     await _fnDeleteStaff({ academyId: _academyId, staffId });
@@ -1157,6 +1163,8 @@ window.smDelete = async (staffId, staffName) => {
     document.getElementById('smCodeReveal').style.display = 'none';
   } catch (e) {
     document.getElementById('smError').textContent = '삭제 실패: ' + (e?.message || '');
+  } finally {
+    btn.disabled = false;
   }
 };
 
