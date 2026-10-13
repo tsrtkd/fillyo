@@ -236,7 +236,7 @@ function renderVehicle(vehicle, title) {
           <span class="car-label">${c}호차</span>
         </div>
         <div class="car-content${val ? '' : ' empty'}">${val ? esc(val) : '등록된 운행 없음'}</div>
-        ${img ? `<img class="car-img" src="${img}" alt="${c}호차 운행표 사진">` : ''}
+        ${img && img.startsWith('data:image/') ? `<img class="car-img" src="${img}" alt="${c}호차 운행표 사진">` : ''}
       </div>`;
     }
   }
@@ -295,9 +295,16 @@ function renderData(role, data) {
 
   if (data.absList !== undefined) {
     html += `<div class="card"><div class="card-hd navy">📋 결석자 명단</div><div class="card-body">`;
-    html += data.absList
-      ? `<div class="text-block">${esc(data.absList)}</div>`
-      : `<div class="text-empty">오늘 결석자가 없습니다</div>`;
+    const abs = Array.isArray(data.absList) ? data.absList : [];
+    if (!abs.length) {
+      html += `<div class="text-empty">오늘 결석자가 없습니다</div>`;
+    } else {
+      abs.forEach(item => {
+        const name   = esc(item.name || '');
+        const reason = item.reason ? ` — ${esc(item.reason)}` : '';
+        html += `<div class="abs-item">${name}${reason}</div>`;
+      });
+    }
     html += '</div></div>';
   }
 

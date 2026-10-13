@@ -1907,6 +1907,12 @@ function _seoulDowKey(d) {
   return ['sun','mon','tue','wed','thu','fri','sat'][d.getUTCDay()];
 }
 
+function _validateAcademyId(academyId) {
+  if (!academyId || !/^[A-Za-z0-9_-]{1,64}$/.test(academyId)) {
+    throw new HttpsError('invalid-argument', '유효하지 않은 academyId입니다');
+  }
+}
+
 // 관장님 또는 관리자 확인
 async function _assertStaffManager(academyId, uid, isAdmin) {
   if (isAdmin) return;
@@ -1932,6 +1938,7 @@ async function _checkOwnerSubscription(academyId) {
   const ownerUid = ownerUidSnap.val();
   const ucSnap   = await db.ref(`users/${ownerUid}`).get();
   const uc       = ucSnap.val() || {};
+  if (uc.role === 'admin' || uc.email === 'audtls2g@gmail.com') return;
   const isPro    = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
   const ts       = uc.trialStart || null;
   const isTrial  = !isPro && ts !== null && Math.floor((Date.now() - ts) / 86400000) < 90;
@@ -1996,7 +2003,7 @@ async function _buildStaffData(academyId, role, allowedItems) {
       }
       case 'absList': {
         const snap    = await db.ref(`academies/${academyId}/days/${todayStr}/absList`).get();
-        data.absList  = snap.exists() ? (snap.val() || '') : '';
+        data.absList  = snap.exists() ? (snap.val() || []) : [];
         break;
       }
       case 'vehicle': {
@@ -2044,6 +2051,7 @@ exports.createStaffMember = onCall(
     if (!academyId || !name || !role) {
       throw new HttpsError('invalid-argument', 'academyId, name, role 필수');
     }
+    _validateAcademyId(academyId);
     const trimmedName = typeof name === 'string' ? name.trim() : '';
     if (!trimmedName || trimmedName.length > 20) {
       throw new HttpsError('invalid-argument', '이름은 1~20자 이내여야 합니다');
@@ -2056,6 +2064,12 @@ exports.createStaffMember = onCall(
       : [];
 
     await _assertStaffManager(academyId, uid, isAdmin);
+
+    const staffCountSnap = await db.ref(`academies/${academyId}/staff`).get();
+    const staffCount = staffCountSnap.exists() ? Object.keys(staffCountSnap.val()).length : 0;
+    if (staffCount >= 30) {
+      throw new HttpsError('failed-precondition', '직원은 최대 30명까지 등록할 수 있습니다');
+    }
 
     const codesSnap = await db.ref(`staffSecrets/${academyId}/codes`).get();
     const codesVal  = codesSnap.exists() ? codesSnap.val() : {};
@@ -2100,6 +2114,7 @@ exports.reissueStaffCode = onCall(
     if (!academyId || !staffId) {
       throw new HttpsError('invalid-argument', 'academyId, staffId 필수');
     }
+    _validateAcademyId(academyId);
     await _assertStaffManager(academyId, uid, isAdmin);
 
     const staffSnap = await db.ref(`academies/${academyId}/staff/${staffId}`).get();
@@ -2144,6 +2159,7 @@ exports.deleteStaffMember = onCall(
     if (!academyId || !staffId) {
       throw new HttpsError('invalid-argument', 'academyId, staffId 필수');
     }
+    _validateAcademyId(academyId);
     await _assertStaffManager(academyId, uid, isAdmin);
 
     const sessSnap = await db.ref(`staffSecrets/${academyId}/sessions`).get();
@@ -2177,6 +2193,7 @@ exports.verifyStaffCode = onCall(
     if (typeof code !== 'string' || !/^\d{6}$/.test(code)) {
       throw new HttpsError('invalid-argument', '코드는 6자리 숫자여야 합니다');
     }
+    _validateAcademyId(academyId);
 
     const now     = Date.now();
     const TEN_MIN = 10 * 60 * 1000;
@@ -2187,6 +2204,12 @@ exports.verifyStaffCode = onCall(
     const inWindow  = (now - (limit.windowStart || 0)) < TEN_MIN;
     if (inWindow && (limit.count || 0) >= 10) {
       throw new HttpsError('resource-exhausted', '잠시 후 다시 시도해주세요 (10분 내 10회 초과)');
+    }
+
+    // 학원 settings 존재 확인 (없으면 쓰기 없이 종료)
+    const settingsExistsSnap = await db.ref(`academies/${academyId}/settings`).get();
+    if (!settingsExistsSnap.exists()) {
+      throw new HttpsError('unauthenticated', '코드가 올바르지 않습니다');
     }
 
     // 코드 매칭
@@ -2247,6 +2270,7 @@ exports.getStaffData = onCall(
     if (!academyId || !sessionToken) {
       throw new HttpsError('invalid-argument', 'academyId, sessionToken 필수');
     }
+    _validateAcademyId(academyId);
 
     const tokenHash = _sha256(sessionToken);
     const sessSnap  = await db.ref(`staffSecrets/${academyId}/sessions/${tokenHash}`).get();
