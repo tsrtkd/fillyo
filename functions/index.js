@@ -235,7 +235,15 @@ exports.scheduleNextPayment = onRequest(
           return res.status(402).json({ error: '결제 실패', status: verifiedStatus, portoneData: payRes.data });
         }
 
-        // 결제 성공 — paidCount 갱신·다음 달 예약은 portoneWebhook이 자동 처리
+        // 결제 성공 — users/{uid} pro 전환 (서버에서만 처리, 브라우저 직접 쓰기 불가)
+        await db.ref(`users/${uid}`).update({
+          planType:     'pro',
+          billingCycle: 'monthly',
+          billingKey,
+          planExpiry:   null,
+        });
+
+        // paidCount 갱신·다음 달 예약은 portoneWebhook이 자동 처리
         return res.status(200).json({ ok: true, paymentId, amount: price });
       } catch (e) {
         console.error('[scheduleNextPayment] 오류:', e.response?.data ?? e.message);

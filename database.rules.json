@@ -1,0 +1,81 @@
+{
+  "rules": {
+
+    "users": {
+      ".read": "auth != null && auth.token.email === 'audtls2g@gmail.com'",
+      "$uid": {
+        ".read": "auth.uid === $uid || auth.token.email === 'audtls2g@gmail.com'",
+
+        // 생성: 본인 계정, 레코드가 없을 때, planType이 'trial'인 경우만 허용
+        // 수정: 관리자 이메일만 가능 (planType·planExpiry·billingKey 등 결제 필드는 서버 전용)
+        ".write": "(auth.uid === $uid && !data.exists() && newData.child('planType').val() === 'trial') || auth.token.email === 'audtls2g@gmail.com'",
+
+        // 본인이 직접 수정 가능한 일반 필드
+        "email":     { ".write": "auth.uid === $uid" },
+        "ownerName": { ".write": "auth.uid === $uid" },
+        "phone":     { ".write": "auth.uid === $uid" },
+        "address":   { ".write": "auth.uid === $uid" },
+
+        // academyId: 최초 1회 연결만 허용 (이후 변경 불가)
+        "academyId": { ".write": "auth.uid === $uid && !data.exists()" },
+
+        // trialStart: 최초 1회 기록만 허용 (리셋으로 체험 연장 방지)
+        "trialStart": { ".write": "auth.uid === $uid && !data.exists()" },
+
+        // role: 관리자 이메일만 설정 가능
+        "role": { ".write": "auth.token.email === 'audtls2g@gmail.com'" },
+
+        // 공지 읽음 처리
+        "readNotices": {
+          "$nid": { ".write": "auth.uid === $uid" }
+        }
+      }
+    },
+
+    "academies": {
+      "$acadId": {
+        // 읽기: 해당 도장 관장님 또는 관리자
+        ".read": "auth != null && (root.child('users').child(auth.uid).child('academyId').val() === $acadId || auth.token.email === 'audtls2g@gmail.com')",
+
+        // 쓰기: 해당 도장 관장님, 또는 최초 도장 생성(academyId 없는 사람이 members에 자신을 owner로 지정), 또는 관리자
+        ".write": "auth != null && (root.child('users').child(auth.uid).child('academyId').val() === $acadId || (!data.exists() && newData.child('members').child(auth.uid).val() === 'owner') || auth.token.email === 'audtls2g@gmail.com')",
+
+        // 직원 기능 비밀값 — 브라우저 완전 차단 (Functions Admin SDK만 접근)
+        "staff":         { ".read": false, ".write": false },
+        "staffSessions": { ".read": false, ".write": false },
+        "staffSecrets":  { ".read": false, ".write": false }
+      }
+    },
+
+    // 지금 규칙 그대로 유지
+    "notices": {
+      ".read": "auth != null",
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'admin'"
+    },
+
+    // 지금 규칙 그대로 유지
+    "policy": {
+      ".read": "auth != null",
+      "curated": {
+        ".write": "auth != null && auth.token.email === 'audtls2g@gmail.com'"
+      }
+    },
+
+    // 결제 실패 기록 — 브라우저 쓰기 허용, 읽기는 관리자만
+    "failedSubscriptions": {
+      ".read": "auth.token.email === 'audtls2g@gmail.com'",
+      "$key": { ".write": "auth != null" }
+    },
+
+    // 이하 경로는 Functions(Admin SDK)만 사용 — 브라우저 차단
+    "openPriceSlots":        { ".read": false, ".write": false },
+    "settlementDue":         { ".read": "auth.token.email === 'audtls2g@gmail.com'", ".write": false },
+    "withdrawnAcademies":    { ".read": false, ".write": false },
+    "retainedPaymentRecords":{ ".read": false, ".write": false },
+    "paymentOrders":         { ".read": false, ".write": false },
+
+    // 미래 직원 기능 전역 비밀값 경로 — 브라우저 완전 차단
+    "staffSecrets":   { ".read": false, ".write": false },
+    "staffRateLimit": { ".read": false, ".write": false }
+  }
+}

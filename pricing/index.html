@@ -445,14 +445,6 @@ async function handleSubscriptionComplete(user, billingKey, academyId) {
     const scheduleData = await scheduleRes.json();
     const paidAmount   = scheduleData.amount || confirmedPrice;
 
-    // users/{uid} 업데이트: 단일 요금제 — planExpiry null, billingCycle monthly
-    await update(ref(db, 'users/' + user.uid), {
-      planType:     'pro',
-      billingCycle: 'monthly',
-      billingKey,
-      planExpiry:   null,
-    });
-
     // 구독 기록 저장 (v2.0 — 약정 없음)
     if (academyId) {
       const contractId = `contract_${Date.now()}`;
