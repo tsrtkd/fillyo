@@ -76,16 +76,29 @@ function _computeCreditsInfo(state, now, monthKey) {
   return { freeRemaining, totalPoints, pointReports, nearestExpiry, freeLimit: FREE_LIMIT, unlimited: false };
 }
 
-// 참고 환불액 계산 (getAcademyPointLots와 동일 로직)
+// 참고 환불액 계산 (getAcademyPointLots와 동일 로직 — 밀리초 기준)
 function _refundAmount(lot, now) {
-  const daysSincePurchase = Math.floor((now - (lot.purchasedAt || 0)) / 86400000);
+  const within7days = (now - (lot.purchasedAt || 0)) <= 7 * 24 * 3600 * 1000;
   const isUnused  = lot.remaining === lot.total && !lot.revokedAt;
   const isExpired = (lot.expiresAt || 0) <= now;
   const isRevoked = !!lot.revokedAt;
   if (!isRevoked && isUnused && !isExpired) {
-    return daysSincePurchase <= 7 ? lot.amount : Math.floor(lot.amount * 0.9);
+    return within7days ? lot.amount : Math.floor(lot.amount * 0.9);
   }
   return 0;
+}
+
+// 결제 검증 순수 함수 (_checkPointPayment와 동일 로직)
+function _checkPointPayment(payment, order) {
+  const product = POINT_PRODUCTS[order.productId];
+  if (!product) return { ok: false, reason: `unknown_product:${order.productId}` };
+  if (payment.status !== 'PAID') return { ok: false, reason: `status_not_paid:${payment.status}` };
+  const paidAmount = payment.amount?.total ?? payment.amount;
+  if (paidAmount !== product.amount) {
+    return { ok: false, reason: `amount_mismatch:expected=${product.amount},actual=${paidAmount}` };
+  }
+  if (payment.currency !== 'KRW') return { ok: false, reason: `currency_mismatch:${payment.currency}` };
+  return { ok: true };
 }
 
 // ── 테스트 러너 ───────────────────────────────────────────────────────
@@ -351,6 +364,72 @@ test('⑫ 멱등 보장: 이미 적립된 lot 상태에서 _reserveCredit 재시
   const r2 = _reserveCredit(r1.next, NOW, MONTH);
   assert.strictEqual(r1.next.lots['aip_abc'].remaining, 4900, '1차 차감');
   assert.strictEqual(r2.next.lots['aip_abc'].remaining, 4800, '2차 차감 정상');
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// _checkPointPayment 검증
+// ─────────────────────────────────────────────────────────────────────
+
+const OK_PAYMENT = { status: 'PAID', amount: { total: 5000 }, currency: 'KRW' };
+const OK_ORDER   = { productId: 'p5000' };
+
+test('⑬ _checkPointPayment: 정상 → ok', () => {
+  const r = _checkPointPayment(OK_PAYMENT, OK_ORDER);
+  assert.strictEqual(r.ok, true);
+});
+
+test('⑬ _checkPointPayment: 금액 적음 → amount_mismatch', () => {
+  const r = _checkPointPayment({ ...OK_PAYMENT, amount: { total: 4900 } }, OK_ORDER);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.reason.startsWith('amount_mismatch'), `reason: ${r.reason}`);
+});
+
+test('⑬ _checkPointPayment: 금액 많음 → amount_mismatch', () => {
+  const r = _checkPointPayment({ ...OK_PAYMENT, amount: { total: 9999 } }, OK_ORDER);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.reason.startsWith('amount_mismatch'), `reason: ${r.reason}`);
+});
+
+test('⑬ _checkPointPayment: 통화 다름 → currency_mismatch', () => {
+  const r = _checkPointPayment({ ...OK_PAYMENT, currency: 'USD' }, OK_ORDER);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.reason.startsWith('currency_mismatch'), `reason: ${r.reason}`);
+});
+
+test('⑬ _checkPointPayment: status PAID 아님 → status_not_paid', () => {
+  const r = _checkPointPayment({ ...OK_PAYMENT, status: 'FAILED' }, OK_ORDER);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.reason.startsWith('status_not_paid'), `reason: ${r.reason}`);
+});
+
+test('⑬ _checkPointPayment: 알 수 없는 productId → unknown_product', () => {
+  const r = _checkPointPayment(OK_PAYMENT, { productId: 'p99999' });
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.reason.startsWith('unknown_product'), `reason: ${r.reason}`);
+});
+
+// ─────────────────────────────────────────────────────────────────────
+// 7일 경계 (밀리초 기준)
+// ─────────────────────────────────────────────────────────────────────
+
+const SEVEN_DAYS_MS = 7 * 24 * 3600 * 1000;
+
+test('⑭ 7일 경계: 정확히 7일(7*24*3600*1000ms) → 전액', () => {
+  const purchasedAt = NOW - SEVEN_DAYS_MS; // 정확히 7일 전
+  const lot = {
+    amount: 10000, total: 10000, remaining: 10000,
+    purchasedAt, expiresAt: purchasedAt + 365 * 86400000, revokedAt: null,
+  };
+  assert.strictEqual(_refundAmount(lot, NOW), 10000, '정확히 7일 = 이내 → 전액');
+});
+
+test('⑭ 7일 경계: 7일+1분(7*24*3600*1000+60000ms) → 90%', () => {
+  const purchasedAt = NOW - SEVEN_DAYS_MS - 60000; // 7일 + 1분 전
+  const lot = {
+    amount: 10000, total: 10000, remaining: 10000,
+    purchasedAt, expiresAt: purchasedAt + 365 * 86400000, revokedAt: null,
+  };
+  assert.strictEqual(_refundAmount(lot, NOW), 9000, '7일+1분 = 초과 → 90%');
 });
 
 // ── 결과 출력 ──────────────────────────────────────────────────────────

@@ -307,7 +307,7 @@ exports.portoneWebhook = onRequest(
       const isAiPoints = order.type === 'aiPoints' || paymentId.startsWith('aip_');
       if (isAiPoints) {
         if (status === 'PAID') {
-          await _creditPointLot(paymentId, order);
+          await _creditPointLot(paymentId, order, payment); // payment = PortOne 단건조회 결과
         } else if (status === 'CANCELLED') {
           // 포인트 회수는 관리자가 직접(revokePointLot). 여기선 주문 기록만 남김.
           await db.ref(`paymentOrders/${paymentId}`).update({ status: 'cancelled', cancelledAt: now });
@@ -1429,23 +1429,41 @@ function _computeCreditsInfo(state, now, monthKey) {
   return { freeRemaining, totalPoints, pointReports, nearestExpiry, freeLimit: FREE_LIMIT, unlimited: false };
 }
 
-// ── 포인트 lot 적립 (멱등) ─────────────────────────────────────────────
+// ── 포인트 결제 검증 (순수 함수) ──────────────────────────────────────
+// 웹훅·confirmPointPayment 공통 경로. payment = PortOne 단건조회 응답.
+// 반환: { ok: true } | { ok: false, reason: string }
+function _checkPointPayment(payment, order) {
+  const product = POINT_PRODUCTS[order.productId];
+  if (!product) return { ok: false, reason: `unknown_product:${order.productId}` };
+  if (payment.status !== 'PAID') return { ok: false, reason: `status_not_paid:${payment.status}` };
+  const paidAmount = payment.amount?.total ?? payment.amount;
+  if (paidAmount !== product.amount) {
+    return { ok: false, reason: `amount_mismatch:expected=${product.amount},actual=${paidAmount}` };
+  }
+  if (payment.currency !== 'KRW') return { ok: false, reason: `currency_mismatch:${payment.currency}` };
+  return { ok: true };
+}
+
+// ── 포인트 lot 적립 (멱등 + 트랜잭션) ────────────────────────────────────
 // 웹훅·confirmPointPayment 양쪽에서 호출. lotId = paymentId.
-async function _creditPointLot(paymentId, order) {
+// 반환: { ok: true } | { ok: false, reason: string }
+async function _creditPointLot(paymentId, order, payment) {
+  // ① 결제 검증 (금액·통화·status)
+  const check = _checkPointPayment(payment, order);
+  if (!check.ok) {
+    console.error(`[_creditPointLot] 결제 검증 실패 ${paymentId}: ${check.reason}`);
+    await db.ref(`paymentOrders/${paymentId}`).update({
+      status: 'amount_mismatch',
+      checkFailReason: check.reason,
+      checkFailedAt:   Date.now(),
+    }).catch(() => {});
+    return { ok: false, reason: check.reason };
+  }
+
   const { academyId, productId, amount } = order;
-  const product = POINT_PRODUCTS[productId];
-  if (!product) {
-    console.error(`[_creditPointLot] 알 수 없는 productId: ${productId}`);
-    return;
-  }
-  const lotRef = db.ref(`aiCredits/${academyId}/lots/${paymentId}`);
-  const existing = await lotRef.get();
-  if (existing.exists()) {
-    console.log(`[_creditPointLot] 이미 적립됨: ${paymentId}`);
-    return;
-  }
+  const product = POINT_PRODUCTS[productId]; // _checkPointPayment에서 이미 검증됨
   const now = Date.now();
-  await lotRef.set({
+  const newLot = {
     productId,
     amount,
     paidPoints:  product.paidPoints,
@@ -1455,9 +1473,22 @@ async function _creditPointLot(paymentId, order) {
     purchasedAt: now,
     expiresAt:   now + 365 * 24 * 3600 * 1000,
     paymentId,
+  };
+
+  // ② 트랜잭션: 이미 존재하면 abort, 없을 때만 생성 (동시 요청 방어)
+  const lotRef = db.ref(`aiCredits/${academyId}/lots/${paymentId}`);
+  const txResult = await lotRef.transaction(current => {
+    if (current !== null) return; // abort: 이미 적립됨
+    return newLot;
   });
-  await db.ref(`paymentOrders/${paymentId}`).update({ status: 'credited', creditedAt: now });
-  console.log(`[_creditPointLot] 적립 완료: ${paymentId} +${product.total}P → ${academyId}`);
+
+  if (txResult.committed) {
+    await db.ref(`paymentOrders/${paymentId}`).update({ status: 'credited', creditedAt: now });
+    console.log(`[_creditPointLot] 적립 완료: ${paymentId} +${product.total}P → ${academyId}`);
+  } else {
+    console.log(`[_creditPointLot] 이미 적립됨(트랜잭션 abort): ${paymentId}`);
+  }
+  return { ok: true };
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -2624,23 +2655,21 @@ exports.confirmPointPayment = onCall(
       throw new HttpsError('internal', '결제 조회 실패');
     }
 
-    if (payment.status !== 'PAID') {
-      throw new HttpsError('failed-precondition', `결제가 완료되지 않았습니다 (status: ${payment.status})`);
+    // _creditPointLot이 _checkPointPayment로 금액·통화·status 검증 + 트랜잭션 적립
+    const result = await _creditPointLot(paymentId, order, payment);
+    if (!result.ok) {
+      const r = result.reason || '';
+      if (r.startsWith('status_not_paid')) {
+        throw new HttpsError('failed-precondition', `결제가 완료되지 않았습니다 (status: ${payment.status})`);
+      }
+      if (r.startsWith('amount_mismatch')) {
+        throw new HttpsError('failed-precondition', '결제 금액이 일치하지 않습니다');
+      }
+      if (r.startsWith('currency_mismatch')) {
+        throw new HttpsError('failed-precondition', '통화가 일치하지 않습니다');
+      }
+      throw new HttpsError('failed-precondition', '결제 검증 실패');
     }
-
-    const product = POINT_PRODUCTS[order.productId];
-    if (!product) throw new HttpsError('internal', '알 수 없는 상품입니다');
-
-    const paidAmount = payment.amount?.total ?? payment.amount;
-    if (paidAmount !== product.amount) {
-      console.error(`[confirmPointPayment] 금액 불일치: expected=${product.amount}, actual=${paidAmount}`);
-      throw new HttpsError('failed-precondition', '결제 금액이 일치하지 않습니다');
-    }
-    if (payment.currency !== 'KRW') {
-      throw new HttpsError('failed-precondition', `통화 불일치: ${payment.currency}`);
-    }
-
-    await _creditPointLot(paymentId, order);
     return { ok: true };
   },
 );
@@ -2672,11 +2701,12 @@ exports.getAcademyPointLots = onCall(
       const isExpired = (l.expiresAt || 0) <= now;
       const isRevoked = !!l.revokedAt;
 
-      // 참고 환불액: 7일 이내 + 미사용 → 전액 / 7일 초과 + 미사용 + 만료 전 → 90% / 그 외 → 0
+      // 참고 환불액: 7일(밀리초 기준) 이내 + 미사용 → 전액 / 7일 초과 + 미사용 + 만료 전 → 90% / 그 외 → 0
       // 보너스 포인트는 환불액 계산에 포함하지 않음 (결제액 기준으로만 계산)
+      const within7days = (now - (l.purchasedAt || 0)) <= 7 * 24 * 3600 * 1000;
       let refundAmount = 0;
       if (!isRevoked && isUnused && !isExpired) {
-        refundAmount = daysSincePurchase <= 7 ? l.amount : Math.floor(l.amount * 0.9);
+        refundAmount = within7days ? l.amount : Math.floor(l.amount * 0.9);
       }
 
       return { lotId, ...l, daysSincePurchase, isUnused, isExpired, isRevoked, refundAmount };
