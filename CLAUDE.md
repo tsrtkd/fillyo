@@ -29,7 +29,7 @@
 
 - **Firebase**: 프로젝트 `fillyo-journal`, RTDB `asia-southeast1`, Blaze 요금제
 - **결제**: PortOne V2 + 한국결제네트웍스(KPN, 퍼스트페이). storeId `store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c`
-  - 일반결제(단건, requestPayment) 실연동 채널: `channel-key-dab745e0-688d-45e7-b7d2-e648d528b826` (사용 여부 확인 필요)
+  - 일반결제(단건, requestPayment) 실연동 채널: `channel-key-dab745e0-688d-45e7-b7d2-e648d528b826` (2026-10-14 콘솔 확인, AI 포인트 충전에 사용)
   - 카드등록/빌링키 발급(issueBillingKey) 실연동 채널: `channel-key-94abf50e-2417-4672-9066-64f782818ffa`
   - 본인인증 전용 채널: `channel-key-23977342-b6d1-4033-a0fe-2149ee43a9e9` (사용 여부 확인 필요)
   - **웹훅 시크릿은 실연동 모드 값을 써야 한다.** 채널이 실연동으로 전환됐으므로 반드시 실연동 웹훅 시크릿으로 교체 확인할 것.

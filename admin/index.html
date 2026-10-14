@@ -206,6 +206,17 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
 .btn-import-cancel:hover{background:#dde4ee;}
 #draftPreviewSection{display:none;}
 
+/* ── AI 포인트 관리 ──────────────────────────────────────────────── */
+.pts-tbl{width:100%;border-collapse:collapse;}
+.pts-tbl thead th{background:var(--bg);padding:8px 12px;text-align:left;font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);white-space:nowrap;}
+.pts-tbl tbody tr{border-bottom:1px solid var(--border);}
+.pts-tbl tbody tr:last-child{border-bottom:none;}
+.pts-tbl td{padding:9px 12px;vertical-align:middle;font-size:12px;}
+.badge-avail  {background:var(--green-lt);color:var(--green);}
+.badge-partial{background:var(--orange-lt);color:var(--orange);}
+.badge-exp    {background:var(--red-lt);color:var(--red);}
+.badge-revoked{background:var(--bg);color:var(--gray);}
+
 /* ── RESPONSIVE ─────────────────────────────────────────────────── */
 @media(max-width:640px){
   .stats{grid-template-columns:1fr 1fr;}
@@ -445,6 +456,21 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
       </div>
     </div>
 
+    <!-- ── AI 포인트 관리 ──────────────────────────────────────────── -->
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <span class="card-title">AI 포인트 관리</span>
+      </div>
+      <div style="padding:16px 20px;">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+          <input type="text" id="ptAcadInput" class="search-inp" style="max-width:280px;"
+            placeholder="도장 ID (ac_...)" onkeydown="if(event.key==='Enter')loadPointLots()">
+          <button class="btn-refresh" onclick="loadPointLots()">조회</button>
+        </div>
+        <div id="ptResult" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
     <!-- TABLE -->
     <div class="card">
       <div class="card-header">
@@ -527,6 +553,23 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
   </div>
 </div>
 
+<!-- ── REVOKE POINT LOT MODAL ────────────────────────────────────── -->
+<div class="modal-bg" id="revokeModal">
+  <div class="modal">
+    <div class="modal-title">포인트 회수</div>
+    <div class="modal-sub" id="revokeModalSub"></div>
+    <div class="del-warn">
+      <p>회수 후 해당 lot의 남은 포인트는 즉시 사용 불가 상태가 됩니다.</p>
+    </div>
+    <label class="del-inp-label">메모 <span style="font-weight:400;color:var(--text2);">(예: 10/20 계좌이체 9,000원 환불)</span></label>
+    <input class="del-inp" type="text" id="revokeMemInp" placeholder="회수 사유 또는 환불 내역">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeRevokeModal()">취소</button>
+      <button class="btn-ok danger" id="btnRevokeOk" onclick="doRevokePointLot()">회수 처리</button>
+    </div>
+  </div>
+</div>
+
 <!-- ── DELETE MODAL ───────────────────────────────────────────────── -->
 <div class="modal-bg" id="deleteModal">
   <div class="modal">
@@ -555,6 +598,8 @@ import { getAuth, onAuthStateChanged, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getDatabase, ref, get, update, remove, push, set }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const ADMIN_EMAIL = 'audtls2g@gmail.com';
 
@@ -571,6 +616,9 @@ const FB_CONFIG = {
 const app  = initializeApp(FB_CONFIG);
 const auth = getAuth(app);
 const db   = getDatabase(app);
+const fns  = getFunctions(app, 'asia-northeast3');
+const fnGetAcademyPointLots = httpsCallable(fns, 'getAcademyPointLots', { timeout: 15000 });
+const fnRevokePointLot      = httpsCallable(fns, 'revokePointLot',      { timeout: 15000 });
 
 let allData    = [];
 let target     = null;
@@ -1366,6 +1414,93 @@ function showToast(msg, type = '') {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { el.className = 'toast'; }, 3000);
 }
+
+// ── AI 포인트 관리 ──────────────────────────────────────────────────────
+let _revokeAcadId = null;
+let _revokeLotId  = null;
+
+const PRODUCT_LABEL = { p5000: '5,000원', p10000: '10,000원', p30000: '30,000원' };
+
+window.loadPointLots = async function() {
+  const acadId = document.getElementById('ptAcadInput').value.trim();
+  if (!acadId) { showToast('도장 ID를 입력해주세요', 'err'); return; }
+  const resEl = document.getElementById('ptResult');
+  resEl.innerHTML = '<div style="padding:20px;color:var(--gray);font-size:13px;">불러오는 중...</div>';
+  try {
+    const res = await fnGetAcademyPointLots({ academyId: acadId });
+    const { lots } = res.data;
+    if (!lots || lots.length === 0) {
+      resEl.innerHTML = '<div style="padding:20px;color:var(--gray);font-size:13px;">포인트 내역이 없습니다.</div>';
+      return;
+    }
+    resEl.innerHTML = `<table class="pts-tbl">
+      <thead><tr>
+        <th>결제일</th><th>상품</th><th>결제액</th><th>적립P (보너스)</th><th>남은P</th><th>만료일</th><th>상태</th><th>참고 환불액</th><th></th>
+      </tr></thead>
+      <tbody>
+      ${lots.map(l => {
+        const badge = l.isRevoked
+          ? `<span class="badge badge-revoked">회수됨</span>`
+          : l.isExpired
+          ? `<span class="badge badge-exp">만료</span>`
+          : l.remaining < l.total
+          ? `<span class="badge badge-partial">일부 사용</span>`
+          : `<span class="badge badge-avail">사용 가능</span>`;
+        const refundTxt = l.refundAmount > 0 ? `₩${l.refundAmount.toLocaleString()}` : '—';
+        const canRevoke = !l.isRevoked && !l.isExpired;
+        const revokeBtn = canRevoke
+          ? `<button class="btn-act btn-del" onclick="openRevokeModal('${esc(acadId)}','${esc(l.lotId)}',${l.remaining})">회수</button>`
+          : `<button class="btn-act" disabled style="opacity:.35;cursor:not-allowed;">회수</button>`;
+        return `<tr>
+          <td class="td-date">${fmt(l.purchasedAt)}</td>
+          <td>${esc(PRODUCT_LABEL[l.productId] || l.productId)}</td>
+          <td class="td-amt">₩${(l.amount||0).toLocaleString()}</td>
+          <td>${(l.total||0).toLocaleString()}P<br><span style="font-size:11px;color:var(--text2);">보너스 +${(l.bonusPoints||0).toLocaleString()}P</span></td>
+          <td style="font-weight:700;color:var(--navy);">${(l.remaining||0).toLocaleString()}P</td>
+          <td class="td-date">${fmt(l.expiresAt)}</td>
+          <td>${badge}</td>
+          <td>${refundTxt}</td>
+          <td>${revokeBtn}</td>
+        </tr>`;
+      }).join('')}
+      </tbody></table>`;
+  } catch(e) {
+    resEl.innerHTML = `<div style="padding:20px;color:var(--red);font-size:13px;">오류: ${esc(e.message)}</div>`;
+    console.error('[loadPointLots]', e);
+  }
+};
+
+window.openRevokeModal = function(acadId, lotId, remaining) {
+  _revokeAcadId = acadId;
+  _revokeLotId  = lotId;
+  document.getElementById('revokeModalSub').textContent =
+    `${acadId} · 남은 ${remaining.toLocaleString()}P`;
+  document.getElementById('revokeMemInp').value = '';
+  document.getElementById('revokeModal').classList.add('show');
+};
+
+window.closeRevokeModal = function() {
+  document.getElementById('revokeModal').classList.remove('show');
+};
+
+window.doRevokePointLot = async function() {
+  const memo = document.getElementById('revokeMemInp').value.trim();
+  const btn  = document.getElementById('btnRevokeOk');
+  btn.classList.add('loading');
+  btn.disabled = true;
+  try {
+    await fnRevokePointLot({ academyId: _revokeAcadId, lotId: _revokeLotId, memo });
+    closeRevokeModal();
+    showToast('포인트를 회수했습니다.', 'ok');
+    await loadPointLots();
+  } catch(e) {
+    showToast(`회수 실패: ${e.message}`, 'err');
+    console.error('[doRevokePointLot]', e);
+  } finally {
+    btn.classList.remove('loading');
+    btn.disabled = false;
+  }
+};
 </script>
 <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">© 2026 FILLYO · fillyo.kr</div>
 </body>

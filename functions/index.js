@@ -1452,11 +1452,28 @@ async function _creditPointLot(paymentId, order, payment) {
   const check = _checkPointPayment(payment, order);
   if (!check.ok) {
     console.error(`[_creditPointLot] 결제 검증 실패 ${paymentId}: ${check.reason}`);
-    await db.ref(`paymentOrders/${paymentId}`).update({
-      status: 'amount_mismatch',
-      checkFailReason: check.reason,
-      checkFailedAt:   Date.now(),
-    }).catch(() => {});
+    const failAt = Date.now();
+    const r = check.reason || '';
+    if (r.startsWith('status_not_paid')) {
+      // 결제 미완료: 주문 status는 건드리지 않고 마지막 확인 결과만 기록
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        lastCheckReason: check.reason,
+        lastCheckAt:     failAt,
+      }).catch(() => {});
+    } else if (r.startsWith('unknown_product')) {
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        status:          'check_failed',
+        checkFailReason: check.reason,
+        checkFailedAt:   failAt,
+      }).catch(() => {});
+    } else {
+      // amount_mismatch, currency_mismatch
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        status:          'amount_mismatch',
+        checkFailReason: check.reason,
+        checkFailedAt:   failAt,
+      }).catch(() => {});
+    }
     return { ok: false, reason: check.reason };
   }
 

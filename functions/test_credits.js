@@ -432,6 +432,37 @@ test('⑭ 7일 경계: 7일+1분(7*24*3600*1000+60000ms) → 90%', () => {
   assert.strictEqual(_refundAmount(lot, NOW), 9000, '7일+1분 = 초과 → 90%');
 });
 
+// ─────────────────────────────────────────────────────────────────────
+// _checkPointPayment reason → DB status 매핑 (서버 fix 검증)
+// status_not_paid  → lastCheckReason만 기록 (status 미변경)
+// amount_mismatch/currency_mismatch → status: 'amount_mismatch'
+// unknown_product  → status: 'check_failed'
+// ─────────────────────────────────────────────────────────────────────
+
+test('⑮ status_not_paid reason prefix → lastCheckReason만 기록 경로', () => {
+  const r = _checkPointPayment({ status: 'FAILED', amount: { total: 5000 }, currency: 'KRW' }, { productId: 'p5000' });
+  assert.ok(!r.ok);
+  assert.ok(r.reason.startsWith('status_not_paid'), `DB: status 미변경, lastCheckReason만 기록`);
+});
+
+test('⑮ amount_mismatch reason prefix → status: amount_mismatch 경로', () => {
+  const r = _checkPointPayment({ status: 'PAID', amount: { total: 1 }, currency: 'KRW' }, { productId: 'p5000' });
+  assert.ok(!r.ok);
+  assert.ok(r.reason.startsWith('amount_mismatch'), `DB: status → 'amount_mismatch'`);
+});
+
+test('⑮ currency_mismatch reason prefix → status: amount_mismatch 경로', () => {
+  const r = _checkPointPayment({ status: 'PAID', amount: { total: 5000 }, currency: 'USD' }, { productId: 'p5000' });
+  assert.ok(!r.ok);
+  assert.ok(r.reason.startsWith('currency_mismatch'), `DB: status → 'amount_mismatch'`);
+});
+
+test('⑮ unknown_product reason prefix → status: check_failed 경로', () => {
+  const r = _checkPointPayment({ status: 'PAID', amount: { total: 5000 }, currency: 'KRW' }, { productId: 'bad_pid' });
+  assert.ok(!r.ok);
+  assert.ok(r.reason.startsWith('unknown_product'), `DB: status → 'check_failed'`);
+});
+
 // ── 결과 출력 ──────────────────────────────────────────────────────────
 const passed = results.filter(r => r.ok).length;
 const failed = results.filter(r => !r.ok).length;
