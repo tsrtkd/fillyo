@@ -431,6 +431,48 @@
     .notice-card.open .notice-card-preview{display:none;}
     .notice-card.open .notice-card-full{display:block;}
     .notice-empty{padding:52px 20px;text-align:center;color:#bbb;font-size:14px;}
+
+    /* ── NOTICE POPUP MODAL ── */
+    .notice-popup-overlay{
+      display:none;position:fixed;inset:0;
+      background:rgba(0,0,0,0.55);
+      backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);
+      z-index:200;
+      align-items:center;justify-content:center;
+      padding:16px;box-sizing:border-box;
+    }
+    .notice-popup-overlay.show{display:flex;}
+    .notice-popup-box{
+      background:#fff;border-radius:20px;
+      width:100%;max-width:420px;
+      max-height:80vh;
+      display:flex;flex-direction:column;
+      box-shadow:0 8px 40px rgba(0,0,0,0.22);
+      overflow:hidden;
+    }
+    .notice-popup-hdr{
+      padding:20px 20px 14px;flex-shrink:0;
+      border-bottom:1px solid #f0f0f0;
+    }
+    .notice-popup-label{font-size:12px;font-weight:700;color:#0B7B6B;letter-spacing:0.5px;margin-bottom:6px;}
+    .notice-popup-title{font-size:17px;font-weight:900;color:#1d1d1f;letter-spacing:-0.3px;margin-bottom:4px;}
+    .notice-popup-date{font-size:11px;color:#bbb;}
+    .notice-popup-body{
+      flex:1;min-height:0;
+      overflow-y:auto;-webkit-overflow-scrolling:touch;
+      padding:16px 20px;
+      font-size:14px;color:#444;line-height:1.65;
+    }
+    .notice-popup-footer{padding:12px 20px 20px;flex-shrink:0;border-top:1px solid #f0f0f0;}
+    .notice-popup-btn{
+      width:100%;padding:14px;
+      background:#0B7B6B;color:#fff;
+      border:none;border-radius:12px;
+      font-size:15px;font-weight:700;
+      cursor:pointer;font-family:inherit;
+      transition:background 0.15s;
+    }
+    .notice-popup-btn:hover{background:#09695b;}
   </style>
 </head>
 <body>
@@ -638,6 +680,21 @@
     </div>
   </div>
 
+  <!-- NOTICE POPUP MODAL -->
+  <div class="notice-popup-overlay" id="noticePopupOverlay">
+    <div class="notice-popup-box">
+      <div class="notice-popup-hdr">
+        <div class="notice-popup-label">📢 공지사항</div>
+        <div class="notice-popup-title" id="noticePopupTitle"></div>
+        <div class="notice-popup-date" id="noticePopupDate"></div>
+      </div>
+      <div class="notice-popup-body" id="noticePopupBody"></div>
+      <div class="notice-popup-footer">
+        <button class="notice-popup-btn" id="noticePopupOk">확인</button>
+      </div>
+    </div>
+  </div>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }
@@ -813,6 +870,7 @@ onAuthStateChanged(auth, async (user) => {
 
   // 읽지 않은 공지 확인
   checkUnreadNotices(_uid);
+  showPopupNotices(_uid);
 });
 
 // ── 클릭 이벤트 ───────────────────────────────────────────────────
@@ -916,6 +974,15 @@ document.getElementById('quickLogout').addEventListener('click', async () => {
   location.href = '/login/';
 });
 
+document.getElementById('noticePopupOk').addEventListener('click', async () => {
+  if (_currentPopupId && _uid) {
+    try {
+      await set(ref(db, `users/${_uid}/readNotices/${_currentPopupId}`), true);
+    } catch (_) {}
+  }
+  _nextPopup();
+});
+
 // ── 알림 모달 ─────────────────────────────────────────────────────
 function showAlarmModal() {
   document.getElementById('alarmDim').classList.add('show');
@@ -1004,6 +1071,43 @@ async function markRead(id, el) {
 function updateBellDot(hasUnread) {
   document.getElementById('bellDot').classList.toggle('show', hasUnread);
   document.getElementById('navDot').classList.toggle('show', hasUnread);
+}
+
+// ── 팝업 공지 ─────────────────────────────────────────────────────
+let _popupQueue = [];
+let _currentPopupId = null;
+
+async function showPopupNotices(uid) {
+  if (!uid) return;
+  try {
+    const [nSnap, rSnap] = await Promise.all([
+      get(ref(db, 'notices')),
+      get(ref(db, `users/${uid}/readNotices`)),
+    ]);
+    if (!nSnap.exists()) return;
+    const readSet = rSnap.exists() ? new Set(Object.keys(rSnap.val())) : new Set();
+    _popupQueue = Object.entries(nSnap.val())
+      .map(([id, v]) => ({ id, ...v }))
+      .filter(n => n.popup === true && !readSet.has(n.id))
+      .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+    _nextPopup();
+  } catch (_) {}
+}
+
+function _nextPopup() {
+  if (!_popupQueue.length) {
+    document.getElementById('noticePopupOverlay').classList.remove('show');
+    checkUnreadNotices(_uid);
+    return;
+  }
+  const n = _popupQueue.shift();
+  const d = new Date(n.createdAt || 0);
+  const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  document.getElementById('noticePopupTitle').textContent = n.title || '';
+  document.getElementById('noticePopupDate').textContent = dateStr;
+  document.getElementById('noticePopupBody').innerHTML = xss(n.content || '').replace(/\n/g, '<br>');
+  _currentPopupId = n.id;
+  document.getElementById('noticePopupOverlay').classList.add('show');
 }
 
 function xss(s) {
