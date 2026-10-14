@@ -1025,6 +1025,7 @@ function loadCurrentDay() {
 
 // 자동저장 debounce
 let autoSaveTimer = null;
+let autoSaveDateKey = null;
 let userInteracting = false;
 let absFocused = false;
 window.triggerAutoSave = function() {
@@ -1034,10 +1035,27 @@ window.triggerAutoSave = function() {
   // 저장됨 표시를 입력 중 상태로
   const indicator = document.getElementById('autoSaveIndicator');
   if (indicator) { indicator.style.opacity = '0'; }
+  autoSaveDateKey = dateKey(currentDate);
   autoSaveTimer = setTimeout(async () => {
+    autoSaveTimer = null;
+    if (dateKey(currentDate) !== autoSaveDateKey) {
+      console.warn(`[AutoSave] 날짜 이동으로 저장 건너뜀 (예약: ${autoSaveDateKey}, 현재: ${dateKey(currentDate)})`);
+      autoSaveDateKey = null;
+      return;
+    }
+    autoSaveDateKey = null;
     await saveDay(true);
     isDirty = false;
   }, 2500);
+}
+
+async function flushPendingAutoSave() {
+  if (!autoSaveTimer) return;
+  clearTimeout(autoSaveTimer);
+  autoSaveTimer = null;
+  autoSaveDateKey = null;
+  await saveDay(true);
+  isDirty = false;
 }
 
 // ── 도장 운영 설정 저장 ────────────────────────────────────────────
@@ -1177,6 +1195,7 @@ function renderInlineCal() {
 
 window.icalSelectDay = async (key) => {
   if (isDirty) { const ok = await showConfirmDialog(); if (!ok) return; }
+  await flushPendingAutoSave();
   const [y, m, d] = key.split('-').map(Number);
   currentDate = new Date(y, m-1, d); icalDate = new Date(y, m-1, d);
   updateDateHeader(); loadCurrentDay(); updateMonthStrip(); renderInlineCal();
@@ -1190,6 +1209,7 @@ window.icalSelectDay = async (key) => {
 // ── 날짜 네비게이션 ───────────────────────────────────────────────
 window.changeDate = async (d) => {
   if (isDirty) { const ok = await showConfirmDialog(); if (!ok) return; }
+  await flushPendingAutoSave();
   const nd = new Date(currentDate); nd.setDate(nd.getDate() + d);
   const dow = nd.getDay();
   if (dow === 0) nd.setDate(nd.getDate() + (d > 0 ? 1 : -2));
@@ -1200,6 +1220,7 @@ window.changeDate = async (d) => {
 };
 window.goToday = async () => {
   if (isDirty) { const ok = await showConfirmDialog(); if (!ok) return; }
+  await flushPendingAutoSave();
   currentDate = new Date(); icalDate = new Date();
   updateDateHeader(); loadCurrentDay(); updateMonthStrip(); loadTodos();
   showView('daily'); if (calOpen) renderInlineCal();
@@ -1554,10 +1575,10 @@ function renderNotifList() {
       <div class="notif-item-time">${fmtTime(new Date(n.ts||Date.now()))}</div>
     </div>`).join('');
 }
-window.notifClick = (lid, dk) => {
+window.notifClick = async (lid, dk) => {
   const n = notifications.find(x => x.lid === lid); if (n) n.read = true;
   renderNotifList(); closeNotifPanel();
-  if (dk) { const [y,m,d] = dk.split('-').map(Number); currentDate = new Date(y,m-1,d); updateDateHeader(); loadCurrentDay(); updateMonthStrip(); showView('daily'); }
+  if (dk) { await flushPendingAutoSave(); const [y,m,d] = dk.split('-').map(Number); currentDate = new Date(y,m-1,d); updateDateHeader(); loadCurrentDay(); updateMonthStrip(); showView('daily'); }
 };
 window.clearAllNotifs = () => { notifications = []; unreadCount = 0; updateNotifBadge(); renderNotifList(); };
 window.toggleNotifPanel = () => {
