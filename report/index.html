@@ -662,6 +662,8 @@ window.doCharge = async function() {
     setStatus('결제 확인 중...');
     try {
       await fnConfirmPointPayment({ paymentId });
+      _chargeInProgress = false;
+      document.getElementById('btnCloseCharge').style.display = '';
       closeChargeModal();
       showChargeToast('포인트가 충전되었습니다.', 'ok');
       await loadAiCredits();
@@ -1247,7 +1249,7 @@ window.generateReport = async function(){
   } catch(e) {
     if (e.code === 'functions/resource-exhausted') {
       statusEl.innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
-      setTimeout(openChargeModal, 300);
+      if (e.message && e.message.includes('포인트 충전')) setTimeout(openChargeModal, 300);
     } else {
       statusEl.textContent = `오류: ${e.message}`;
     }
