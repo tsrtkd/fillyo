@@ -1168,17 +1168,14 @@ exports.parentDeskAsk = onRequest(
       }
 
       try {
-        const [deskSnap, keySnap] = await Promise.all([
-          db.ref(`academies/${academyId}/settings/parentDesk`).get(),
-          db.ref(`academies/${academyId}/settings/anthropicApiKey`).get(),
-        ]);
+        const deskSnap = await db.ref(`academies/${academyId}/settings/parentDesk`).get();
 
-        if (!deskSnap.exists() || !keySnap.exists()) {
+        if (!deskSnap.exists()) {
           return res.status(404).json({ error: '설정 정보가 없습니다' });
         }
 
         const desk = deskSnap.val() || {};
-        const anthropicApiKey = keySnap.val();
+        const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
         if (!anthropicApiKey) {
           return res.status(404).json({ error: '설정 정보가 없습니다' });
@@ -1283,17 +1280,14 @@ exports.parentDeskKakao = onRequest(
     }
 
     try {
-      const [deskSnap, keySnap] = await Promise.all([
-        db.ref(`academies/${academyId}/settings/parentDesk`).get(),
-        db.ref(`academies/${academyId}/settings/anthropicApiKey`).get(),
-      ]);
+      const deskSnap = await db.ref(`academies/${academyId}/settings/parentDesk`).get();
 
-      if (!deskSnap.exists() || !keySnap.exists()) {
+      if (!deskSnap.exists()) {
         return await sendResult(toKakao('학원 설정 정보가 없습니다. 원장님께 문의해주세요.'));
       }
 
       const desk = deskSnap.val() || {};
-      const anthropicApiKey = keySnap.val();
+      const anthropicApiKey = process.env.ANTHROPIC_API_KEY;
 
       if (!anthropicApiKey) {
         return await sendResult(toKakao('학원 설정 정보가 없습니다. 원장님께 문의해주세요.'));
