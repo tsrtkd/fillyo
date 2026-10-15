@@ -2614,7 +2614,10 @@ exports.createPointOrder = onCall(
       throw new HttpsError('permission-denied', '구독 또는 무료체험 중에만 포인트를 충전할 수 있습니다');
     }
 
-    const paymentId = makePaymentId('aip');
+    const _aipTs  = Date.now().toString(36);
+    const _aipRnd = Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+    const paymentId = `aip${_aipTs}${_aipRnd}`;
+    if (paymentId.length > 32) throw new HttpsError('internal', `paymentId 길이 초과: ${paymentId.length}자`);
     const orderName = `FILLYO AI 리포트 포인트 충전 (${product.total.toLocaleString()}P)`;
     const now = Date.now();
 
