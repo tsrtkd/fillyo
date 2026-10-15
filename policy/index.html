@@ -74,6 +74,10 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .empty-icon{font-size:40px;margin-bottom:12px;}
 .empty-txt{font-size:14px;font-weight:700;margin-bottom:6px;}
 .empty-sub{font-size:12px;color:#9ca3af;line-height:1.6;}
+.empty-cta{display:inline-block;margin-top:16px;background:var(--teal);color:#fff;font-size:13px;font-weight:700;padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-family:inherit;}
+
+/* NOTICE */
+.notice-bar{background:#fffbea;border:1px solid #fde68a;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#856404;line-height:1.5;}
 
 /* ERROR */
 .error-box{background:var(--red-lt);border-radius:12px;padding:16px;text-align:center;font-size:13px;color:var(--red);margin:20px 0;}
@@ -82,6 +86,15 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .hdr-home{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.28);color:white;font-size:16px;cursor:pointer;padding:5px 9px;border-radius:8px;font-family:inherit;line-height:1;flex-shrink:0;transition:background 0.15s;}
 .hdr-home:hover{background:rgba(255,255,255,0.24);}
 .hdr-right{display:flex;gap:4px;align-items:center;flex-shrink:0;}
+
+/* EXPIRED SECTION */
+.expired-section{margin-top:8px;}
+.expired-toggle{width:100%;background:none;border:1px solid var(--border);border-radius:12px;padding:12px 16px;font-size:13px;font-weight:700;color:var(--gray);cursor:pointer;font-family:inherit;text-align:left;display:flex;justify-content:space-between;align-items:center;}
+.expired-toggle:hover{background:#f5f7fa;}
+.expired-toggle .arrow{transition:transform 0.2s;font-style:normal;}
+.expired-toggle.open .arrow{transform:rotate(180deg);}
+.expired-body{display:none;margin-top:8px;}
+.expired-body.open{display:block;}
 </style>
 </head>
 <body>
@@ -103,21 +116,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </header>
 
   <div class="tab-bar">
-    <button class="tab-btn on" id="tabAuto" onclick="switchTab('auto')">자동검색</button>
-    <button class="tab-btn" id="tabCurated" onclick="switchTab('curated')">추천정책</button>
-  </div>
-
-  <!-- 자동검색 탭 -->
-  <div class="tab-content on" id="panelAuto">
-    <div class="spinner-wrap" id="autoSpinner">
-      <div class="spinner"></div>
-      <div class="spinner-txt">정책 정보를 불러오는 중...</div>
-    </div>
-    <div id="autoList"></div>
+    <button class="tab-btn on" id="tabCurated" onclick="switchTab('curated')">추천정책</button>
+    <button class="tab-btn" id="tabAuto" onclick="switchTab('auto')">자동검색</button>
   </div>
 
   <!-- 추천정책 탭 -->
-  <div class="tab-content" id="panelCurated">
+  <div class="tab-content on" id="panelCurated">
     <div class="spinner-wrap" id="curatedSpinner">
       <div class="spinner"></div>
       <div class="spinner-txt">추천 정책을 불러오는 중...</div>
@@ -125,6 +129,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
     <div id="curatedList"></div>
   </div>
 
+  <!-- 자동검색 탭 -->
+  <div class="tab-content" id="panelAuto">
+    <div class="spinner-wrap" id="autoSpinner">
+      <div class="spinner"></div>
+      <div class="spinner-txt">정책 정보를 불러오는 중...</div>
+    </div>
+    <div id="autoList"></div>
+  </div>
 
 </div>
 
@@ -148,17 +160,18 @@ const auth = getAuth(app);
 const db   = getDatabase(app);
 
 // ── 탭 전환 ────────────────────────────────────────────────────────
-let activeTab = 'auto';
+let activeTab = 'curated';
 let autoLoaded = false;
 let curatedLoaded = false;
 
 window.switchTab = function(tab) {
   activeTab = tab;
-  document.getElementById('tabAuto').classList.toggle('on', tab === 'auto');
   document.getElementById('tabCurated').classList.toggle('on', tab === 'curated');
-  document.getElementById('panelAuto').classList.toggle('on', tab === 'auto');
+  document.getElementById('tabAuto').classList.toggle('on', tab === 'auto');
   document.getElementById('panelCurated').classList.toggle('on', tab === 'curated');
+  document.getElementById('panelAuto').classList.toggle('on', tab === 'auto');
   if (tab === 'curated' && !curatedLoaded) loadCurated();
+  if (tab === 'auto'    && !autoLoaded)    loadAuto();
 };
 
 // ── 새로고침 ───────────────────────────────────────────────────────
@@ -175,21 +188,59 @@ window.refresh = function() {
   }
 };
 
-// ── 인증 체크 ──────────────────────────────────────────────────────
-onAuthStateChanged(auth, (user) => {
+// ── 주소 → 시·도 짧은 이름 ────────────────────────────────────────
+function extractSido(address) {
+  if (!address) return null;
+  const addr = address.trim();
+  const map = [
+    [/(서울)/, '서울'], [/(부산)/, '부산'], [/(대구)/, '대구'],
+    [/(인천)/, '인천'], [/(광주)/, '광주'], [/(대전)/, '대전'],
+    [/(울산)/, '울산'], [/(세종)/, '세종'], [/(경기)/, '경기'],
+    [/(강원)/, '강원'], [/(충북|충청북)/, '충북'], [/(충남|충청남)/, '충남'],
+    [/(전북|전라북)/, '전북'], [/(전남|전라남)/, '전남'],
+    [/(경북|경상북)/, '경북'], [/(경남|경상남)/, '경남'], [/(제주)/, '제주'],
+  ];
+  for (const [re, short] of map) {
+    if (re.test(addr)) return short;
+  }
+  return null;
+}
+
+// ── 인증 + 주소 읽기 ──────────────────────────────────────────────
+let mySido = null;
+
+onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = '/login/'; return; }
+
+  // 도장 주소에서 시·도 추출 (없으면 mySido=null)
+  try {
+    const aidSnap = await get(ref(db, `users/${user.uid}/academyId`));
+    if (aidSnap.exists()) {
+      const aid = aidSnap.val();
+      const addrSnap = await get(ref(db, `academies/${aid}/settings/address`));
+      if (addrSnap.exists() && addrSnap.val()) {
+        mySido = extractSido(addrSnap.val());
+      }
+    }
+    if (!mySido) {
+      const fallbackSnap = await get(ref(db, `users/${user.uid}/address`));
+      if (fallbackSnap.exists() && fallbackSnap.val()) {
+        mySido = extractSido(fallbackSnap.val());
+      }
+    }
+  } catch (_) { /* 주소 없으면 지역 필터 안 함 */ }
+
   document.getElementById('loadingScreen').style.display = 'none';
   document.getElementById('pageContent').style.display   = 'block';
-  if (location.hash === '#curated') {
-    switchTab('curated');
+
+  if (location.hash === '#auto') {
+    switchTab('auto');
   } else {
-    loadAuto();
+    loadCurated();
   }
 });
 
 // ── 마감일 추출 ────────────────────────────────────────────────────
-// API 응답: reqstBeginEndDe = "2026-06-29 ~ 2026-07-06"
-// Firebase 큐레이션: reqstEndDt 직접 저장 가능 (fallback)
 function getEndDate(item) {
   if (item.reqstEndDt) return item.reqstEndDt;
   const s = item.reqstBeginEndDe || '';
@@ -200,7 +251,6 @@ function getEndDate(item) {
 // ── D-day 계산 ─────────────────────────────────────────────────────
 function calcDday(endDateStr) {
   if (!endDateStr) return null;
-  // YYYY-MM-DD 또는 YYYYMMDD 모두 처리
   const normalized = endDateStr.replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
   const end = new Date(normalized);
   if (isNaN(end.getTime())) return null;
@@ -264,15 +314,78 @@ function escHtml(s) {
   return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-// ── 자동검색 ───────────────────────────────────────────────────────
-const API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=30&pageIndex=1';
-const FILTER_KEYWORDS = ['소상공인', '학원', '체육', '스포츠', '태권도', '대전', '서구', '중소기업', '창업', '자영업'];
-
-function matchesFilter(item) {
-  const tags = (item.hashtags || '').toLowerCase();
-  return FILTER_KEYWORDS.some(kw => tags.includes(kw.toLowerCase()));
+// ── 마감 공고 접기 렌더 ────────────────────────────────────────────
+function renderWithExpired(active, expired, containerEl) {
+  let html = active.map(item => cardHTML(item, !!item.pinned)).join('');
+  if (expired.length > 0) {
+    const id = 'exp_' + Date.now();
+    html += `
+      <div class="expired-section">
+        <button class="expired-toggle" id="btn_${id}" onclick="toggleExpired('${id}')">
+          마감된 공고 (${expired.length}건) <em class="arrow">▾</em>
+        </button>
+        <div class="expired-body" id="body_${id}">
+          ${expired.map(item => cardHTML(item, !!item.pinned)).join('')}
+        </div>
+      </div>`;
+  }
+  containerEl.innerHTML = html;
 }
 
+window.toggleExpired = function(id) {
+  const btn  = document.getElementById('btn_'  + id);
+  const body = document.getElementById('body_' + id);
+  if (!btn || !body) return;
+  btn.classList.toggle('open');
+  body.classList.toggle('open');
+};
+
+// ── 자동검색 필터 ─────────────────────────────────────────────────
+const API_URL = 'https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do?crtfcKey=Yp7B81&dataType=JSON&pageUnit=100&pageIndex=1';
+
+const FILTER_KEYWORDS = [
+  '소상공인', '자영업', '학원', '체육시설', '체육', '스포츠', '태권도',
+  '고용', '경영안정', '정책자금', '바우처',
+];
+const EXCLUDE_KEYWORDS = ['게임', '방송영상', '모빌리티', '원전', '핀테크', '대체식품'];
+
+const ALL_SIDO = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];
+
+// hashtags에 6개 이상 시도 포함 = 전국 공고
+function isNational(item) {
+  const h = item.hashtags || '';
+  return ALL_SIDO.filter(s => h.includes(s)).length >= 6;
+}
+
+function matchesKeyword(item) {
+  const hay = ((item.pblancNm || '') + ' ' + (item.hashtags || '')).toLowerCase();
+  if (EXCLUDE_KEYWORDS.some(kw => hay.includes(kw.toLowerCase()))) return false;
+  return FILTER_KEYWORDS.some(kw => hay.includes(kw.toLowerCase()));
+}
+
+function isOtherRegion(item, sido) {
+  if (!sido) return false;
+  if (isNational(item)) return false;
+
+  const title = item.pblancNm    || '';
+  const org   = item.jrsdInsttNm || '';
+
+  // 제목 앞 [대괄호] 지역 체크
+  const m = title.match(/^\[([^\]]+)\]/);
+  if (m) {
+    const b = m[1];
+    if (b.includes(sido)) return false;
+    if (ALL_SIDO.some(s => s !== sido && b.includes(s))) return true;
+  }
+
+  // 기관명에 다른 광역자치단체가 명시된 경우
+  const LOCAL_ORG = /(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|울산광역시|경기도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도)/;
+  if (LOCAL_ORG.test(org) && !org.includes(sido)) return true;
+
+  return false;
+}
+
+// ── 자동검색 로드 ──────────────────────────────────────────────────
 async function loadAuto() {
   if (autoLoaded) return;
   autoLoaded = true;
@@ -287,47 +400,47 @@ async function loadAuto() {
     const json = await res.json();
     const all  = json?.jsonArray || [];
 
-    // hashtags 기준 클라이언트 필터링
-    let filtered = all.filter(matchesFilter);
-    let fallback = false;
+    // 키워드 → 지역 순으로 필터
+    let filtered = all.filter(item => matchesKeyword(item) && !isOtherRegion(item, mySido));
 
-    if (!filtered.length) {
-      filtered = all;
-      fallback = true;
-    }
-
-    // 마감일 임박 순 정렬 (마감된 항목은 맨 뒤)
-    filtered.sort((a, b) => {
-      const da = calcDday(getEndDate(a));
-      const db = calcDday(getEndDate(b));
-      const va = da === null ? 9999 : da < 0 ? 99999 : da;
-      const vb = db === null ? 9999 : db < 0 ? 99999 : db;
-      return va - vb;
-    });
+    // 마감 분리 후 임박순 정렬
+    const active  = filtered.filter(x => { const d=calcDday(getEndDate(x)); return d===null||d>=0; })
+      .sort((a,b)=>{
+        const da=calcDday(getEndDate(a)), db=calcDday(getEndDate(b));
+        return (da===null?9999:da)-(db===null?9999:db);
+      });
+    const expired = filtered.filter(x => { const d=calcDday(getEndDate(x)); return d!==null&&d<0; });
 
     spinnerEl.style.display = 'none';
 
-    if (!filtered.length) {
-      listEl.innerHTML = `
+    // 주소 없을 때 안내
+    const noAddrNotice = !mySido
+      ? `<div class="notice-bar">📍 도장 주소를 등록하면 우리 지역 공고만 골라 보여드려요</div>`
+      : '';
+
+    if (!active.length && !expired.length) {
+      listEl.innerHTML = noAddrNotice + `
         <div class="empty-box">
           <div class="empty-icon">🔍</div>
-          <div class="empty-txt">검색 결과가 없습니다</div>
-          <div class="empty-sub">잠시 후 다시 시도해주세요</div>
+          <div class="empty-txt">지금은 우리 도장에 맞는 새 공고가 없어요</div>
+          <div class="empty-sub">관리자가 직접 고른 추천정책을 먼저 확인해보세요</div>
+          <button class="empty-cta" onclick="switchTab('curated')">추천정책 보기</button>
         </div>`;
       return;
     }
 
-    const notice = fallback
-      ? `<div class="error-box" style="background:#fffbea;color:#856404;border:1px solid #fde68a;">관련 공고가 없어 전체 최신 공고를 표시합니다</div>`
-      : '';
-    listEl.innerHTML = notice + filtered.map(item => cardHTML(item)).join('');
+    // notice를 먼저 설정하고, 카드를 그 뒤에 이어 붙임
+    listEl.innerHTML = noAddrNotice;
+    const cardsWrap = document.createElement('div');
+    renderWithExpired(active, expired, cardsWrap);
+    listEl.appendChild(cardsWrap);
   } catch (e) {
     spinnerEl.style.display = 'none';
     listEl.innerHTML = `<div class="error-box">⚠️ 정보를 불러오지 못했습니다.<br>네트워크를 확인하고 새로고침 해주세요.</div>`;
   }
 }
 
-// ── 추천정책 (Firebase) ────────────────────────────────────────────
+// ── 추천정책 로드 ──────────────────────────────────────────────────
 async function loadCurated() {
   if (curatedLoaded) return;
   curatedLoaded = true;
@@ -354,18 +467,20 @@ async function loadCurated() {
     const raw   = snap.val();
     const items = Object.values(raw);
 
-    // pinned:true 상단 고정, 나머지 마감일 순 정렬
-    const pinned  = items.filter(i => i.pinned);
-    const rest    = items.filter(i => !i.pinned).sort((a, b) => {
-      const da = calcDday(a.reqstEndDt);
-      const db = calcDday(b.reqstEndDt);
+    // pinned 먼저, 나머지 마감일 순
+    const pinned = items.filter(i => i.pinned);
+    const rest   = items.filter(i => !i.pinned).sort((a, b) => {
+      const da = calcDday(a.reqstEndDt), db = calcDday(b.reqstEndDt);
       const va = da === null ? 9999 : da < 0 ? 99999 : da;
       const vb = db === null ? 9999 : db < 0 ? 99999 : db;
       return va - vb;
     });
 
     const sorted = [...pinned, ...rest];
-    listEl.innerHTML = sorted.map(item => cardHTML(item, !!item.pinned)).join('');
+    const active  = sorted.filter(x => { const d=calcDday(getEndDate(x)); return d===null||d>=0; });
+    const expired = sorted.filter(x => { const d=calcDday(getEndDate(x)); return d!==null&&d<0; });
+
+    renderWithExpired(active, expired, listEl);
   } catch (e) {
     spinnerEl.style.display = 'none';
     listEl.innerHTML = `<div class="error-box">⚠️ 데이터를 불러오지 못했습니다.</div>`;
