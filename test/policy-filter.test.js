@@ -41,8 +41,8 @@ function isNational(item) {
   return ALL_SIDO.filter(s => h.includes(s)).length >= 6;
 }
 
-function isOtherRegion(item, mySido) {
-  if (!mySido) return false;
+// sido=null 이어도 지역 공고는 숨긴다 (전국 공고만 통과)
+function isOtherRegion(item, sido) {
   if (isNational(item)) return false;
 
   const title = item.pblancNm    || '';
@@ -51,12 +51,15 @@ function isOtherRegion(item, mySido) {
   const m = title.match(/^\[([^\]]+)\]/);
   if (m) {
     const b = m[1];
-    if (b.includes(mySido)) return false;
-    if (ALL_SIDO.some(s => s !== mySido && b.includes(s))) return true;
+    if (sido && b.includes(sido)) return false;    // 내 지역 → 통과
+    if (ALL_SIDO.some(s => b.includes(s))) return true;  // 대괄호에 어느 지역이든 → 숨김
   }
 
-  const LOCAL_ORG = /(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|울산광역시|경기도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도)/;
-  if (LOCAL_ORG.test(org) && !org.includes(mySido)) return true;
+  const LOCAL_ORG = /(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도)/;
+  if (LOCAL_ORG.test(org)) {
+    if (sido && org.includes(sido)) return false;  // 내 지역 기관 → 통과
+    return true;  // 다른 지역 기관 (sido 없을 때도 숨김)
+  }
 
   return false;
 }
@@ -103,24 +106,36 @@ assert('게임 → 제외',           matchesKeyword({ pblancNm: '게임사 현�
 assert('방송영상 → 제외',       matchesKeyword({ pblancNm: '방송영상콘텐츠 후반작업', hashtags: '방송영상' }), false);
 
 console.log('\n=== 전국 공고 판정 ===');
-// 17개 시도 모두 포함 → 전국
 const allSidoHash = '서울,부산,대구,인천,광주,대전,울산,세종,경기,강원,충북,충남,전북,전남,경북,경남,제주';
 assert('17개 시도 모두 있음 → 전국', isNational({ hashtags: allSidoHash }), true);
-assert('2개 시도만 → 지역', isNational({ hashtags: '부산,대구' }), false);
-assert('해시태그 없음 → 지역', isNational({ hashtags: '' }), false);
+assert('6개 시도 포함 → 전국',       isNational({ hashtags: '서울,부산,대구,인천,광주,대전' }), true);
+assert('5개 이하 → 지역',            isNational({ hashtags: '부산,대구,인천,광주,대전' }), false);
+assert('해시태그 없음 → 지역',       isNational({ hashtags: '' }), false);
 
 console.log('\n=== 지역 필터 (mySido=대전) ===');
-assert('[대전] 제목 → 내 지역',      isOtherRegion({ pblancNm: '[대전] 소상공인 지원', jrsdInsttNm: '대전시', hashtags: '대전' }, '대전'), false);
-assert('[대전ㆍ세종] → 내 지역',     isOtherRegion({ pblancNm: '[대전ㆍ세종] 지역 공고', jrsdInsttNm: '대전시', hashtags: '대전' }, '대전'), false);
-assert('[울산] → 다른 지역',         isOtherRegion({ pblancNm: '[울산] 지원사업', jrsdInsttNm: '울산광역시', hashtags: '울산' }, '대전'), true);
-assert('[부산] → 다른 지역',         isOtherRegion({ pblancNm: '[부산] 소상공인 페어', jrsdInsttNm: '부산광역시', hashtags: '부산' }, '대전'), true);
-assert('[경남] → 다른 지역',         isOtherRegion({ pblancNm: '[경남] 산재예방 공고', jrsdInsttNm: '경상남도', hashtags: '경남' }, '대전'), true);
-assert('중앙부처 (전국) → 통과',      isOtherRegion({ pblancNm: '소상공인 정책자금', jrsdInsttNm: '중소벤처기업부', hashtags: '소상공인' }, '대전'), false);
-assert('고용노동부 (전국) → 통과',    isOtherRegion({ pblancNm: '고용창출장려금', jrsdInsttNm: '고용노동부', hashtags: '고용' }, '대전'), false);
-assert('전국 공고(17시도 hash) → 통과', isOtherRegion({ pblancNm: '소상공인 지원', jrsdInsttNm: '소상공인진흥공단', hashtags: allSidoHash }, '대전'), false);
-assert('부산광역시 기관 → 다른 지역', isOtherRegion({ pblancNm: '지원사업', jrsdInsttNm: '부산광역시', hashtags: '부산' }, '대전'), true);
-assert('mySido=null → 필터 안 함',   isOtherRegion({ pblancNm: '[부산] 지원', jrsdInsttNm: '부산광역시', hashtags: '부산' }, null), false);
-assert('강원특별자치도 기관 → 다른 지역', isOtherRegion({ pblancNm: '미래모빌리티 지원', jrsdInsttNm: '강원특별자치도', hashtags: '강원' }, '대전'), true);
+assert('[대전] 제목 → 내 지역',            isOtherRegion({ pblancNm: '[대전] 소상공인 지원',     jrsdInsttNm: '대전시',        hashtags: '대전' }, '대전'), false);
+assert('[대전ㆍ세종] → 내 지역',           isOtherRegion({ pblancNm: '[대전ㆍ세종] 지역 공고',   jrsdInsttNm: '대전시',        hashtags: '대전' }, '대전'), false);
+assert('[울산] → 다른 지역',               isOtherRegion({ pblancNm: '[울산] 지원사업',          jrsdInsttNm: '울산광역시',    hashtags: '울산' }, '대전'), true);
+assert('[부산] → 다른 지역',               isOtherRegion({ pblancNm: '[부산] 소상공인 페어',     jrsdInsttNm: '부산광역시',    hashtags: '부산' }, '대전'), true);
+assert('[경남] → 다른 지역',               isOtherRegion({ pblancNm: '[경남] 산재예방 공고',     jrsdInsttNm: '경상남도',      hashtags: '경남' }, '대전'), true);
+assert('중앙부처 → 통과',                  isOtherRegion({ pblancNm: '소상공인 정책자금',        jrsdInsttNm: '중소벤처기업부',hashtags: '소상공인' }, '대전'), false);
+assert('고용노동부 → 통과',                isOtherRegion({ pblancNm: '고용창출장려금',           jrsdInsttNm: '고용노동부',    hashtags: '고용' }, '대전'), false);
+assert('전국 공고(17시도 hash) → 통과',    isOtherRegion({ pblancNm: '소상공인 지원',            jrsdInsttNm: '소상공인진흥공단', hashtags: allSidoHash }, '대전'), false);
+assert('부산광역시 기관 → 다른 지역',      isOtherRegion({ pblancNm: '지원사업',                jrsdInsttNm: '부산광역시',    hashtags: '부산' }, '대전'), true);
+assert('강원특별자치도 기관 → 다른 지역',  isOtherRegion({ pblancNm: '모빌리티 지원',           jrsdInsttNm: '강원특별자치도',hashtags: '강원' }, '대전'), true);
+assert('대전광역시 기관 → 내 지역',        isOtherRegion({ pblancNm: '대전 소상공인 지원',      jrsdInsttNm: '대전광역시',    hashtags: '대전' }, '대전'), false);
+
+console.log('\n=== 지역 필터 (mySido=null, 주소 없음) ===');
+assert('[부산] 공고 → 차단',          isOtherRegion({ pblancNm: '[부산] 소상공인 페어',     jrsdInsttNm: '부산광역시',    hashtags: '부산' }, null), true);
+assert('[서울] 공고 → 차단',          isOtherRegion({ pblancNm: '[서울] 경영주치의',        jrsdInsttNm: '서울특별시',    hashtags: '서울' }, null), true);
+assert('[전북] 공고 → 차단',          isOtherRegion({ pblancNm: '[전북] 소상공인 지원',     jrsdInsttNm: '전라북도',      hashtags: '전북' }, null), true);
+assert('[경기] 공고 → 차단',          isOtherRegion({ pblancNm: '[경기] 고용지원',          jrsdInsttNm: '경기도',        hashtags: '경기' }, null), true);
+assert('[대전] 공고도 → 차단',        isOtherRegion({ pblancNm: '[대전] 소상공인 지원',     jrsdInsttNm: '대전시',        hashtags: '대전' }, null), true);
+assert('중앙부처 → 통과',             isOtherRegion({ pblancNm: '소상공인 정책자금',        jrsdInsttNm: '중소벤처기업부',hashtags: '소상공인' }, null), false);
+assert('소상공인시장진흥공단 → 통과', isOtherRegion({ pblancNm: '경영안정 바우처',          jrsdInsttNm: '소상공인시장진흥공단', hashtags: '소상공인' }, null), false);
+assert('고용노동부 → 통과',           isOtherRegion({ pblancNm: '고용창출장려금',           jrsdInsttNm: '고용노동부',    hashtags: '고용' }, null), false);
+assert('전국 공고(17시도 hash) → 통과', isOtherRegion({ pblancNm: '소상공인 지원',          jrsdInsttNm: '소상공인진흥공단', hashtags: allSidoHash }, null), false);
+assert('부산광역시 기관만 있어도 → 차단', isOtherRegion({ pblancNm: '지원사업',            jrsdInsttNm: '부산광역시',    hashtags: '소상공인' }, null), true);
 
 console.log(`\n결과: ${pass}건 통과, ${fail}건 실패\n`);
 if (fail > 0) process.exit(1);

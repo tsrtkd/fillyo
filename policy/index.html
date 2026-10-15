@@ -364,7 +364,6 @@ function matchesKeyword(item) {
 }
 
 function isOtherRegion(item, sido) {
-  if (!sido) return false;
   if (isNational(item)) return false;
 
   const title = item.pblancNm    || '';
@@ -374,13 +373,16 @@ function isOtherRegion(item, sido) {
   const m = title.match(/^\[([^\]]+)\]/);
   if (m) {
     const b = m[1];
-    if (b.includes(sido)) return false;
-    if (ALL_SIDO.some(s => s !== sido && b.includes(s))) return true;
+    if (sido && b.includes(sido)) return false;    // 내 지역 → 통과
+    if (ALL_SIDO.some(s => b.includes(s))) return true;  // 어느 지역이든 대괄호에 있으면 숨김
   }
 
-  // 기관명에 다른 광역자치단체가 명시된 경우
-  const LOCAL_ORG = /(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|울산광역시|경기도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도)/;
-  if (LOCAL_ORG.test(org) && !org.includes(sido)) return true;
+  // 기관명에 광역자치단체가 명시된 경우 (sido 없을 때도 숨김)
+  const LOCAL_ORG = /(서울특별시|부산광역시|대구광역시|인천광역시|광주광역시|대전광역시|울산광역시|세종특별자치시|경기도|강원특별자치도|충청북도|충청남도|전라북도|전북특별자치도|전라남도|경상북도|경상남도|제주특별자치도)/;
+  if (LOCAL_ORG.test(org)) {
+    if (sido && org.includes(sido)) return false;  // 내 지역 기관 → 통과
+    return true;
+  }
 
   return false;
 }
