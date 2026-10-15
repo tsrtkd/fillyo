@@ -392,6 +392,42 @@ async function run() {
   } catch { log('차단: 관장님이 aiCredits 쓰기 차단', false); }
 
   // ═══════════════════════════════════════════════════════════════════
+  // [차단] paymentOrders 브라우저 읽기 차단
+  // ═══════════════════════════════════════════════════════════════════
+  await adminSet('paymentOrders/test_order_001', {
+    type: 'aiPoints', academyId: TEST_ACAD_A, uid: TEST_UID_A,
+    productId: 'p5000', amount: 5000, status: 'pending', createdAt: Date.now(),
+  });
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(get(ref(db, 'paymentOrders/test_order_001')));
+    log('차단: 브라우저가 paymentOrders 읽기 차단', true);
+  } catch { log('차단: 브라우저가 paymentOrders 읽기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // [차단] paymentOrders 브라우저 쓰기 차단
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(set(ref(db, 'paymentOrders/fake_order'), {
+      type: 'aiPoints', academyId: TEST_ACAD_A, uid: TEST_UID_A,
+      productId: 'p5000', amount: 5000, status: 'credited', createdAt: Date.now(),
+    }));
+    log('차단: 브라우저가 paymentOrders 쓰기 차단', true);
+  } catch { log('차단: 브라우저가 paymentOrders 쓰기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
+  // [차단] aiCredits lots 브라우저 쓰기 차단
+  // ═══════════════════════════════════════════════════════════════════
+  try {
+    const db = aCtx(TEST_UID_A).database();
+    await assertFails(set(ref(db, `aiCredits/${TEST_ACAD_A}/lots/fake_lot`), {
+      remaining: 99999, total: 99999, expiresAt: Date.now() + 99999999,
+    }));
+    log('차단: 브라우저가 aiCredits/lots 쓰기 차단', true);
+  } catch { log('차단: 브라우저가 aiCredits/lots 쓰기 차단', false); }
+
+  // ═══════════════════════════════════════════════════════════════════
   // 결과 요약
   // ═══════════════════════════════════════════════════════════════════
   const passed = results.filter(r => r.passed).length;

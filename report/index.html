@@ -6,6 +6,7 @@
 <title>AI 성장리포트 — FILLYO</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.portone.io/v2/browser-sdk.js"></script>
 <style>
 :root{
   --navy:#0B1F3A; --blue:#1e3a5f; --sky:#E8F1FF; --sky2:#C8DCFF;
@@ -76,6 +77,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .bf-date{flex:1.5;min-width:110px;}
 .btn-add{width:100%;padding:9px;background:#1e3a5f;color:white;border:none;border-radius:9px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer;margin-top:4px;}
 .btn-add:active{opacity:.85;}
+/* ── 포인트 충전 ── */
+.pt-opt{border:2px solid var(--border);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.12s;display:flex;align-items:center;justify-content:space-between;}
+.pt-opt:hover{border-color:var(--sky2);}
+.pt-opt.sel{border-color:var(--navy);background:var(--sky);}
+.charge-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:white;font-weight:700;padding:10px 20px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:none;z-index:9000;font-size:13px;white-space:nowrap;pointer-events:none;}
+.charge-toast.show{display:block;}
+.charge-toast.ok{background:var(--teal);}
+.charge-toast.err{background:var(--red);}
 
 .body-records{display:flex;flex-direction:column;gap:8px;}
 .body-rec{background:white;border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;}
@@ -248,7 +257,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
                 <button class="btn-gen" id="btnSaveKeyword" onclick="saveKeyword()" style="padding:9px 14px;">저장</button>
               </div>
             </div>
-            <div id="aiCreditsInfo" style="display:none;text-align:center;padding:4px 0 2px;color:var(--gray);"></div>
+            <div id="aiCreditsInfo" style="display:none;padding:5px 0 4px;">
+              <div id="creditsText" style="text-align:center;color:var(--gray);"></div>
+              <div id="creditsExpiry" style="display:none;text-align:center;color:var(--gray);font-size:11px;margin-top:2px;"></div>
+              <div style="text-align:center;margin-top:6px;"><button id="btnCharge" onclick="openChargeModal()" style="background:white;color:var(--navy);border:1.5px solid var(--navy);border-radius:8px;font-size:12px;font-weight:700;padding:5px 14px;cursor:pointer;font-family:inherit;">충전하기</button></div>
+            </div>
             <button class="btn-gen" id="btnGenerate" onclick="generateReport()" style="width:100%;">리포트 생성</button>
           </div>
           <div id="dataSummary" style="display:none;margin-bottom:12px;">
@@ -339,6 +352,52 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<!-- AI 포인트 충전 모달 -->
+<div id="chargeModalBg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:400;align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="background:white;border-radius:18px;padding:24px 20px;width:100%;max-width:380px;margin:auto;box-shadow:0 24px 64px rgba(0,0,0,0.3);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <div style="font-weight:900;font-size:16px;color:var(--navy);">포인트 충전</div>
+      <button id="btnCloseCharge" onclick="closeChargeModal()" style="background:none;border:none;font-size:24px;cursor:pointer;color:var(--gray);line-height:1;padding:0 4px;">×</button>
+    </div>
+    <div id="ptList" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+      <div class="pt-opt" data-pid="p5000" onclick="selectProduct('p5000')">
+        <div>
+          <div style="font-weight:700;color:var(--text);">5,000원 → 5,000P</div>
+          <div style="font-size:12px;color:var(--text2);">50건</div>
+        </div>
+      </div>
+      <div class="pt-opt" data-pid="p10000" onclick="selectProduct('p10000')">
+        <div>
+          <div style="font-weight:700;color:var(--text);">10,000원 → 10,000P</div>
+          <div style="font-size:12px;color:var(--text2);">100건</div>
+        </div>
+      </div>
+      <div class="pt-opt" data-pid="p30000" onclick="selectProduct('p30000')">
+        <div>
+          <div style="font-weight:700;color:var(--text);">30,000원 → 33,000P</div>
+          <div style="font-size:12px;color:var(--text2);">330건 <span style="background:var(--orange-lt);color:var(--orange);font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px;">보너스 3,000P</span></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#f9fafb;border-radius:10px;padding:12px;font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:12px;">
+      <div>· 리포트 1건 = 100P · 매달 무료 30건을 먼저 사용합니다</div>
+      <div>· 포인트 유효기간은 결제일로부터 1년</div>
+      <div>· 결제 후 7일 이내 미사용 시 전액 환불</div>
+      <div>· 7일 이후 미사용 시 10% 공제 후 환불</div>
+      <div>· 일부 사용 또는 유효기간 만료 시 환불 불가</div>
+      <div>· 보너스 포인트는 환불 대상이 아님</div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;margin-bottom:12px;">
+      <input type="checkbox" id="chargeAgree" style="width:16px;height:16px;cursor:pointer;accent-color:var(--navy);" onchange="updateChargeBtn()">
+      위 내용을 확인했습니다
+    </label>
+    <div id="chargeStatus" style="font-size:12px;min-height:18px;margin-bottom:8px;color:var(--gray);"></div>
+    <button id="btnDoCharge" onclick="doCharge()" disabled style="width:100%;padding:12px;background:var(--navy);color:white;border:none;border-radius:10px;font-weight:700;font-family:inherit;cursor:not-allowed;opacity:0.4;">결제하기</button>
+  </div>
+</div>
+<!-- 충전 결과 토스트 -->
+<div class="charge-toast" id="chargeToast"></div>
+
 <script type="module">
 import { initializeApp }                              from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signOut }       from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -363,6 +422,8 @@ const db    = getDatabase(fbApp);
 const fns   = getFunctions(fbApp, 'asia-northeast3');
 const fnGenerateGrowthReport = httpsCallable(fns, 'generateGrowthReport', { timeout: 60000 });
 const fnGetAiCredits         = httpsCallable(fns, 'getAiCredits',         { timeout: 10000 });
+const fnCreatePointOrder     = httpsCallable(fns, 'createPointOrder',     { timeout: 15000 });
+const fnConfirmPointPayment  = httpsCallable(fns, 'confirmPointPayment',  { timeout: 30000 });
 
 function todayKST() {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Seoul' }).format(new Date());
@@ -376,6 +437,9 @@ let selStudent   = null;  // 현재 선택된 학생
 let currentRptKey = null; // 현재 표시 중인 리포트 키 (blur 자동저장용)
 let bodyRecords  = {};    // {pushKey: {date, height, weight}}
 let traitFlags   = {};    // { key: 'pos'|'mid'|'neg' }
+let _selectedProduct = null;
+let _chargeInProgress = false;
+let _pendingChargeToast = null;
 
 const TRAIT_CATEGORIES = [
   {
@@ -478,14 +542,30 @@ function renderCredits(credits) {
   const el = document.getElementById('aiCreditsInfo');
   if (!el) return;
   if (!credits) { el.style.display = 'none'; return; }
-  if (credits.unlimited === true) {
-    el.textContent = '이번 달 무제한';
-  } else {
-    const free = credits.freeRemaining ?? 0;
-    const pack = credits.packRemaining ?? 0;
-    el.textContent = `이번 달 남은 무료 ${free}건 · 충전 ${pack}건`;
-  }
   el.style.display = '';
+  const textEl   = document.getElementById('creditsText');
+  const expiryEl = document.getElementById('creditsExpiry');
+  if (credits.unlimited === true) {
+    if (textEl) textEl.textContent = '이번 달 무제한';
+    if (expiryEl) expiryEl.style.display = 'none';
+    return;
+  }
+  const free  = credits.freeRemaining ?? 0;
+  const pts   = credits.totalPoints   ?? 0;
+  const prpts = credits.pointReports  ?? 0;
+  if (textEl) {
+    textEl.textContent = pts > 0
+      ? `이번 달 남은 무료 ${free}건 · 포인트 ${pts.toLocaleString()}P (${prpts}건)`
+      : `이번 달 남은 무료 ${free}건`;
+  }
+  if (expiryEl && credits.nearestExpiry) {
+    const d = new Date(credits.nearestExpiry);
+    const p2 = n => String(n).padStart(2,'0');
+    expiryEl.textContent = `가장 가까운 만료 ${d.getFullYear()}.${p2(d.getMonth()+1)}.${p2(d.getDate())}`;
+    expiryEl.style.display = '';
+  } else if (expiryEl) {
+    expiryEl.style.display = 'none';
+  }
 }
 
 async function loadAiCredits() {
@@ -498,10 +578,135 @@ async function loadAiCredits() {
   }
 }
 
+function showChargeToast(msg, type = '') {
+  const el = document.getElementById('chargeToast');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = `charge-toast show${type ? ' ' + type : ''}`;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.className = 'charge-toast'; }, 4000);
+}
+
+window.openChargeModal = function() {
+  _selectedProduct  = null;
+  _chargeInProgress = false;
+  document.querySelectorAll('.pt-opt').forEach(el => el.classList.remove('sel'));
+  const agr = document.getElementById('chargeAgree');
+  if (agr) agr.checked = false;
+  const st = document.getElementById('chargeStatus');
+  if (st) { st.textContent = ''; st.style.color = 'var(--gray)'; }
+  updateChargeBtn();
+  document.getElementById('chargeModalBg').style.display = 'flex';
+};
+
+window.closeChargeModal = function() {
+  if (_chargeInProgress) return;
+  document.getElementById('chargeModalBg').style.display = 'none';
+};
+
+window.selectProduct = function(pid) {
+  _selectedProduct = pid;
+  document.querySelectorAll('.pt-opt').forEach(el => el.classList.toggle('sel', el.dataset.pid === pid));
+  updateChargeBtn();
+};
+
+window.updateChargeBtn = function() {
+  const agreed = document.getElementById('chargeAgree')?.checked;
+  const btn    = document.getElementById('btnDoCharge');
+  if (!btn) return;
+  const ok = _selectedProduct && agreed && !_chargeInProgress;
+  btn.disabled        = !ok;
+  btn.style.cursor    = ok ? 'pointer' : 'not-allowed';
+  btn.style.opacity   = ok ? '1' : '0.4';
+};
+
+window.doCharge = async function() {
+  if (!_selectedProduct || !academyId || _chargeInProgress) return;
+  _chargeInProgress = true;
+  updateChargeBtn();
+  document.getElementById('btnCloseCharge').style.display = 'none';
+  const statusEl = document.getElementById('chargeStatus');
+  const setStatus = (msg, color = 'var(--gray)') => {
+    if (statusEl) { statusEl.textContent = msg; statusEl.style.color = color; }
+  };
+  try {
+    setStatus('주문 생성 중...');
+    const orderRes = await fnCreatePointOrder({ academyId, productId: _selectedProduct });
+    const { paymentId, amount, orderName } = orderRes.data;
+
+    setStatus('결제창을 여는 중...');
+    const payResponse = await PortOne.requestPayment({
+      storeId:     'store-0e6ce5fc-6728-436c-8ca5-bb0ba0e6ba4c',
+      channelKey:  'channel-key-dab745e0-688d-45e7-b7d2-e648d528b826',
+      paymentId,
+      orderName,
+      totalAmount: amount,
+      currency:    'CURRENCY_KRW',
+      payMethod:   'CARD',
+      redirectUrl: window.location.origin + '/report/',
+    });
+
+    // 모바일: 페이지 이탈 → 이 아래에 도달하지 않음
+    if (!payResponse) return;
+
+    if (payResponse.code !== undefined) {
+      // 결제 취소 또는 실패
+      setStatus(payResponse.message || '결제가 취소되었습니다.', 'var(--red)');
+      _chargeInProgress = false;
+      document.getElementById('btnCloseCharge').style.display = '';
+      updateChargeBtn();
+      return;
+    }
+
+    // PC 결제 완료 → confirm
+    setStatus('결제 확인 중...');
+    try {
+      await fnConfirmPointPayment({ paymentId });
+      _chargeInProgress = false;
+      document.getElementById('btnCloseCharge').style.display = '';
+      closeChargeModal();
+      showChargeToast('포인트가 충전되었습니다.', 'ok');
+      await loadAiCredits();
+    } catch(ce) {
+      setStatus('결제가 확인되는 중입니다. 잠시 후 새로고침해주세요.', 'var(--orange)');
+      console.warn('[confirmPointPayment]', ce.message);
+    }
+    _chargeInProgress = false;
+    document.getElementById('btnCloseCharge').style.display = '';
+    updateChargeBtn();
+
+  } catch(e) {
+    setStatus(`오류: ${e.message}`, 'var(--red)');
+    console.error('[doCharge]', e);
+    _chargeInProgress = false;
+    document.getElementById('btnCloseCharge').style.display = '';
+    updateChargeBtn();
+  }
+};
+
 // ── 인증 ─────────────────────────────────────────────────────────────
 onAuthStateChanged(auth, async user => {
   try {
     if (!user) { location.href = '/login/'; return; }
+
+    // ── 모바일 포인트 결제 리다이렉트 복귀 처리 ──────────────────────
+    const _params   = new URLSearchParams(location.search);
+    const _retPayId = _params.get('paymentId');
+    const _retCode  = _params.get('code');
+    if (_retPayId || _retCode) {
+      history.replaceState(null, '', location.pathname);
+      if (_retPayId && !_retCode) {
+        try {
+          await fnConfirmPointPayment({ paymentId: _retPayId });
+          _pendingChargeToast = { msg: '포인트가 충전되었습니다.', type: 'ok' };
+        } catch(e) {
+          _pendingChargeToast = { msg: '결제가 확인되는 중입니다. 잠시 후 새로고침해주세요.', type: '' };
+          console.warn('[chargeRedirect]', e.message);
+        }
+      } else {
+        _pendingChargeToast = { msg: _params.get('message') || '결제가 취소되었습니다.', type: 'err' };
+      }
+    }
 
     const userSnap = await get(ref(db, `users/${user.uid}`));
     if (!userSnap.exists()) { await signOut(auth); location.href = '/login/'; return; }
@@ -555,7 +760,11 @@ onAuthStateChanged(auth, async user => {
     loadKeyword(thisMonth);
 
     loadStudents();
-    loadAiCredits();
+    await loadAiCredits();
+    if (_pendingChargeToast) {
+      showChargeToast(_pendingChargeToast.msg, _pendingChargeToast.type);
+      _pendingChargeToast = null;
+    }
   } catch(e) {
     console.error('auth error:', e);
     document.getElementById('loadingScreen').style.display = 'none';
@@ -1038,8 +1247,9 @@ window.generateReport = async function(){
     if (result.data.credits) renderCredits(result.data.credits);
 
   } catch(e) {
-    if (e.code === 'functions/resource-exhausted' && e.message.includes('충전')) {
-      statusEl.innerHTML = `<span style="color:var(--red)">${e.message}</span><br><button class="btn-add" disabled style="margin-top:8px;opacity:.5;cursor:not-allowed;">충전하기 (준비 중)</button>`;
+    if (e.code === 'functions/resource-exhausted') {
+      statusEl.innerHTML = `<span style="color:var(--red)">${e.message}</span>`;
+      if (e.message && e.message.includes('포인트 충전')) setTimeout(openChargeModal, 300);
     } else {
       statusEl.textContent = `오류: ${e.message}`;
     }

@@ -303,6 +303,18 @@ exports.portoneWebhook = onRequest(
       const { academyId, amount, orderName, billingKey } = order;
       const now = Date.now();
 
+      // ── aiPoints 결제 분기 (포인트 충전) — 구독 처리와 완전 분리 ──────────
+      const isAiPoints = order.type === 'aiPoints' || paymentId.startsWith('aip_');
+      if (isAiPoints) {
+        if (status === 'PAID') {
+          await _creditPointLot(paymentId, order, payment); // payment = PortOne 단건조회 결과
+        } else if (status === 'CANCELLED') {
+          // 포인트 회수는 관리자가 직접(revokePointLot). 여기선 주문 기록만 남김.
+          await db.ref(`paymentOrders/${paymentId}`).update({ status: 'cancelled', cancelledAt: now });
+        }
+        return res.status(200).send('ok');
+      }
+
       // ── 애드온 결제 분기 (paymentId 접두사 또는 order.type으로 판별) ──────
       const isAddon = order.type === 'addon' || paymentId.startsWith('addon_');
 
@@ -1340,39 +1352,63 @@ exports.parentDeskKakao = onRequest(
 );
 
 // ── AI 크레딧 순수 함수 ────────────────────────────────────────────────
-// aiCredits/{academyId} = { month: 'YYYY-MM', freeUsed: number, packs: { {packId}: { total, remaining, purchasedAt, expiresAt, paymentId } } }
+// aiCredits/{academyId} = {
+//   month: 'YYYY-MM', freeUsed: number,
+//   lots: { {lotId}: { productId, amount, paidPoints, bonusPoints, total, remaining,
+//                      purchasedAt, expiresAt, paymentId, revokedAt? } }
+// }
 // 서버(Admin SDK)만 읽고 씀 — 브라우저 직접 접근 차단됨(DB 규칙 기본 deny)
 
 const FREE_LIMIT = 30;
+const POINTS_PER_REPORT = 100;
+const POINT_PRODUCTS = {
+  p5000:  { amount: 5000,  paidPoints: 5000,  bonusPoints: 0,    total: 5000  },
+  p10000: { amount: 10000, paidPoints: 10000, bonusPoints: 0,    total: 10000 },
+  p30000: { amount: 30000, paidPoints: 30000, bonusPoints: 3000, total: 33000 },
+};
 
-// 1건 차감. 크레딧 부족 시 null 반환.
+// 1건(100P) 차감. 크레딧 부족 시 null 반환.
+// usedFrom: 'free' | [{ lotId, points }] (여러 lot에 걸칠 수 있음)
 function _reserveCredit(current, now, monthKey) {
   let s = current
-    ? { month: current.month, freeUsed: current.freeUsed || 0, packs: current.packs ? { ...current.packs } : {} }
-    : { month: monthKey, freeUsed: 0, packs: {} };
+    ? { month: current.month, freeUsed: current.freeUsed || 0, lots: current.lots ? { ...current.lots } : {} }
+    : { month: monthKey, freeUsed: 0, lots: {} };
   if (s.month !== monthKey) { s.month = monthKey; s.freeUsed = 0; }
+
   if (s.freeUsed < FREE_LIMIT) {
     return { next: { ...s, freeUsed: s.freeUsed + 1 }, usedFrom: 'free' };
   }
-  const validPacks = Object.entries(s.packs)
-    .filter(([, p]) => p.remaining > 0 && p.expiresAt > now)
+
+  const validLots = Object.entries(s.lots)
+    .filter(([, l]) => !l.revokedAt && l.remaining > 0 && l.expiresAt > now)
     .sort(([, a], [, b]) => a.expiresAt - b.expiresAt);
-  if (validPacks.length > 0) {
-    const [packId, pack] = validPacks[0];
-    return { next: { ...s, packs: { ...s.packs, [packId]: { ...pack, remaining: pack.remaining - 1 } } }, usedFrom: packId };
+  const available = validLots.reduce((sum, [, l]) => sum + l.remaining, 0);
+  if (available < POINTS_PER_REPORT) return null;
+
+  let needed = POINTS_PER_REPORT;
+  const deducted = [];
+  const newLots = { ...s.lots };
+  for (const [lotId, lot] of validLots) {
+    if (needed <= 0) break;
+    const take = Math.min(lot.remaining, needed);
+    newLots[lotId] = { ...lot, remaining: lot.remaining - take };
+    deducted.push({ lotId, points: take });
+    needed -= take;
   }
-  return null;
+  return { next: { ...s, lots: newLots }, usedFrom: deducted };
 }
 
-// AI 호출 실패 시 차감한 1건 복구
+// AI 호출 실패 시 차감한 크레딧 복구 (중복 환불 방지: 호출 후 _usedFrom=null)
 function _refundCredit(current, usedFrom, monthKey) {
   if (!current) return current;
-  const s = { month: current.month, freeUsed: current.freeUsed || 0, packs: current.packs ? { ...current.packs } : {} };
+  const s = { month: current.month, freeUsed: current.freeUsed || 0, lots: current.lots ? { ...current.lots } : {} };
   if (usedFrom === 'free') {
     if (s.month === monthKey) s.freeUsed = Math.max(0, s.freeUsed - 1);
   } else {
-    const pack = s.packs[usedFrom];
-    if (pack) s.packs[usedFrom] = { ...pack, remaining: pack.remaining + 1 };
+    for (const { lotId, points } of usedFrom) {
+      const lot = s.lots[lotId];
+      if (lot) s.lots[lotId] = { ...lot, remaining: lot.remaining + points };
+    }
   }
   return s;
 }
@@ -1380,13 +1416,96 @@ function _refundCredit(current, usedFrom, monthKey) {
 // 쓰기 없이 크레딧 잔여량 계산
 function _computeCreditsInfo(state, now, monthKey) {
   const s = (!state || state.month !== monthKey)
-    ? { freeUsed: 0, packs: {} }
-    : { freeUsed: state.freeUsed || 0, packs: state.packs || {} };
+    ? { freeUsed: 0, lots: {} }
+    : { freeUsed: state.freeUsed || 0, lots: state.lots || {} };
   const freeRemaining = Math.max(0, FREE_LIMIT - s.freeUsed);
-  const packRemaining = Object.values(s.packs)
-    .filter(p => p.remaining > 0 && p.expiresAt > now)
-    .reduce((sum, p) => sum + p.remaining, 0);
-  return { freeRemaining, packRemaining, freeLimit: FREE_LIMIT, unlimited: false };
+  const validLots = Object.entries(s.lots)
+    .filter(([, l]) => !l.revokedAt && l.remaining > 0 && l.expiresAt > now);
+  const totalPoints = validLots.reduce((sum, [, l]) => sum + l.remaining, 0);
+  const pointReports = Math.floor(totalPoints / POINTS_PER_REPORT);
+  const nearestExpiry = validLots.length > 0
+    ? Math.min(...validLots.map(([, l]) => l.expiresAt))
+    : null;
+  return { freeRemaining, totalPoints, pointReports, nearestExpiry, freeLimit: FREE_LIMIT, unlimited: false };
+}
+
+// ── 포인트 결제 검증 (순수 함수) ──────────────────────────────────────
+// 웹훅·confirmPointPayment 공통 경로. payment = PortOne 단건조회 응답.
+// 반환: { ok: true } | { ok: false, reason: string }
+function _checkPointPayment(payment, order) {
+  const product = POINT_PRODUCTS[order.productId];
+  if (!product) return { ok: false, reason: `unknown_product:${order.productId}` };
+  if (payment.status !== 'PAID') return { ok: false, reason: `status_not_paid:${payment.status}` };
+  const paidAmount = payment.amount?.total ?? payment.amount;
+  if (paidAmount !== product.amount) {
+    return { ok: false, reason: `amount_mismatch:expected=${product.amount},actual=${paidAmount}` };
+  }
+  if (payment.currency !== 'KRW') return { ok: false, reason: `currency_mismatch:${payment.currency}` };
+  return { ok: true };
+}
+
+// ── 포인트 lot 적립 (멱등 + 트랜잭션) ────────────────────────────────────
+// 웹훅·confirmPointPayment 양쪽에서 호출. lotId = paymentId.
+// 반환: { ok: true } | { ok: false, reason: string }
+async function _creditPointLot(paymentId, order, payment) {
+  // ① 결제 검증 (금액·통화·status)
+  const check = _checkPointPayment(payment, order);
+  if (!check.ok) {
+    console.error(`[_creditPointLot] 결제 검증 실패 ${paymentId}: ${check.reason}`);
+    const failAt = Date.now();
+    const r = check.reason || '';
+    if (r.startsWith('status_not_paid')) {
+      // 결제 미완료: 주문 status는 건드리지 않고 마지막 확인 결과만 기록
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        lastCheckReason: check.reason,
+        lastCheckAt:     failAt,
+      }).catch(() => {});
+    } else if (r.startsWith('unknown_product')) {
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        status:          'check_failed',
+        checkFailReason: check.reason,
+        checkFailedAt:   failAt,
+      }).catch(() => {});
+    } else {
+      // amount_mismatch, currency_mismatch
+      await db.ref(`paymentOrders/${paymentId}`).update({
+        status:          'amount_mismatch',
+        checkFailReason: check.reason,
+        checkFailedAt:   failAt,
+      }).catch(() => {});
+    }
+    return { ok: false, reason: check.reason };
+  }
+
+  const { academyId, productId, amount } = order;
+  const product = POINT_PRODUCTS[productId]; // _checkPointPayment에서 이미 검증됨
+  const now = Date.now();
+  const newLot = {
+    productId,
+    amount,
+    paidPoints:  product.paidPoints,
+    bonusPoints: product.bonusPoints,
+    total:       product.total,
+    remaining:   product.total,
+    purchasedAt: now,
+    expiresAt:   now + 365 * 24 * 3600 * 1000,
+    paymentId,
+  };
+
+  // ② 트랜잭션: 이미 존재하면 abort, 없을 때만 생성 (동시 요청 방어)
+  const lotRef = db.ref(`aiCredits/${academyId}/lots/${paymentId}`);
+  const txResult = await lotRef.transaction(current => {
+    if (current !== null) return; // abort: 이미 적립됨
+    return newLot;
+  });
+
+  if (txResult.committed) {
+    await db.ref(`paymentOrders/${paymentId}`).update({ status: 'credited', creditedAt: now });
+    console.log(`[_creditPointLot] 적립 완료: ${paymentId} +${product.total}P → ${academyId}`);
+  } else {
+    console.log(`[_creditPointLot] 이미 적립됨(트랜잭션 abort): ${paymentId}`);
+  }
+  return { ok: true };
 }
 
 // ──────────────────────────────────────────────────────────────────
@@ -1451,7 +1570,7 @@ exports.generateGrowthReport = onCall(
         return r.next;
       });
       if (!txResult.committed) {
-        throw new HttpsError('resource-exhausted', '이번 달 무료 30건을 모두 사용했습니다. 충전 후 이용해주세요.');
+        throw new HttpsError('resource-exhausted', '이번 달 무료 30건과 충전 포인트를 모두 사용했습니다. 포인트 충전 후 이용해주세요.');
       }
       _usedFrom = lastReserveResult?.usedFrom ?? null;
     }
@@ -1641,7 +1760,7 @@ ${dojanKeyword ? `
 
     const credSnap = isAdmin ? null : await db.ref(`aiCredits/${academyId}`).get();
     const creditsInfo = isAdmin
-      ? { freeRemaining: FREE_LIMIT, packRemaining: 0, freeLimit: FREE_LIMIT, unlimited: true }
+      ? { freeRemaining: FREE_LIMIT, totalPoints: 0, pointReports: 0, nearestExpiry: null, freeLimit: FREE_LIMIT, unlimited: true }
       : _computeCreditsInfo(credSnap.val(), Date.now(), _credMonthKey);
 
     return { text, usage, credits: creditsInfo };
@@ -1673,7 +1792,7 @@ exports.getAiCredits = onCall(
     }
 
     if (isAdmin) {
-      return { freeRemaining: FREE_LIMIT, packRemaining: 0, freeLimit: FREE_LIMIT, unlimited: true };
+      return { freeRemaining: FREE_LIMIT, totalPoints: 0, pointReports: 0, nearestExpiry: null, freeLimit: FREE_LIMIT, unlimited: true };
     }
 
     const now = Date.now();
@@ -2457,5 +2576,197 @@ exports.getStaffData = onCall(
     const data = await _buildStaffData(academyId, staff.role, staff.allowedItems);
 
     return { name: staff.name, role: staff.role, academyName, data };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// createPointOrder  (Callable)
+// 포인트 충전 주문 생성. 서버 상수로 금액·포인트 결정 (브라우저 값 무시).
+// 입력: { academyId, productId }
+// 반환: { paymentId, amount, orderName, points }
+// ──────────────────────────────────────────────────────────────────
+exports.createPointOrder = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { academyId, productId } = request.data;
+    if (!academyId || !productId) throw new HttpsError('invalid-argument', 'academyId, productId 필수');
+    _validateAcademyId(academyId);
+
+    const product = POINT_PRODUCTS[productId];
+    if (!product) throw new HttpsError('invalid-argument', '유효하지 않은 productId입니다');
+
+    // 소유권 확인
+    const userSnap = await db.ref(`users/${uid}/academyId`).get();
+    if (!userSnap.exists() || userSnap.val() !== academyId) {
+      throw new HttpsError('permission-denied', '본인 학원만 충전할 수 있습니다');
+    }
+
+    // 구독 또는 90일 무료체험 중일 때만 허용
+    const ucSnap = await db.ref(`users/${uid}`).get();
+    const uc = ucSnap.val() || {};
+    const isPro = uc.planType === 'pro' && (!uc.planExpiry || uc.planExpiry > Date.now());
+    const ts = uc.trialStart || null;
+    const isTrial = !isPro && ts !== null && Math.floor((Date.now() - ts) / 86400000) < 90;
+    if (!isPro && !isTrial) {
+      throw new HttpsError('permission-denied', '구독 또는 무료체험 중에만 포인트를 충전할 수 있습니다');
+    }
+
+    const _aipTs  = Date.now().toString(36);
+    const _aipRnd = Math.random().toString(36).slice(2, 6).padEnd(4, '0');
+    const paymentId = `aip${_aipTs}${_aipRnd}`;
+    if (paymentId.length > 32) throw new HttpsError('internal', `paymentId 길이 초과: ${paymentId.length}자`);
+    const orderName = `FILLYO AI 리포트 포인트 충전 (${product.total.toLocaleString()}P)`;
+    const now = Date.now();
+
+    await db.ref(`paymentOrders/${paymentId}`).set({
+      type:      'aiPoints',
+      academyId,
+      uid,
+      productId,
+      amount:    product.amount,
+      points:    product.total,
+      orderName,
+      status:    'pending',
+      createdAt: now,
+    });
+
+    return { paymentId, amount: product.amount, orderName, points: product.total };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// confirmPointPayment  (Callable)
+// 브라우저가 결제 완료 후 호출 → 포트원 단건조회 + lot 적립 (멱등).
+// 입력: { paymentId }
+// 반환: { ok: true, alreadyCredited?: true }
+// ──────────────────────────────────────────────────────────────────
+exports.confirmPointPayment = onCall(
+  { region: 'asia-northeast3', timeoutSeconds: 30 },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', '로그인이 필요합니다');
+
+    const { paymentId } = request.data;
+    if (!paymentId) throw new HttpsError('invalid-argument', 'paymentId 필수');
+
+    const orderSnap = await db.ref(`paymentOrders/${paymentId}`).get();
+    if (!orderSnap.exists()) throw new HttpsError('not-found', '주문을 찾을 수 없습니다');
+    const order = orderSnap.val();
+
+    if (order.uid !== uid) throw new HttpsError('permission-denied', '본인 주문만 확인할 수 있습니다');
+    if (order.type !== 'aiPoints') throw new HttpsError('invalid-argument', '포인트 주문이 아닙니다');
+
+    // 이미 적립된 경우 멱등 성공
+    if (order.status === 'credited') return { ok: true, alreadyCredited: true };
+
+    // PortOne 단건조회 (기존 구독 결제와 같은 방식)
+    let payment;
+    try {
+      const { data } = await axios.get(
+        `${PORTONE_BASE}/payments/${paymentId}`,
+        { headers: { Authorization: `PortOne ${apiSecret()}` } },
+      );
+      payment = data;
+    } catch (e) {
+      console.error('[confirmPointPayment] 결제 조회 실패:', e.response?.data ?? e.message);
+      throw new HttpsError('internal', '결제 조회 실패');
+    }
+
+    // _creditPointLot이 _checkPointPayment로 금액·통화·status 검증 + 트랜잭션 적립
+    const result = await _creditPointLot(paymentId, order, payment);
+    if (!result.ok) {
+      const r = result.reason || '';
+      if (r.startsWith('status_not_paid')) {
+        throw new HttpsError('failed-precondition', `결제가 완료되지 않았습니다 (status: ${payment.status})`);
+      }
+      if (r.startsWith('amount_mismatch')) {
+        throw new HttpsError('failed-precondition', '결제 금액이 일치하지 않습니다');
+      }
+      if (r.startsWith('currency_mismatch')) {
+        throw new HttpsError('failed-precondition', '통화가 일치하지 않습니다');
+      }
+      throw new HttpsError('failed-precondition', '결제 검증 실패');
+    }
+    return { ok: true };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// getAcademyPointLots  (Callable — 관리자 전용)
+// 특정 도장의 lot 목록 + 참고 환불액 반환
+// 입력: { academyId }
+// 반환: { lots: [...] }
+// ──────────────────────────────────────────────────────────────────
+exports.getAcademyPointLots = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    if (request.auth?.token?.email !== 'audtls2g@gmail.com') {
+      throw new HttpsError('permission-denied', '관리자 전용 기능입니다');
+    }
+
+    const { academyId } = request.data;
+    if (!academyId) throw new HttpsError('invalid-argument', 'academyId 필수');
+    _validateAcademyId(academyId);
+
+    const snap = await db.ref(`aiCredits/${academyId}/lots`).get();
+    if (!snap.exists()) return { lots: [] };
+
+    const now = Date.now();
+    const lots = Object.entries(snap.val()).map(([lotId, l]) => {
+      const daysSincePurchase = Math.floor((now - (l.purchasedAt || 0)) / 86400000);
+      const isUnused  = l.remaining === l.total && !l.revokedAt;
+      const isExpired = (l.expiresAt || 0) <= now;
+      const isRevoked = !!l.revokedAt;
+
+      // 참고 환불액: 7일(밀리초 기준) 이내 + 미사용 → 전액 / 7일 초과 + 미사용 + 만료 전 → 90% / 그 외 → 0
+      // 보너스 포인트는 환불액 계산에 포함하지 않음 (결제액 기준으로만 계산)
+      const within7days = (now - (l.purchasedAt || 0)) <= 7 * 24 * 3600 * 1000;
+      let refundAmount = 0;
+      if (!isRevoked && isUnused && !isExpired) {
+        refundAmount = within7days ? l.amount : Math.floor(l.amount * 0.9);
+      }
+
+      return { lotId, ...l, daysSincePurchase, isUnused, isExpired, isRevoked, refundAmount };
+    });
+
+    return { lots };
+  },
+);
+
+// ──────────────────────────────────────────────────────────────────
+// revokePointLot  (Callable — 관리자 전용)
+// lot 회수: remaining → 0, revokedAt·회수 전 잔여·memo 기록. 멱등.
+// 입력: { academyId, lotId, memo? }
+// 반환: { ok: true, alreadyRevoked?: true }
+// ──────────────────────────────────────────────────────────────────
+exports.revokePointLot = onCall(
+  { region: 'asia-northeast3' },
+  async (request) => {
+    if (request.auth?.token?.email !== 'audtls2g@gmail.com') {
+      throw new HttpsError('permission-denied', '관리자 전용 기능입니다');
+    }
+
+    const { academyId, lotId, memo } = request.data;
+    if (!academyId || !lotId) throw new HttpsError('invalid-argument', 'academyId, lotId 필수');
+    _validateAcademyId(academyId);
+
+    const lotRef = db.ref(`aiCredits/${academyId}/lots/${lotId}`);
+    const snap = await lotRef.get();
+    if (!snap.exists()) throw new HttpsError('not-found', 'lot을 찾을 수 없습니다');
+    const lot = snap.val();
+
+    if (lot.revokedAt) return { ok: true, alreadyRevoked: true };
+
+    await lotRef.update({
+      revokedAt:             Date.now(),
+      remainingBeforeRevoke: lot.remaining,
+      remaining:             0,
+      revokeMemo:            memo || '',
+    });
+
+    return { ok: true };
   },
 );
