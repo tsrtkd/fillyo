@@ -405,6 +405,7 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
                 <th>기관</th>
                 <th>신청기간</th>
                 <th>태그</th>
+                <th>지역</th>
                 <th>고정</th>
                 <th>링크</th>
               </tr>
@@ -439,6 +440,35 @@ td{padding:12px 16px;font-size:13px;vertical-align:middle;}
         </div>
         <input type="text" id="polUrl" class="search-inp" style="max-width:100%;" placeholder="상세 URL (https://...)">
         <input type="text" id="polTag" class="search-inp" style="max-width:100%;" placeholder="태그 (예: 대전 | 체육시설 | 소상공인)">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <input type="text" id="polTarget" class="search-inp" style="max-width:100%;" placeholder="지원 대상 (예: 5인 미만 소상공인)">
+          <input type="text" id="polAmount" class="search-inp" style="max-width:100%;" placeholder="지원 금액 (예: 최대 25만원)">
+          <input type="text" id="polHowTo"  class="search-inp" style="max-width:100%;" placeholder="신청 방법 (예: 소상공인24 온라인)">
+        </div>
+        <div>
+          <label style="font-size:12px;font-weight:700;color:var(--gray);display:block;margin-bottom:4px;">지역</label>
+          <select id="polRegion" style="width:200px;border:1.5px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:inherit;color:var(--text);outline:none;background:white;" onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor='var(--border)'">
+            <option value="">-- 선택 안 함 --</option>
+            <option value="전국">전국</option>
+            <option value="서울">서울</option>
+            <option value="부산">부산</option>
+            <option value="대구">대구</option>
+            <option value="인천">인천</option>
+            <option value="광주">광주</option>
+            <option value="대전">대전</option>
+            <option value="울산">울산</option>
+            <option value="세종">세종</option>
+            <option value="경기">경기</option>
+            <option value="강원">강원</option>
+            <option value="충북">충북</option>
+            <option value="충남">충남</option>
+            <option value="전북">전북</option>
+            <option value="전남">전남</option>
+            <option value="경북">경북</option>
+            <option value="경남">경남</option>
+            <option value="제주">제주</option>
+          </select>
+        </div>
         <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--text);cursor:pointer;">
           <input type="checkbox" id="polPinned" style="width:16px;height:16px;cursor:pointer;">
           📌 상단 고정 (pinned)
@@ -1091,15 +1121,25 @@ window.saveCurated = async () => {
   const endDate   = (document.getElementById('polEnd').value    || '').trim();
   const url       = (document.getElementById('polUrl').value    || '').trim();
   const tag       = (document.getElementById('polTag').value    || '').trim();
+  const target    = (document.getElementById('polTarget').value || '').trim();
+  const amount    = (document.getElementById('polAmount').value || '').trim();
+  const howTo     = (document.getElementById('polHowTo').value  || '').trim();
+  const region    = (document.getElementById('polRegion').value || '').trim();
   const pinned    = document.getElementById('polPinned').checked;
 
   if (!title || !endDate) { showToast('사업명과 마감일은 필수입니다.', 'err'); return; }
 
   try {
-    await push(ref(db, 'policy/curated'), { title, org, startDate, endDate, url, tag, pinned });
-    ['polTitle','polOrg','polStart','polEnd','polUrl','polTag'].forEach(id => {
+    const data = { title, org, startDate, endDate, url, tag, pinned };
+    if (target) data.target = target;
+    if (amount) data.amount = amount;
+    if (howTo)  data.howTo  = howTo;
+    if (region) data.region = region;
+    await push(ref(db, 'policy/curated'), data);
+    ['polTitle','polOrg','polStart','polEnd','polUrl','polTag','polTarget','polAmount','polHowTo'].forEach(id => {
       document.getElementById(id).value = '';
     });
+    document.getElementById('polRegion').value  = '';
     document.getElementById('polPinned').checked = false;
     showToast('추천정책이 등록되었습니다.', 'ok');
     await loadCurated();
@@ -1130,14 +1170,27 @@ window.loadCurated = async () => {
       const end = p.endDate    || p.reqstEndDt   || '';
       const per = p.reqstBeginEndDe || (p.startDate && p.endDate ? p.startDate + ' ~ ' + p.endDate : '');
       const endTxt = per || (end ? `~ ${end}` : '상시');
+      const regionBadge = p.region
+        ? `<span style="font-size:11px;background:#e3f2fd;color:#0d47a1;padding:2px 8px;border-radius:5px;">${esc(p.region)}</span>`
+        : '';
+      const sumParts = [
+        p.target && `대상: ${esc(p.target)}`,
+        p.amount && `금액: ${esc(p.amount)}`,
+        p.howTo  && `신청: ${esc(p.howTo)}`,
+      ].filter(Boolean);
+      const sumLine = sumParts.length
+        ? `<div class="notice-item-preview" style="color:var(--text2);margin-top:2px;">${sumParts.join(' · ')}</div>`
+        : '';
       return `
       <div class="notice-item">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
           ${p.pinned ? '<span style="font-size:11px;font-weight:900;background:#fff7e0;color:#b36200;padding:2px 8px;border-radius:5px;">📌 고정</span>' : ''}
+          ${regionBadge}
           <div class="notice-item-title" style="margin-bottom:0;">${esc(nm)}</div>
         </div>
         <div class="notice-item-date">${esc(org)}${org ? ' · ' : ''}${esc(endTxt)}</div>
         <div class="notice-item-preview">${esc(p.tag || '')}</div>
+        ${sumLine}
         <div class="notice-item-footer">
           <button class="btn-act btn-del" onclick="deleteCurated('${p.id}')">삭제</button>
         </div>
@@ -1180,10 +1233,14 @@ window.fetchDraft = async () => {
       const org     = esc(p.jrsdInsttNm  || p.org   || '');
       const period  = esc(p.reqstBeginEndDe || (p.startDate && p.endDate ? p.startDate + ' ~ ' + p.endDate : '상시'));
       const tag     = esc(p.tag || '');
-      const pinMark = p.pinned ? '<span class="draft-pin">📌 고정</span>' : '';
-      const href    = p.pblancUrl || p.url || '';
-      const link    = href
+      const pinMark  = p.pinned ? '<span class="draft-pin">📌 고정</span>' : '';
+      const href     = p.pblancUrl || p.url || '';
+      const link     = href
         ? `<a href="${esc(href)}" target="_blank" rel="noopener" class="draft-link">바로가기</a>`
+        : '<span style="color:var(--border);">—</span>';
+      const regionV  = esc(p.region || '');
+      const regionCell = regionV
+        ? `<span style="font-size:11px;background:#e3f2fd;color:#0d47a1;padding:2px 7px;border-radius:4px;white-space:nowrap;">${regionV}</span>`
         : '<span style="color:var(--border);">—</span>';
       return `<tr>
         <td style="text-align:center;"><input type="checkbox" class="draft-chk" data-id="${esc(id)}" checked></td>
@@ -1191,6 +1248,7 @@ window.fetchDraft = async () => {
         <td style="color:var(--text2);">${org}</td>
         <td style="color:var(--text2);">${period}</td>
         <td><span style="font-size:11px;background:var(--sky);color:var(--blue);padding:2px 7px;border-radius:4px;">${tag}</span></td>
+        <td>${regionCell}</td>
         <td>${pinMark}</td>
         <td>${link}</td>
       </tr>`;

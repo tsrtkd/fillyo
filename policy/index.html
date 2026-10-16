@@ -95,6 +95,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .expired-toggle.open .arrow{transform:rotate(180deg);}
 .expired-body{display:none;margin-top:8px;}
 .expired-body.open{display:block;}
+
+/* CURATED SUMMARY */
+.pol-summary{margin:4px 0 8px;}
+.pol-sum-row{display:flex;gap:6px;align-items:baseline;margin-bottom:2px;}
+.pol-sum-label{font-size:10px;font-weight:700;color:var(--teal);min-width:28px;flex-shrink:0;}
+.pol-sum-val{font-size:12px;color:var(--text2);}
+.pol-region-tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:#e8f5e9;color:#1b5e20;margin-bottom:6px;}
+.pol-region-tag.national{background:#e3f2fd;color:#0d47a1;}
 </style>
 </head>
 <body>
@@ -207,10 +215,13 @@ function extractSido(address) {
 }
 
 // ── 인증 + 주소 읽기 ──────────────────────────────────────────────
-let mySido = null;
+let mySido  = null;
+let isAdmin = false;
+const ADMIN_EMAIL = 'audtls2g@gmail.com';
 
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = '/login/'; return; }
+  isAdmin = (user.email === ADMIN_EMAIL);
 
   // 도장 주소에서 시·도 추출 (없으면 mySido=null)
   try {
@@ -242,7 +253,8 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── 마감일 추출 ────────────────────────────────────────────────────
 function getEndDate(item) {
-  if (item.reqstEndDt) return item.reqstEndDt;
+  if (item.endDate)    return item.endDate;      // admin 등록 항목
+  if (item.reqstEndDt) return item.reqstEndDt;   // 자동검색/초안 항목
   const s = item.reqstBeginEndDe || '';
   const parts = s.split(' ~ ');
   return parts.length === 2 ? parts[1].trim() : null;
@@ -296,6 +308,17 @@ function cardHTML(item, pinned = false) {
     ? `<div class="pol-org" style="margin-top:2px;">${escHtml(item.tag)}</div>`
     : '';
 
+  const regionTag = item.region
+    ? `<span class="pol-region-tag${item.region === '전국' ? ' national' : ''}">${escHtml(item.region)}</span>`
+    : '';
+
+  const sumRows = [
+    item.target ? `<div class="pol-sum-row"><span class="pol-sum-label">대상</span><span class="pol-sum-val">${escHtml(item.target)}</span></div>` : '',
+    item.amount ? `<div class="pol-sum-row"><span class="pol-sum-label">금액</span><span class="pol-sum-val">${escHtml(item.amount)}</span></div>` : '',
+    item.howTo  ? `<div class="pol-sum-row"><span class="pol-sum-label">신청</span><span class="pol-sum-val">${escHtml(item.howTo)}</span></div>`  : '',
+  ].filter(Boolean).join('');
+  const summaryBlock = sumRows ? `<div class="pol-summary">${sumRows}</div>` : '';
+
   return `
     <div class="${cls}">
       ${badges ? `<div class="pol-badges">${badges}</div>` : ''}
@@ -304,6 +327,7 @@ function cardHTML(item, pinned = false) {
         <span class="pol-dday ${dd.cls}">${dd.text}</span>
       </div>
       <div class="pol-org">${escHtml(org)}</div>
+      ${regionTag}${summaryBlock}
       ${tagLine}
       <div class="pol-period">📅 ${escHtml(period)}</div>
       ${url}
@@ -442,6 +466,17 @@ async function loadAuto() {
   }
 }
 
+// ── 추천정책 지역 거르기 ───────────────────────────────────────────
+// region 없음/"전국" → 모두에게 보임
+// region이 특정 시·도 → 그 시·도 관장님에게만 (주소 없으면 숨김, 관리자는 모두 보임)
+function isCuratedVisible(item, sido, admin) {
+  if (admin) return true;
+  const r = (item.region || '').trim();
+  if (!r || r === '전국') return true;
+  if (!sido) return false;
+  return r === sido;
+}
+
 // ── 추천정책 로드 ──────────────────────────────────────────────────
 async function loadCurated() {
   if (curatedLoaded) return;
@@ -467,12 +502,12 @@ async function loadCurated() {
     }
 
     const raw   = snap.val();
-    const items = Object.values(raw);
+    const items = Object.values(raw).filter(item => isCuratedVisible(item, mySido, isAdmin));
 
     // pinned 먼저, 나머지 마감일 순
     const pinned = items.filter(i => i.pinned);
     const rest   = items.filter(i => !i.pinned).sort((a, b) => {
-      const da = calcDday(a.reqstEndDt), db = calcDday(b.reqstEndDt);
+      const da = calcDday(getEndDate(a)), db = calcDday(getEndDate(b));
       const va = da === null ? 9999 : da < 0 ? 99999 : da;
       const vb = db === null ? 9999 : db < 0 ? 99999 : db;
       return va - vb;
