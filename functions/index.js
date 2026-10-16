@@ -56,6 +56,8 @@ const EARLYBIRD_EXCLUDED_EMAILS = new Set([
   'test@fillyo.kr',
   'audtls2g@naver.com',
   'audtls2g@gmail.com',
+  'tsrtkd@naver.com',
+  'testfillyo@fillyo.kr',
 ]);
 
 // openPriceSlots 기반 가격 결정
