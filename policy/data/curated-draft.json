@@ -1,83 +1,11 @@
 {
-  "VOUCHER2026": {
-    "pblancNm": "2026년 소상공인 경영안정 바우처 지원사업",
-    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
-    "pblancUrl": "https://voucher.sbiz24.kr/",
-    "reqstEndDt": "2026-12-18",
-    "reqstBeginEndDe": "2026.02.09 ~ 2026.12.18",
-    "tag": "고정비 지원",
-    "pinned": true
-  },
-  "DJ_LABORCOST2026": {
-    "pblancNm": "2026년 대전시 소상공인 신규고용 인건비 지원사업",
-    "jrsdInsttNm": "대전일자리경제진흥원 (DJBEA)",
-    "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117737",
-    "reqstEndDt": "2026-11-30",
-    "reqstBeginEndDe": "2026.01.21 ~ 2026.11.30 (예산 소진 시까지)",
-    "tag": "인건비",
-    "pinned": true
-  },
-  "MSS_POLICYFUND2026": {
-    "pblancNm": "2026년 소상공인 정책자금 융자사업 (일반·특별 경영안정자금 등)",
-    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
-    "pblancUrl": "https://www.mss.go.kr/site/smba/ex/bbs/View.do?cbIdx=310&bcIdx=1064354&parentSeq=1064354",
-    "reqstEndDt": "",
-    "reqstBeginEndDe": "2026년 연중 (예산 소진 시까지)",
-    "tag": "대출/보증",
-    "pinned": true
-  },
-  "DJ_SINBO_GUARANTEE2026": {
-    "pblancNm": "2026년 대전 소상공인 경영위기극복 특례보증",
-    "jrsdInsttNm": "대전신용보증재단",
-    "pblancUrl": "https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=PBLN_000000000117221",
-    "reqstEndDt": "",
-    "reqstBeginEndDe": "2026년 예산 소진 시까지 (3,150억 규모)",
-    "tag": "대출/보증",
-    "pinned": false
-  },
-  "MOEL_JOBCREATION2026": {
-    "pblancNm": "2026년 고용창출장려금 및 고용안정장려금 지원사업",
-    "jrsdInsttNm": "고용노동부",
-    "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117059",
-    "reqstEndDt": "",
-    "reqstBeginEndDe": "2026년 연중 상시",
-    "tag": "인건비",
-    "pinned": false
-  },
-  "MSS_INTG2026": {
-    "pblancNm": "2026년 중소벤처기업부 소상공인 지원사업 통합 공고",
-    "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단",
-    "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117016",
-    "reqstEndDt": "",
-    "reqstBeginEndDe": "2026년 각 사업별 공고 일정 참조",
-    "tag": "통합공고",
-    "pinned": false
-  },
-  "HANA_POWERON2026": {
-    "pblancNm": "2026년 하나 파워 온 스토어 소상공인 지원사업",
-    "jrsdInsttNm": "사회연대은행·하나은행",
-    "pblancUrl": "https://www.hanapoweronstore.com/",
-    "reqstEndDt": "",
-    "reqstBeginEndDe": "2026.06 ~ 2026.12 (고효율기기·온라인판로 지원 6.11 시작, 나머지 항목 7~8월 순차 오픈, 전국 5,300개소 한정)",
-    "tag": "시설·장비, AI/디지털, 소상공인",
-    "pinned": false
-  },
-  "DJ_SMARTSTORE2026_2": {
-    "pblancNm": "2026년 스마트상점 기술보급사업 2차 모집 (구입형·렌탈형·SW형)",
-    "jrsdInsttNm": "소상공인시장진흥공단",
-    "pblancUrl": "https://www.sbiz.or.kr/smst/index.do",
-    "reqstEndDt": "2026-09-30",
-    "reqstBeginEndDe": "2026.08.26 ~ 2026.09.30",
-    "tag": "전국, 체육시설, 소상공인, 시설장비",
-    "pinned": false
-  },
-  "DJ_TUNTUNLOAN2026_5": {
-    "pblancNm": "2026년 스포츠산업 육성자금(튼튼론) 5차 접수",
-    "jrsdInsttNm": "국민체육진흥공단(스포비즈)",
-    "pblancUrl": "https://spobiz.kspo.or.kr/front/html/html.do?sitePage=supportInfoDetail08&topMenuSeq=1",
-    "reqstEndDt": "2026-09-01",
-    "reqstBeginEndDe": "2026.09.01 (당일 마감)",
-    "tag": "전국, 체육시설, 정책자금",
-    "pinned": false
-  }
+  "-OwDXp1QEu3EzazEzzzr": {"pblancNm": "2026년 스포츠강좌이용권 (가맹시설로 수강생 받기)", "jrsdInsttNm": "국민체육진흥공단", "pblancUrl": "https://svoucher.kspo.or.kr", "reqstEndDt": "", "reqstBeginEndDe": "2026년 연중", "tag": "체육시설 | 스포츠", "target": "가맹시설로 등록한 체육시설 (수강생은 저소득 5~18세, 등록 장애인)", "amount": "수강생 1인당 월 10만5천원(장애인 월 11만원)까지 바우처로 수강료 결제", "howTo": "가맹시설 등록은 관할 시·군·구청 체육 담당 부서 문의", "region": "전국", "pinned": true},
+  "VOUCHER2026": {"pblancNm": "2026년 소상공인 경영안정 바우처", "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단", "pblancUrl": "https://voucher.sbiz24.kr/", "reqstEndDt": "2026-12-18", "reqstBeginEndDe": "2026.02.09 ~ 2026.12.18 (예산 소진 시 조기 마감)", "tag": "고정비 지원", "target": "2025년 연 매출 1억 400만원 미만, 2025년까지 개업한 소상공인", "amount": "사업체당 25만원 (공과금·4대보험료·주유비에 사용)", "howTo": "소상공인24 또는 voucher.sbiz24.kr 온라인 신청", "region": "전국", "pinned": true},
+  "-OwFuCFTCwFmogPeTXkR": {"pblancNm": "2026년 소상공인 고효율기기 지원사업", "jrsdInsttNm": "한국전력공사", "pblancUrl": "https://en-ter.co.kr", "reqstEndDt": "2026-12-31", "reqstBeginEndDe": "2026.02.09 ~ 2026.12.31 (예산 소진 시 조기 마감)", "tag": "시설·장비", "target": "소상공인 (1등급 냉난방기·냉장고·세탁기 등 신규 구매, 1월 이후 구매분 소급)", "amount": "구매가(부가세 제외)의 40%, 품목별 한도", "howTo": "한전 에너지마켓플레이스(en-ter.co.kr) 온라인 신청, 문의 1551-1212", "region": "전국", "pinned": true},
+  "DJ_LABORCOST2026": {"pblancNm": "2026년 대전시 소상공인 신규고용 인건비 지원", "jrsdInsttNm": "대전일자리경제진흥원", "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117737", "reqstEndDt": "2026-11-30", "reqstBeginEndDe": "2026.01.21 ~ 2026.11.30 (예산 소진 시까지)", "tag": "인건비", "target": "대전 소상공인 중 2026.1.1~9.10에 새로 고용(월 60시간 이상, 4대보험, 3개월 유지)", "amount": "1인당 월 50만원 × 3개월 = 최대 150만원", "howTo": "온라인 접수 (공고문은 대전비즈, 문의 대전일자리경제진흥원)", "region": "대전", "pinned": true},
+  "MSS_POLICYFUND2026": {"pblancNm": "2026년 소상공인 정책자금 (일반경영안정자금 등)", "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단", "pblancUrl": "https://ols.semas.or.kr", "reqstEndDt": "", "reqstBeginEndDe": "2026년 연중 (예산 소진 시까지)", "tag": "대출/보증", "target": "업력과 관계없이 소상공인", "amount": "연 최대 7천만원 대출 (최대 5년, 거치 2년 포함)", "howTo": "소상공인정책자금 누리집(ols.semas.or.kr) 또는 지역센터", "region": "전국", "pinned": false},
+  "DJ_SINBO_GUARANTEE2026": {"pblancNm": "2026년 대전 소상공인 경영위기극복 특례보증", "jrsdInsttNm": "대전신용보증재단", "pblancUrl": "https://www.bizinfo.go.kr/web/lay1/bbs/S1T122C128/AS/74/view.do?pblancId=PBLN_000000000117221", "reqstEndDt": "", "reqstBeginEndDe": "2026년 예산 소진 시까지 (3,150억 규모)", "tag": "대출/보증", "target": "대전 소상공인 (저신용·저소득 소상공인까지 확대)", "amount": "보증부 대출 (한도·이자 지원은 공고문 확인)", "howTo": "대전신용보증재단 문의·신청", "region": "대전", "pinned": false},
+  "MOEL_JOBCREATION2026": {"pblancNm": "2026년 고용창출·고용안정 장려금", "jrsdInsttNm": "고용노동부", "pblancUrl": "https://www.work24.go.kr", "reqstEndDt": "2026-12-31", "reqstBeginEndDe": "2026.01.01 ~ 2026.12.31", "tag": "인건비", "target": "직원을 둔 사업장 (육아휴직·유연근무·정규직 전환 등 해당 시)", "amount": "예: 육아휴직 대체인력 월 최대 140만원, 유연근무 월 20~30만원", "howTo": "고용24(work24.go.kr) 온라인 또는 관할 고용센터, 문의 1350", "region": "전국", "pinned": false},
+  "MSS_INTG2026": {"pblancNm": "2026년 중소벤처기업부 소상공인 지원사업 통합 공고", "jrsdInsttNm": "중소벤처기업부 / 소상공인시장진흥공단", "pblancUrl": "https://www.bizinfo.go.kr/sii/siia/selectSIIA200Detail.do?pblancId=PBLN_000000000117016", "reqstEndDt": "", "reqstBeginEndDe": "2026년 각 사업별 공고 일정 참조", "tag": "통합공고", "target": "소상공인 전체", "amount": "사업별로 다름 (올해 소상공인 지원사업 전체 목록)", "howTo": "공고문에서 사업별 신청처 확인", "region": "전국", "pinned": false},
+  "HANA_POWERON2026": {"pblancNm": "2026년 하나 파워 온 스토어 (AI 교육·컨설팅)", "jrsdInsttNm": "사회연대은행·하나은행", "pblancUrl": "https://www.hanapoweronstore.com/", "reqstEndDt": "", "reqstBeginEndDe": "항목별 상이 (고효율기기·간판·실내보수·온라인판로는 마감)", "tag": "AI/디지털, 소상공인", "target": "상시근로자 5인 미만 등 소상공인, 2025년까지 개업", "amount": "AI 역량 교육·찾아가는 AI 컨설팅 (무료 지원)", "howTo": "하나 파워 온 스토어 누리집 신청, 문의 1588-4413", "region": "전국", "pinned": false}
 }
