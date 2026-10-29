@@ -649,7 +649,7 @@ window.renderChartTab = renderChartTab;
 let uid = null, academyId = null, acadName = '';
 let students = [], evalHistory = [], sessions = {}, activeSessionId = null;
 let idCnt = 0, hIdCnt = 0, sCnt = 0;
-const today = new Date().toISOString().slice(0,10);
+const today = (() => { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); })();
 let evalState = 'setup';
 let scoringStudentId = null, scoringResult = null;
 
