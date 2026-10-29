@@ -700,6 +700,8 @@ let academyPhone        = '';
 let academyPhoneDisplay = '';
 let academyExamSettings     = {};
 let examCurriculumOverride  = {};
+let step1Selected = new Set();
+let step2Selected = new Set();
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -1621,19 +1623,58 @@ window.renderExamStudentChecks = () => {
   applySort(list, sort);
   document.getElementById('examStudentChecks').innerHTML = list.map(s => `
     <div class="check-item">
-      <input type="checkbox" id="chk-${s.id}" value="${s.id}">
+      <input type="checkbox" id="chk-${s.id}" value="${s.id}" ${step1Selected.has(s.id) ? 'checked' : ''} onchange="onStep1Check(this)">
       <label for="chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}</label>
     </div>
   `).join('');
+  const allChecked = list.length > 0 && list.every(s => step1Selected.has(s.id));
+  const chkAllEl = document.getElementById('chkAll');
+  if (chkAllEl) chkAllEl.checked = allChecked;
+};
+
+window.onStep1Check = (chk) => {
+  if (chk.checked) step1Selected.add(chk.value);
+  else step1Selected.delete(chk.value);
+  const allChecks = [...document.querySelectorAll('#examStudentChecks input[type=checkbox]')];
+  const allChecked = allChecks.length > 0 && allChecks.every(c => c.checked);
+  const chkAllEl = document.getElementById('chkAll');
+  if (chkAllEl) chkAllEl.checked = allChecked;
 };
 
 window.toggleCheckAll = (chk) => {
-  document.querySelectorAll('#examStudentChecks input[type=checkbox]').forEach(c => c.checked = chk.checked);
+  document.querySelectorAll('#examStudentChecks input[type=checkbox]').forEach(c => {
+    c.checked = chk.checked;
+    if (chk.checked) step1Selected.add(c.value);
+    else step1Selected.delete(c.value);
+  });
 };
 
 window.toggleCheckAllStep2 = (chk) => {
-  document.querySelectorAll('.step2-chk').forEach(c => c.checked = chk.checked);
+  document.querySelectorAll('.step2-chk').forEach(c => {
+    c.checked = chk.checked;
+    if (chk.checked) step2Selected.add(c.value);
+    else step2Selected.delete(c.value);
+  });
+  updateStep2SelectedCount();
 };
+
+window.onStep2Check = (chk) => {
+  if (chk.checked) step2Selected.add(chk.value);
+  else step2Selected.delete(chk.value);
+  const visiblePending = [...document.querySelectorAll('.step2-chk')];
+  const allVisibleChecked = visiblePending.length > 0 && visiblePending.every(c => c.checked);
+  const chkAllEl = document.getElementById('chkAllStep2');
+  if (chkAllEl) chkAllEl.checked = allVisibleChecked;
+  updateStep2SelectedCount();
+};
+
+function updateStep2SelectedCount() {
+  const countEl = document.getElementById('step2SelectedCount');
+  if (!countEl || !currentSession) return;
+  const allIds = new Set(currentSession.studentIds || []);
+  const n = [...step2Selected].filter(id => allIds.has(id) && students[id] && !isStudentDoneInSession(id)).length;
+  countEl.textContent = n > 0 ? '선택 ' + n + '명' : '';
+}
 
 function sortList(list, sort) { return applySort(list, sort); }
 
@@ -1719,15 +1760,20 @@ window.renderStep2List = () => {
   const dispPending = search ? pending.filter(s => (s.name || '').toLowerCase().includes(search)) : pending;
   const dispDone    = search ? done.filter(s => (s.name || '').toLowerCase().includes(search)) : done;
 
+  const allSessionIds = new Set(currentSession.studentIds || []);
+  const effectiveCount = [...step2Selected].filter(id => allSessionIds.has(id) && students[id] && !isStudentDoneInSession(id)).length;
+  const allVisibleSelected = dispPending.length > 0 && dispPending.every(s => step2Selected.has(s.id));
+
   let html = `
     <div class="student-check-list" style="margin-bottom:12px">
       <div class="check-all-row">
-        <input type="checkbox" id="chkAllStep2" onchange="toggleCheckAllStep2(this)">
+        <input type="checkbox" id="chkAllStep2" onchange="toggleCheckAllStep2(this)" ${allVisibleSelected ? 'checked' : ''}>
         <label for="chkAllStep2">전체 선택 (${dispPending.length}명)</label>
+        <span id="step2SelectedCount" style="margin-left:auto;font-size:12px;color:var(--text2);font-weight:600">${effectiveCount > 0 ? '선택 ' + effectiveCount + '명' : ''}</span>
       </div>
       ${dispPending.map(s => `
         <div class="check-item">
-          <input type="checkbox" class="step2-chk" id="step2chk-${s.id}" value="${s.id}">
+          <input type="checkbox" class="step2-chk" id="step2chk-${s.id}" value="${s.id}" ${step2Selected.has(s.id) ? 'checked' : ''} onchange="onStep2Check(this)">
           <label for="step2chk-${s.id}">${s.name || '이름없음'} ${beltBadge(s.belt || '흰띠', s.grade || '')}${isStudentPendingInSession(s.id) ? ' <span class="pass-badge pending">진행중</span>' : ''}</label>
         </div>
       `).join('')}
@@ -1751,6 +1797,8 @@ window.renderStep2List = () => {
 };
 
 function showStep1() {
+  step1Selected = new Set();
+  step2Selected = new Set();
   document.getElementById('examSetupSection').classList.remove('hidden');
   document.getElementById('examStep2Section').classList.add('hidden');
   document.getElementById('examSection').classList.add('hidden');
@@ -1758,6 +1806,7 @@ function showStep1() {
 }
 
 function showStep2() {
+  step2Selected = new Set();
   document.getElementById('examSetupSection').classList.add('hidden');
   document.getElementById('examStep2Section').classList.remove('hidden');
   document.getElementById('examProgressTitle').textContent = `${currentSession.date} | ${currentSession.round}`;
@@ -1774,7 +1823,7 @@ window.registerSession = async () => {
   const round = document.getElementById('examRound').value.trim();
   if (!date)  { showToast('심사일을 선택해주세요'); return; }
   if (!round) { showToast('회차명을 입력해주세요'); return; }
-  const checked = [...document.querySelectorAll('#examStudentChecks input:checked')].map(c => c.value);
+  const checked = [...step1Selected];
   if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
 
   const sessionData = { date, round, studentIds: checked, createdAt: Date.now() };
@@ -1787,6 +1836,7 @@ window.registerSession = async () => {
     sessionKey, date, round, studentSnapshot, createdAt: Date.now(),
   });
 
+  step1Selected = new Set();
   currentSession = { key: sessionKey, ...sessionData };
   showStep2();
   showToast('✅ 회차 등록 완료');
@@ -1794,8 +1844,10 @@ window.registerSession = async () => {
 
 window.startSubExam = () => {
   if (!currentSession) return;
-  const checked = [...document.querySelectorAll('.step2-chk:checked')].map(c => c.value);
+  const allIds = new Set(currentSession.studentIds || []);
+  const checked = [...step2Selected].filter(id => allIds.has(id) && students[id] && !isStudentDoneInSession(id));
   if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
+  step2Selected = new Set();
 
   const sessionStudents = checked.map(id => {
     const s     = students[id] || {};
