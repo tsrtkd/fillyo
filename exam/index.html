@@ -702,6 +702,7 @@ let academyExamSettings     = {};
 let examCurriculumOverride  = {};
 let step1Selected = new Set();
 let step2Selected = new Set();
+let _draftCommentTimer = null;
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -1064,6 +1065,52 @@ function scoreLabelColor(v) {
 
 function todayStr() { return new Date().toISOString().slice(0, 10); }
 
+// ── 임시저장 (drafts) ─────────────────────────────────────────────────
+async function saveDraft() {
+  if (!currentExamSession || !currentSession || !academyId) return;
+  try {
+    currentExamSession.students.forEach((s, i) => {
+      const el = document.getElementById('comment-' + i);
+      if (el) s.comment = el.value;
+    });
+    await set(ref(db, `academies/${academyId}/exam/drafts/${currentSession.key}`), {
+      sessionKey: currentSession.key,
+      date:       currentExamSession.date,
+      round:      currentExamSession.round,
+      updatedAt:  Date.now(),
+      students:   currentExamSession.students.map(s => ({
+        id:      s.id,
+        scores:  s.scores,
+        passed:  s.passed,
+        comment: s.comment || '',
+        done:    s.done || false,
+      })),
+    });
+  } catch (e) { console.warn('임시저장 실패', e); }
+}
+
+async function clearDraft(key) {
+  if (!academyId || !key) return;
+  try { await remove(ref(db, `academies/${academyId}/exam/drafts/${key}`)); }
+  catch (e) { console.warn('임시저장 삭제 실패', e); }
+}
+
+function scheduleDraftSave() {
+  clearTimeout(_draftCommentTimer);
+  _draftCommentTimer = setTimeout(() => saveDraft(), 1000);
+}
+
+function flushDraftSave() {
+  clearTimeout(_draftCommentTimer);
+  _draftCommentTimer = null;
+  saveDraft();
+}
+
+window.addEventListener('pagehide', () => { if (currentExamSession) flushDraftSave(); });
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && currentExamSession) flushDraftSave();
+});
+
 // ── 인증 / 초기화 ─────────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
   if (!user) { location.href = '/login/'; return; }
@@ -1127,13 +1174,71 @@ onAuthStateChanged(auth, async (user) => {
 
   document.getElementById('examDate').value = todayStr();
 
+  // draft 복원에 필요하므로 students / evaluations를 먼저 get으로 읽어 둠
+  const initStudSnap = await get(ref(db, `academies/${academyId}/exam/students`));
+  students = initStudSnap.val() || {};
+  const initEvalSnap = await get(ref(db, `academies/${academyId}/exam/evaluations`));
+  evaluations = initEvalSnap.val() || {};
+
   const sessSnap    = await get(ref(db, `academies/${academyId}/exam/sessions`));
   const allSessions = sessSnap.val() || {};
   const today       = todayStr();
-  const activeEntry = Object.entries(allSessions).find(([, s]) => s.date === today);
+  const draftsSnap  = await get(ref(db, `academies/${academyId}/exam/drafts`));
+  const allDrafts   = draftsSnap.val() || {};
+
+  // 오늘 날짜 회차 우선, 없으면 임시저장이 있는 회차(updatedAt 최신)
+  let activeEntry = Object.entries(allSessions).find(([, s]) => s.date === today);
+  if (!activeEntry) {
+    const draftEntries = Object.entries(allDrafts)
+      .filter(([key]) => allSessions[key])
+      .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    if (draftEntries.length) activeEntry = [draftEntries[0][0], allSessions[draftEntries[0][0]]];
+  }
+
   if (activeEntry) {
     currentSession = { key: activeEntry[0], ...activeEntry[1] };
-    showStep2();
+    const draft = allDrafts[activeEntry[0]];
+    if (draft && Array.isArray(draft.students) && draft.students.length > 0) {
+      const restoredStudents = draft.students
+        .filter(ds => students[ds.id])
+        .map(ds => {
+          const s = students[ds.id];
+          return {
+            id:      ds.id,
+            name:    s.name    || '',
+            belt:    s.belt    || '흰띠',
+            grade:   s.grade   || '',
+            age:     s.age     || 0,
+            scores:  ds.scores || {},
+            passed:  ds.passed  ?? null,
+            comment: ds.comment || '',
+            done:    ds.done    || isStudentDoneInSession(ds.id),
+          };
+        });
+      const hasNotDone = restoredStudents.some(s => !s.done);
+      if (restoredStudents.length > 0 && hasNotDone) {
+        currentExamSession = {
+          date:     draft.date  || currentSession.date,
+          round:    draft.round || currentSession.round,
+          students: restoredStudents,
+        };
+        document.getElementById('examSetupSection').classList.add('hidden');
+        document.getElementById('examStep2Section').classList.remove('hidden');
+        document.getElementById('examProgressTitle').textContent = `${currentSession.date} | ${currentSession.round}`;
+        document.getElementById('examProgressLabel').textContent = `${(currentSession.studentIds || []).length}명 등록됨`;
+        document.getElementById('examStep2ListSection').classList.add('hidden');
+        document.getElementById('examBackSection').classList.remove('hidden');
+        document.getElementById('examSection').classList.remove('hidden');
+        renderExamTable();
+        showToast('진행 중이던 심사를 이어서 합니다');
+      } else {
+        await clearDraft(activeEntry[0]);
+        showStep2();
+      }
+    } else {
+      if (allDrafts[activeEntry[0]]) await clearDraft(activeEntry[0]);
+      showStep2();
+    }
   }
 
   document.getElementById('loading').classList.add('hidden');
@@ -1879,9 +1984,10 @@ window.startSubExam = () => {
   document.getElementById('examBackSection').classList.remove('hidden');
   document.getElementById('examSection').classList.remove('hidden');
   renderExamTable();
+  saveDraft();
 };
 
-window.backToStep2List = (skipWarning = false) => {
+window.backToStep2List = async (skipWarning = false) => {
   if (!skipWarning && currentExamSession) {
     const hasUnsaved = currentExamSession.students.some((ss, i) =>
       !ss.done && (
@@ -1892,6 +1998,7 @@ window.backToStep2List = (skipWarning = false) => {
     );
     if (hasUnsaved && !confirm('저장하지 않은 평가가 있습니다. 목록으로 돌아가시겠습니까?')) return;
   }
+  if (currentSession) await clearDraft(currentSession.key);
   currentExamSession = null;
   document.getElementById('examSection').classList.add('hidden');
   document.getElementById('examSection').innerHTML = '';
@@ -1903,6 +2010,7 @@ window.backToStep2List = (skipWarning = false) => {
 window.endSession = async () => {
   if (!confirm('회차를 종료하시겠습니까?')) return;
   if (currentSession) {
+    await clearDraft(currentSession.key);
     await remove(ref(db, `academies/${academyId}/exam/sessions/${currentSession.key}`));
   }
   currentSession     = null;
@@ -1999,7 +2107,7 @@ function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
           </div>
         </div>
         <div class="exam-cell row-comment">
-          <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평..." style="height:100%;resize:none">${ss.comment || ''}</textarea>
+          <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평..." style="height:100%;resize:none" oninput="scheduleDraftSave()">${ss.comment || ''}</textarea>
         </div>
         <div class="exam-cell row-save">
           <button class="save-btn" style="margin:0" onclick="saveExamRow(${idx})">💾 저장</button>
@@ -2033,6 +2141,7 @@ function moveRowToDone(idx) {
 window.setScore = (idx, key, val, btn) => {
   currentExamSession.students[idx].scores[key] = val;
   btn.parentElement.querySelectorAll('.score-btn').forEach(b => b.classList.toggle('on', Number(b.textContent) === val));
+  saveDraft();
 };
 
 window.setPassed = (idx, val) => {
@@ -2041,6 +2150,7 @@ window.setPassed = (idx, val) => {
   const row = document.getElementById('erow-' + idx);
   row.querySelectorAll('.pf-btn.pass').forEach(b => b.classList.toggle('on', val === true));
   row.querySelectorAll('.pf-btn.fail').forEach(b => b.classList.toggle('on', val === false));
+  saveDraft();
 };
 
 window.savePending = async (idx) => {
@@ -2120,6 +2230,10 @@ window.saveExamRow = async (idx) => {
   const rowEl = document.getElementById('erow-' + idx);
   if (rowEl) rowEl.classList.add('done');
   moveRowToDone(idx);
+
+  // 임시저장: 미완료 학생이 남아 있으면 갱신, 모두 완료면 삭제
+  if (currentExamSession.students.every(s => s.done)) clearDraft(currentSession.key);
+  else saveDraft();
 
   if (ss.passed === true) {
     const next = calcNext(ss);
