@@ -271,6 +271,11 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .todo-txt{flex:1;font-size:13px;color:var(--text);line-height:1.5;}
 .todo-txt.done{text-decoration:line-through;color:var(--gray);}
 .todo-del{width:24px;height:24px;border-radius:6px;background:var(--red-lt);border:none;color:var(--red);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.todo-edit{width:24px;height:24px;border-radius:6px;background:#e8f5f0;border:none;color:var(--teal);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.todo-edit-inp{flex:1;min-width:0;border:1.5px solid var(--teal);border-radius:6px;padding:3px 7px;font-size:13px;font-family:inherit;color:var(--text);}
+.todo-edit-inp:focus{outline:none;}
+.todo-save-btn{height:24px;border-radius:6px;background:var(--teal);border:none;color:white;font-size:12px;font-weight:700;cursor:pointer;padding:0 8px;white-space:nowrap;flex-shrink:0;}
+.todo-cancel-btn{height:24px;border-radius:6px;background:#f0f0f0;border:none;color:var(--gray);font-size:12px;cursor:pointer;padding:0 8px;white-space:nowrap;flex-shrink:0;}
 .todo-add-row{display:flex;gap:6px;padding:8px 13px 12px;}
 .todo-add-inp{flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;font-family:inherit;color:var(--text);}
 .todo-add-inp:focus{outline:none;border-color:var(--teal);}
@@ -1674,6 +1679,7 @@ window.confirmCancel = () => {
 
 // ── TO DO 리스트 ──────────────────────────────────────────────────
 let todoItems = [];
+let currentEditingTodoId = null;
 
 async function loadTodos() {
   if (!academyId) return;
@@ -1694,6 +1700,10 @@ async function saveTodosToFirebase() {
   } catch(e) { console.error('TODO 저장 실패:', e); }
 }
 
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function renderTodos() {
   const wrap = document.getElementById('todoList');
   const badge = document.getElementById('todoBadge');
@@ -1711,10 +1721,17 @@ function renderTodos() {
     wrap.innerHTML = `<div style="text-align:center;padding:16px;color:var(--gray);font-size:12px;">할 일을 추가해보세요!</div>`;
     return;
   }
-  wrap.innerHTML = visible.map(t => `
+  wrap.innerHTML = visible.map(t => t.id === currentEditingTodoId ? `
+    <div class="todo-item">
+      <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} disabled style="opacity:0.4;cursor:not-allowed;">
+      <input type="text" class="todo-edit-inp" id="todo-edit-inp-${t.id}" value="${escapeHtml(t.text)}" onkeydown="todoEditKeyDown(event,'${t.id}')">
+      <button class="todo-save-btn" onclick="saveEditTodo('${t.id}')">저장</button>
+      <button class="todo-cancel-btn" onclick="cancelEditTodo()">취소</button>
+    </div>` : `
     <div class="todo-item">
       <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo('${t.id}')">
-      <span class="todo-txt${t.done ? ' done' : ''}">${t.text}</span>
+      <span class="todo-txt${t.done ? ' done' : ''}">${escapeHtml(t.text)}</span>
+      <button class="todo-edit" onclick="startEditTodo('${t.id}')">✏️</button>
       <button class="todo-del" onclick="deleteTodo('${t.id}')">×</button>
     </div>`).join('');
 }
@@ -1731,7 +1748,7 @@ function renderMonthlyTodos() {
   el.innerHTML = done.map(t => `
     <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #f4f6f8;">
       <span style="font-size:18px;">✅</span>
-      <span style="font-size:13px;color:var(--text);text-decoration:line-through;flex:1;">${t.text}</span>
+      <span style="font-size:13px;color:var(--text);text-decoration:line-through;flex:1;">${escapeHtml(t.text)}</span>
       <span style="font-size:10px;color:var(--gray);text-align:right;white-space:nowrap;">
         ${t.createdDate ? '추가 '+t.createdDate.slice(5).replace('-','/') : ''}<br>
         ${t.doneDate ? '완료 '+t.doneDate.slice(5).replace('-','/') : ''}
@@ -1768,6 +1785,37 @@ window.deleteTodo = async (id) => {
   renderTodos();
   renderMonthlyTodos();
   await saveTodosToFirebase();
+};
+
+window.startEditTodo = (id) => {
+  currentEditingTodoId = id;
+  renderTodos();
+  const inp = document.getElementById(`todo-edit-inp-${id}`);
+  if (inp) inp.focus();
+};
+
+window.saveEditTodo = async (id) => {
+  const inp = document.getElementById(`todo-edit-inp-${id}`);
+  const item = todoItems.find(t => t.id === id);
+  currentEditingTodoId = null;
+  if (!item) { renderTodos(); return; }
+  const newText = inp ? inp.value.trim() : '';
+  if (!newText || newText === item.text) { renderTodos(); return; }
+  item.text = newText;
+  renderTodos();
+  renderMonthlyTodos();
+  await saveTodosToFirebase();
+};
+
+window.cancelEditTodo = () => {
+  currentEditingTodoId = null;
+  renderTodos();
+};
+
+window.todoEditKeyDown = (event, id) => {
+  if (event.isComposing) return;
+  if (event.key === 'Enter') window.saveEditTodo(id);
+  else if (event.key === 'Escape') window.cancelEditTodo();
 };
 
 // ── 차량운행 ──────────────────────────────────────────────────────
