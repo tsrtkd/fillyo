@@ -111,11 +111,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 .cv-blue{color:var(--blue);} .cv-green{color:var(--teal);} .cv-orange{color:var(--orange);} .cv-red{color:var(--red);}
 
 /* ATTEND */
-.abs-row{display:grid;grid-template-columns:1fr 1.5fr auto;gap:6px;margin-bottom:6px;align-items:center;}
+.abs-row{display:grid;grid-template-columns:1fr 60px 1.4fr auto;gap:6px;margin-bottom:6px;align-items:center;}
 .abs-inp{border:1.5px solid var(--border);border-radius:7px;padding:7px 8px;font-size:12px;font-family:inherit;background:#FFF8F6;width:100%;}
 .abs-inp:focus{outline:none;border-color:var(--orange);}
 .abs-del{width:28px;height:28px;border-radius:7px;background:var(--red-lt);border:none;color:var(--red);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .abs-add-btn{margin:4px 10px 10px;background:var(--orange-lt);border:1.5px dashed var(--orange);color:var(--orange);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:calc(100% - 20px);}
+.abs-sort-btn{flex:1;padding:5px 0;border:1.5px solid var(--border);border-radius:7px;background:white;color:var(--text2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
+.abs-sort-btn.active{border-color:var(--orange);background:var(--orange-lt);color:var(--orange);}
+.abs-view-grp-title{font-weight:700;color:var(--navy);padding:6px 0 2px;font-size:12px;}
+.abs-view-row{padding:3px 2px;font-size:12px;border-bottom:1px solid #F5F5F5;}
+.abs-view-row:last-child{border-bottom:none;}
 
 /* TEXTAREA */
 .ta{width:100%;border:none;resize:none;font-family:inherit;font-size:13px;line-height:1.75;padding:12px 13px;min-height:76px;color:var(--text);background:transparent;}
@@ -442,6 +447,12 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       </div>
       <div id="absRows" style="padding:8px 10px;"></div>
       <button class="abs-add-btn" onclick="addAbsRow()">＋ 결석자 추가</button>
+      <div style="display:flex;gap:6px;padding:4px 10px 10px;">
+        <button class="abs-sort-btn active" id="absSort_input" onclick="setAbsViewMode('입력순')">입력순</button>
+        <button class="abs-sort-btn" id="absSort_name" onclick="setAbsViewMode('이름순')">이름순</button>
+        <button class="abs-sort-btn" id="absSort_bu" onclick="setAbsViewMode('부별')">부별</button>
+      </div>
+      <div id="absView" style="display:none;padding:6px 12px 10px;border-top:1px solid var(--border);"></div>
     </div>
 
     <div class="sec">
@@ -742,6 +753,7 @@ let vehicleNoteTimer = null;
 let _vnLastDateKey   = null;
 let outAddCount    = 0;
 let absCount       = 0;
+let absViewMode    = '입력순';
 let vehicleSchedule = {};
 
 // ── 인증 & 앱 진입 ────────────────────────────────────────────────
@@ -928,8 +940,10 @@ window.addAbsRow = (shouldFocus = true) => {
   const id = absCount++;
   const div = document.createElement('div');
   div.className = 'abs-row'; div.id = 'absRow_' + id;
+  const buOpts = '<option value="">부 선택</option>' + BU_LABELS.map(l => `<option value="${escapeHtml(l)}">${escapeHtml(l)}</option>`).join('');
   div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
-    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
+    <select class="abs-inp" id="absB_${id}" onchange="triggerAutoSave();renderAbsView()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">${buOpts}</select>
+    <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" oninput="triggerAutoSave();renderAbsView()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
     <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
   document.getElementById('absRows').appendChild(div);
   if (shouldFocus) {
@@ -955,6 +969,7 @@ window.countAbsNames = function() {
   badge.textContent = cnt + '명';
   const calcAbs = parseInt(document.getElementById('tot_abs').textContent) || 0;
   badge.style.background = cnt === 0 ? 'rgba(255,255,255,0.25)' : cnt === calcAbs ? 'rgba(76,175,80,0.5)' : 'rgba(255,82,82,0.5)';
+  renderAbsView();
 }
 
 function getAbsList() {
@@ -962,8 +977,9 @@ function getAbsList() {
   document.querySelectorAll('[id^="absRow_"]').forEach(row => {
     const id = row.id.split('_')[1];
     const n = document.getElementById('absN_' + id)?.value.trim();
+    const b = document.getElementById('absB_' + id)?.value || '';
     const r = document.getElementById('absR_' + id)?.value.trim();
-    if (n && n.length > 0) list.push({ name: n, reason: r || '' });
+    if (n && n.length > 0) list.push({ name: n, bu: b, reason: r || '' });
   });
   return list;
 }
@@ -975,8 +991,15 @@ function setAbsList(list) {
     const id = absCount++;
     const div = document.createElement('div');
     div.className = 'abs-row'; div.id = 'absRow_' + id;
-    div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" value="${item.name||''}" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
-      <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" value="${item.reason||''}" oninput="triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
+    const buVal = item.bu || '';
+    const extraOpt = (buVal && !BU_LABELS.includes(buVal))
+      ? `<option value="${escapeHtml(buVal)}" selected>${escapeHtml(buVal)}</option>` : '';
+    const buOpts = '<option value="">부 선택</option>'
+      + BU_LABELS.map(l => `<option value="${escapeHtml(l)}"${buVal === l ? ' selected' : ''}>${escapeHtml(l)}</option>`).join('')
+      + extraOpt;
+    div.innerHTML = `<input class="abs-inp" id="absN_${id}" placeholder="이름" value="${escapeHtml(item.name||'')}" oninput="countAbsNames();checkAbsDuplicate();triggerAutoSave()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
+      <select class="abs-inp" id="absB_${id}" onchange="triggerAutoSave();renderAbsView()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">${buOpts}</select>
+      <input class="abs-inp" id="absR_${id}" placeholder="결석 사유" value="${escapeHtml(item.reason||'')}" oninput="triggerAutoSave();renderAbsView()" onfocus="absFocused=true" onblur="absFocused=false;triggerAutoSave()">
       <button class="abs-del" onclick="delAbsRow(${id})">×</button>`;
     document.getElementById('absRows').appendChild(div);
   });
@@ -992,6 +1015,89 @@ window.checkAbsDuplicate = () => {
     el.style.background  = isDup ? 'var(--red-lt)' : '';
   });
 };
+
+window.setAbsViewMode = function(mode) {
+  absViewMode = mode;
+  const map = { '입력순': 'input', '이름순': 'name', '부별': 'bu' };
+  Object.entries(map).forEach(([m, key]) => {
+    const btn = document.getElementById('absSort_' + key);
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  const viewEl = document.getElementById('absView');
+  if (viewEl) viewEl.style.display = (mode === '입력순') ? 'none' : '';
+  renderAbsView();
+};
+
+function renderAbsView() {
+  const viewEl = document.getElementById('absView');
+  if (!viewEl) return;
+  if (absViewMode === '입력순') { viewEl.style.display = 'none'; return; }
+
+  const rows = [];
+  document.querySelectorAll('[id^="absRow_"]').forEach(row => {
+    const id = row.id.split('_')[1];
+    const n = (document.getElementById('absN_' + id)?.value || '').trim();
+    const b = document.getElementById('absB_' + id)?.value || '';
+    const r = (document.getElementById('absR_' + id)?.value || '').trim();
+    if (n) rows.push({ name: n, bu: b, reason: r });
+  });
+
+  viewEl.style.display = '';
+  let html = '';
+
+  if (absViewMode === '이름순') {
+    const sorted = [...rows].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    if (!sorted.length) {
+      html = '<div style="color:#999;padding:4px 0;">결석자 없음</div>';
+    } else {
+      sorted.forEach(item => {
+        const bu = item.bu ? ` · <span style="color:var(--blue)">${escapeHtml(item.bu)}</span>` : '';
+        const rs = item.reason ? ` — ${escapeHtml(item.reason)}` : '';
+        html += `<div class="abs-view-row">${escapeHtml(item.name)}${bu}${rs}</div>`;
+      });
+    }
+  } else if (absViewMode === '부별') {
+    const grouped = {};
+    rows.forEach(item => {
+      const key = item.bu || '__none__';
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(item);
+    });
+    BU_LABELS.forEach(label => {
+      const members = grouped[label];
+      if (!members || !members.length) return;
+      const sorted = [...members].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      html += `<div class="abs-view-grp-title">${escapeHtml(label)} (${sorted.length}명)</div>`;
+      sorted.forEach(item => {
+        const rs = item.reason ? ` — ${escapeHtml(item.reason)}` : '';
+        html += `<div class="abs-view-row" style="padding-left:10px;">${escapeHtml(item.name)}${rs}</div>`;
+      });
+    });
+    Object.keys(grouped).forEach(key => {
+      if (key === '__none__' || BU_LABELS.includes(key)) return;
+      const members = grouped[key];
+      if (!members || !members.length) return;
+      const sorted = [...members].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      html += `<div class="abs-view-grp-title">${escapeHtml(key)} (${sorted.length}명)</div>`;
+      sorted.forEach(item => {
+        const rs = item.reason ? ` — ${escapeHtml(item.reason)}` : '';
+        html += `<div class="abs-view-row" style="padding-left:10px;">${escapeHtml(item.name)}${rs}</div>`;
+      });
+    });
+    const noneMembers = grouped['__none__'];
+    if (noneMembers && noneMembers.length) {
+      const sorted = [...noneMembers].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+      html += `<div class="abs-view-grp-title">부 미지정 (${sorted.length}명)</div>`;
+      sorted.forEach(item => {
+        const rs = item.reason ? ` — ${escapeHtml(item.reason)}` : '';
+        html += `<div class="abs-view-row" style="padding-left:10px;">${escapeHtml(item.name)}${rs}</div>`;
+      });
+    }
+    if (!html) html = '<div style="color:#999;padding:4px 0;">결석자 없음</div>';
+  }
+
+  viewEl.innerHTML = html;
+}
 
 // ── 로드 / 저장 ───────────────────────────────────────────────────
 function loadCurrentDay() {
@@ -1623,7 +1729,7 @@ window.exportCSV = () => {
     const totalAtt = att.reduce((a, b) => a + b, 0);
     const { newC, restC, outC, base } = getCountsUpTo(key);
     const totalAbs = (base + newC + restC - outC) > 0 ? Math.max(0, (base + newC + restC - outC) - totalAtt) : 0;
-    const absList  = (data.absList||[]).map(a => a.name + (a.reason ? '('+a.reason+')' : '')).join(' / ');
+    const absList  = (data.absList||[]).map(a => a.name + (a.bu ? '['+a.bu+']' : '') + (a.reason ? '('+a.reason+')' : '')).join(' / ');
     const esc = s => '"' + (s||'').replace(/\n/g,' ').replace(/"/g,'""') + '"';
     csv += [key, dayNames[dow], totalAtt, totalAbs, ...att,
       esc(data.mgrIn||''), esc(data.mgrRe||''), esc(data.mgrOut||''),
