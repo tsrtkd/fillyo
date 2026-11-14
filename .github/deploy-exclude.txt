@@ -1,0 +1,64 @@
+# ============================================================
+# fillyo.kr GitHub Pages 배포 제외 목록
+# 이 파일을 고쳐서 배포 대상을 조정할 수 있습니다.
+# rsync --exclude-from 형식: 한 줄에 패턴 하나, # 주석 허용
+# ============================================================
+
+# 숨김 파일·폴더 전부
+.git
+.github
+.gitignore
+.firebaserc
+.firebase
+.claude
+
+# 서버 소스 코드 (Firebase Cloud Functions)
+functions/
+
+# 개발·시험 폴더
+test/
+node_modules/
+
+# 내부 문서
+CLAUDE.md
+DESIGN.md
+README.md
+
+# Firebase·DB 설정
+database.rules.json
+database.rules.backup-*.json
+firebase.json
+
+# npm 패키지 파일 (루트 + images/)
+package.json
+package-lock.json
+images/package.json
+images/package-lock.json
+images/gen_thumbs.py
+
+# 루트 시험·점검 스크립트
+check-accounts.js
+setup-test-accounts.js
+test-*.js
+test-*.mjs
+verify_*.mjs
+
+# 이름이 "-"인 파일 (빈 더미 파일)
+-
+
+# 사이트에서 참조하지 않는 내부·디자인 작업 파일
+preview_test.html
+preview_screenshot.png
+ss_app.png
+ss_dashboard.png
+ss_exam.png
+ss_index.png
+ss_jumprope.png
+ss_login.png
+ss_setup.png
+taesarang_jumprope.html
+로고이미지/
+인덱스들/
+fillyo_logo_circle.svg
+fillyo_logo_square.png
+fillyo_logo_square.svg
