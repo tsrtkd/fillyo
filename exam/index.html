@@ -264,6 +264,8 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .sett-ctrl { display:flex; flex-direction:column; gap:4px; flex:1; }
 .sett-ctrl select { padding:8px 12px; border:1px solid #ddd; border-radius:8px; font-size:14px; background:#fff; }
 .sett-hint { font-size:11px; color:#999; }
+.preset-item-row { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border); background:#fff; }
+.preset-item-row:last-child { border-bottom:none; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -358,6 +360,19 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
             <div id="examStudentChecks"></div>
           </div>
         </div>
+        <!-- 공통 프로그램 모드: 프리셋 선택 + 항목 편집 -->
+        <div id="commonSessionSection" class="hidden">
+          <div class="form-row" style="margin-top:14px">
+            <label class="form-label">프리셋 불러오기</label>
+            <select class="form-select" id="sessionPresetSelect" onchange="onSessionPresetSelect()">
+              <option value="">직접 입력 (빈 목록에서 시작)</option>
+            </select>
+          </div>
+          <div class="form-row">
+            <label class="form-label">이번 회차 심사 항목 <span style="font-size:11px;color:var(--text2)">(수정 가능, 이 회차에만 적용)</span></label>
+            <div id="sessionItemsEditor"></div>
+          </div>
+        </div>
         <button class="modal-btn primary" style="width:100%;margin-top:4px" onclick="registerSession()">회차 등록</button>
       </div>
     </div>
@@ -420,6 +435,17 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
       <div class="sett-title">⚙️ 승급심사 설정</div>
 
       <div class="sett-row">
+        <label class="sett-label">심사 방식</label>
+        <div class="sett-ctrl">
+          <select id="examModeSelect" onchange="onExamModeChange()">
+            <option value="belt">① 띠별 커리큘럼 (기본)</option>
+            <option value="common">② 월별 공통 프로그램</option>
+          </select>
+          <span class="sett-hint">공통 프로그램: 모든 수련생이 동일한 항목으로 심사합니다</span>
+        </div>
+      </div>
+
+      <div class="sett-row">
         <label class="sett-label">승급 단위</label>
         <div class="sett-ctrl">
           <select id="gradeStepSelect" onchange="saveExamSettings()">
@@ -474,6 +500,19 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 
       <div id="examSettingSavedMsg" style="color:#0B7B6B;font-size:12px;margin-top:8px;opacity:0;transition:opacity 0.5s;">✓ 설정이 저장됐습니다</div>
     </div>
+
+    <!-- 공통 프로그램 프리셋 관리 -->
+    <div id="commonPresetSection" class="hidden" style="margin-top:16px">
+      <div class="sett-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div class="sett-title" style="margin-bottom:0">📋 심사 항목 프리셋</div>
+          <button onclick="createNewPreset()" style="padding:7px 14px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit">+ 새 프리셋</button>
+        </div>
+        <div id="presetListContainer">
+          <div style="color:#9ca3af;font-size:13px;padding:8px 0">프리셋이 없습니다. 위 버튼으로 추가하세요.</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 현황 탭 -->
@@ -499,7 +538,7 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         <thead>
           <tr>
             <th>수련생명</th><th>심사일</th><th>회차</th><th>띠</th>
-            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th>합격</th><th>결과</th><th>관리</th>
+            <th>품새</th><th>발차기</th><th>익스트림</th><th>인성</th><th id="thEtc" class="hidden">기타</th><th>합격</th><th>결과</th><th>관리</th>
           </tr>
         </thead>
         <tbody id="statusBody"></tbody>
@@ -703,6 +742,9 @@ let examCurriculumOverride  = {};
 let step1Selected = new Set();
 let step2Selected = new Set();
 let _draftCommentTimer = null;
+let examMode          = 'belt'; // 'belt' | 'common'
+let examPresets       = {};
+let _sessionEditItems = null;
 
 // ── 띠 체계 ────────────────────────────────────────────────────────
 const BELTS_GENERAL = ['흰띠','노란띠','주황띠','초록띠','파란띠','보라띠','밤띠','빨간띠'];
@@ -917,8 +959,11 @@ function getItemDesc(key, belt) {
   }
 }
 
-function getScoreDisplay(scores) {
-  if (!scores) return { poomsae: '-', kick: '-', extreme: '-', character: '-' };
+function getScoreDisplay(scores, items) {
+  if (!scores) return { poomsae: '-', kick: '-', extreme: '-', character: '-', etc: '-' };
+  if (items && items.length) {
+    return getCommonScoreDisplay(scores, items);
+  }
   function ka(...keys) {
     const vals = keys.map(k => scores[k]).filter(v => typeof v === 'number' && v > 0);
     return vals.length ? (vals.reduce((a,b) => a+b, 0) / vals.length).toFixed(1) : '-';
@@ -929,6 +974,7 @@ function getScoreDisplay(scores) {
       kick:      ka('kick1','kick2'),
       extreme:   ka('demo1','demo2'),
       character: ka('manner1','manner2'),
+      etc:       '-',
     };
   }
   return {
@@ -936,6 +982,7 @@ function getScoreDisplay(scores) {
     kick:      avgScore(scores.kick),
     extreme:   avgScore(scores.extreme),
     character: avgScore(scores.character),
+    etc:       '-',
   };
 }
 
@@ -1153,6 +1200,10 @@ onAuthStateChanged(auth, async (user) => {
 
   const examSettingsSnap = await get(ref(db, `academies/${academyId}/settings/exam`));
   academyExamSettings = examSettingsSnap.val() || {};
+  examMode = academyExamSettings.mode || 'belt';
+
+  const presetsSnap = await get(ref(db, `academies/${academyId}/settings/examPresets`));
+  examPresets = presetsSnap.val() || {};
 
   const curriculumSnap = await get(ref(db, `academies/${academyId}/settings/examCurriculum`));
   examCurriculumOverride = curriculumSnap.val() || {};
@@ -1268,7 +1319,9 @@ document.getElementById('tab-students').classList.add('active');
 
 // ── 심사 설정 저장/로드 ───────────────────────────────────────────────
 window.saveExamSettings = async function() {
+  const mode = document.getElementById('examModeSelect')?.value || 'belt';
   const settings = {
+    mode,
     gradeStep:    parseInt(document.getElementById('gradeStepSelect').value),
     juniorMaxAge: parseInt(document.getElementById('juniorMaxAgeSelect').value) || 6,
     examItems: {
@@ -1283,6 +1336,7 @@ window.saveExamSettings = async function() {
   };
   await set(ref(db, `academies/${academyId}/settings/exam`), settings);
   academyExamSettings = settings;
+  examMode = mode;
   const el = document.getElementById('examSettingSavedMsg');
   if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 2000); }
 };
@@ -1291,6 +1345,9 @@ async function loadExamSettings() {
   const snap = await get(ref(db, `academies/${academyId}/settings/exam`));
   const s = snap.val() || {};
   academyExamSettings = s;
+  examMode = s.mode || 'belt';
+  const modeEl = document.getElementById('examModeSelect');
+  if (modeEl) modeEl.value = examMode;
   const step = s.gradeStep || 2;
   const sel = document.getElementById('gradeStepSelect');
   if (sel) sel.value = String(step);
@@ -1302,6 +1359,9 @@ async function loadExamSettings() {
   document.getElementById('chkDemo1').checked   = !!items.demo1;
   document.getElementById('chkDemo2').checked   = !!items.demo2;
   document.getElementById('chkManner2').checked = items.manner2 !== false;
+  await loadExamPresets();
+  renderPresetListUI();
+  toggleCommonPresetSettingsSection();
 }
 
 // ── 커리큘럼 편집 ─────────────────────────────────────────────────────
@@ -1904,10 +1964,12 @@ window.renderStep2List = () => {
 function showStep1() {
   step1Selected = new Set();
   step2Selected = new Set();
+  _sessionEditItems = null;
   document.getElementById('examSetupSection').classList.remove('hidden');
   document.getElementById('examStep2Section').classList.add('hidden');
   document.getElementById('examSection').classList.add('hidden');
   document.getElementById('examSection').innerHTML = '';
+  updateCommonSessionSection();
 }
 
 function showStep2() {
@@ -1932,6 +1994,23 @@ window.registerSession = async () => {
   if (!checked.length) { showToast('수련생을 선택해주세요'); return; }
 
   const sessionData = { date, round, studentIds: checked, createdAt: Date.now() };
+
+  if (examMode === 'common') {
+    if (!_sessionEditItems || !_sessionEditItems.items || !_sessionEditItems.items.length) {
+      showToast('공통 프로그램 항목을 1개 이상 추가해주세요'); return;
+    }
+    const emptyLabel = _sessionEditItems.items.filter(i => !i.label?.trim());
+    if (emptyLabel.length) { showToast('항목 이름을 모두 입력해주세요'); return; }
+    sessionData.mode = 'common';
+    sessionData.items = _sessionEditItems.items;
+    sessionData.useJuniorItems = !!_sessionEditItems.useJuniorItems;
+    if (_sessionEditItems.useJuniorItems && _sessionEditItems.juniorItems?.length) {
+      const emptyJr = _sessionEditItems.juniorItems.filter(i => !i.label?.trim());
+      if (emptyJr.length) { showToast('유치부 항목 이름을 모두 입력해주세요'); return; }
+      sessionData.juniorItems = _sessionEditItems.juniorItems;
+    }
+  }
+
   const sessionKey  = push(ref(db, `academies/${academyId}/exam/sessions`)).key;
   await set(ref(db, `academies/${academyId}/exam/sessions/${sessionKey}`), sessionData);
 
@@ -1955,15 +2034,30 @@ window.startSubExam = () => {
   step2Selected = new Set();
 
   const sessionStudents = checked.map(id => {
-    const s     = students[id] || {};
-    const group = getExamGroup(s.belt || '흰띠', s.age);
-
-    // 이 회차에 pending으로 저장된 기록이 있으면 점수·코멘트만 복원
+    const s = students[id] || {};
     const prev = Object.values(evaluations).find(
       e => e.studentId === id && e.date === currentSession.date && e.round === currentSession.round
     );
     const prevScores = (prev && prev.passed === 'pending') ? (prev.scores || {}) : {};
 
+    if (currentSession.mode === 'common') {
+      const ssTemp = { id, age: s.age || 0 };
+      const items  = getCommonItemsForStudent(ssTemp, currentSession);
+      return {
+        id,
+        name:    s.name  || '',
+        belt:    s.belt  || '흰띠',
+        grade:   s.grade || '',
+        age:     s.age   || 0,
+        scores:  Object.fromEntries(items.map(item => ['c_' + item.id, prevScores['c_' + item.id] ?? 0])),
+        passed:  null,
+        comment: (prev && prev.passed === 'pending') ? (prev.comment || '') : '',
+        done:    false,
+      };
+    }
+
+    // 띠별 모드
+    const group = getExamGroup(s.belt || '흰띠', s.age);
     return {
       id,
       name:    s.name  || '',
@@ -1973,7 +2067,7 @@ window.startSubExam = () => {
       scores:  Object.fromEntries(
         getActiveExamItems(group).map(item => [item.key, prevScores[item.key] ?? 0])
       ),
-      passed:  null,                              // 합격/불합격은 항상 미선택으로 시작
+      passed:  null,
       comment: (prev && prev.passed === 'pending') ? (prev.comment || '') : '',
       done:    false,
     };
@@ -2050,6 +2144,9 @@ function renderExamTable() {
 }
 
 function buildBeltChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
+  if (currentSession?.mode === 'common') {
+    return buildCommonChunkTable(belt, chunkStudents, chunkIndices, isFirst);
+  }
   const KEY_ORDER = ['poomsae1','poomsae2','kick1','kick2','demo1','demo2','manner1','manner2'];
 
   const masterItemMap = new Map();
@@ -2183,6 +2280,7 @@ window.savePending = async (idx) => {
       passed:    passedVal,
       scores:    s.scores,
       comment:   s.comment,
+      ...getEvalModeData(s),
     };
     const existingEntry = Object.entries(evaluations).find(
       ([, e]) => e.studentId === s.id && e.date === currentExamSession.date && e.round === currentExamSession.round
@@ -2219,6 +2317,7 @@ window.saveExamRow = async (idx) => {
     passed:    ss.passed,
     scores:    ss.scores,
     comment:   ss.comment,
+    ...getEvalModeData(ss),
   };
   const existingEntry = Object.entries(evaluations).find(
     ([, e]) => e.studentId === ss.id && e.date === currentExamSession.date && e.round === currentExamSession.round
@@ -2272,6 +2371,7 @@ async function bulkPassStudents(indices) {
       passed:    true,
       scores:    ss.scores,
       comment:   '',
+      ...getEvalModeData(ss),
     };
     const existingEntry = Object.entries(evaluations).find(
       ([, e]) => e.studentId === ss.id && e.date === currentExamSession.date && e.round === currentExamSession.round
@@ -2353,8 +2453,17 @@ window.renderStatusTable = () => {
   const tbody = document.getElementById('statusBody');
   if (!entries.length) {
     tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">기록 없음</td></tr>';
+    const thEtc = document.getElementById('thEtc');
+    if (thEtc) thEtc.classList.add('hidden');
     return;
   }
+
+  const hasEtc = entries.some(([, e]) => {
+    if (e.mode !== 'common' || !e.items?.length) return false;
+    return (e.items || []).some(i => (i.category || 'none') === 'none');
+  });
+  const thEtc = document.getElementById('thEtc');
+  if (thEtc) thEtc.classList.toggle('hidden', !hasEtc);
 
   tbody.innerHTML = entries.map(([evalId, e]) => {
     const st   = students[e.studentId];
@@ -2378,16 +2487,18 @@ window.renderStatusTable = () => {
     } else if (e.passed === 'pending') {
       resultCell = `${beltBadge(e.belt || '', e.grade || '')} <span style="font-size:11px;color:#854d0e">(진행중)</span>`;
     }
+    const sd = getScoreDisplay(e.scores, e.items);
     return `
       <tr>
         <td>${name}</td>
         <td>${e.date || '-'}</td>
         <td>${e.round || '-'}</td>
         <td>${beltBadge(e.belt || '', e.grade || '')}</td>
-        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.poomsae; })()}</td>
-        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.kick; })()}</td>
-        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.extreme; })()}</td>
-        <td>${(() => { const sd = getScoreDisplay(e.scores); return sd.character; })()}</td>
+        <td>${sd.poomsae}</td>
+        <td>${sd.kick}</td>
+        <td>${sd.extreme}</td>
+        <td>${sd.character}</td>
+        ${hasEtc ? `<td>${sd.etc || '-'}</td>` : ''}
         <td>${passedBadge}</td>
         <td>${resultCell}</td>
         <td style="white-space:nowrap">
@@ -2488,10 +2599,13 @@ window.viewEvalRecord = (evalId) => {
   const name = st?.name || '-';
   const passedText  = e.passed === true ? '합격' : e.passed === false ? '불합격' : e.passed === 'pending' ? '진행중' : '-';
   const passedColor = e.passed === true ? 'var(--green)' : e.passed === false ? 'var(--red)' : e.passed === 'pending' ? '#854d0e' : 'var(--text2)';
-  const _sd = getScoreDisplay(e.scores);
-  const _allVals = typeof e.scores?.poomsae1 !== 'undefined'
-    ? Object.values(e.scores||{}).filter(v => typeof v === 'number' && v > 0)
-    : [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])].filter(v => v > 0);
+  const _sd = getScoreDisplay(e.scores, e.items);
+  const _isCommon = e.mode === 'common' && Array.isArray(e.items) && e.items.length;
+  const _allVals = _isCommon
+    ? (e.items||[]).map(i => Number(e.scores?.['c_' + i.id]||0)).filter(v => v > 0)
+    : typeof e.scores?.poomsae1 !== 'undefined'
+      ? Object.values(e.scores||{}).filter(v => typeof v === 'number' && v > 0)
+      : [...(e.scores?.poomsae||[]), ...(e.scores?.kick||[]), ...(e.scores?.extreme||[]), ...(e.scores?.character||[])].filter(v => v > 0);
   const _overallStr = _allVals.length ? (_allVals.reduce((a,b)=>a+b,0)/_allVals.length).toFixed(1) : '-';
   document.getElementById('evalViewContent').innerHTML = `
     <div style="background:var(--sky);border-radius:10px;padding:14px;margin-bottom:12px">
@@ -2514,6 +2628,7 @@ window.viewEvalRecord = (evalId) => {
       <span style="font-size:14px;font-weight:700;color:${passedColor}">${passedText}</span>
     </div>
     ${e.comment ? `<div style="padding:10px 14px;background:var(--bg);border-radius:8px"><div style="font-size:11px;color:var(--text2);margin-bottom:4px">한줄평</div><div style="font-size:13px">${e.comment}</div></div>` : ''}
+    ${_isCommon ? `<div style="margin-top:10px"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">항목별 점수</div>${(e.items||[]).map(item=>{const v=Number(e.scores?.['c_'+item.id]||0);return `<div style="display:flex;justify-content:space-between;padding:6px 10px;background:var(--bg);border-radius:6px;margin-bottom:4px"><span style="font-size:13px">${escHtml(item.label)} <span style="font-size:11px;color:#9ca3af">${catLabel(item.category||'none')}</span></span><span style="font-size:13px;font-weight:700;color:${scoreLabelColor(v)}">${v>0?v+'/5':'-'}</span></div>`;}).join('')}</div>` : ''}
   `;
   openModal('modalEvalView');
 };
@@ -2523,25 +2638,26 @@ window.editEvalRecord = (evalId) => {
   if (!e) return;
   editingEvalId = evalId;
   const st    = students[e.studentId];
-  const group = getExamGroup(e.belt, st?.age);
-  const items = (typeof getActiveExamItems === 'function')
-    ? getActiveExamItems(group)
-    : (EXAM_ITEMS[group] || EXAM_ITEMS.beginner);
+  const isCommon = e.mode === 'common' && Array.isArray(e.items) && e.items.length;
+  const editItems = isCommon
+    ? e.items.map(i => ({ key: 'c_' + i.id, label: i.label, desc: i.desc || '' }))
+    : (() => {
+        const group = getExamGroup(e.belt, st?.age);
+        return getActiveExamItems(group);
+      })();
   _editScores = {};
   if (e.scores && typeof e.scores === 'object') {
     Object.entries(e.scores).forEach(([k, v]) => {
       if (typeof v === 'number') _editScores[k] = v;
     });
   }
-  items.forEach(item => {
-    if (!(_editScores[item.key] >= 1)) {
-      _editScores[item.key] = 0;
-    }
+  editItems.forEach(item => {
+    if (!(_editScores[item.key] >= 1)) _editScores[item.key] = 0;
   });
   _editPassed = e.passed;
   document.getElementById('evalEditContent').innerHTML = `
     <div style="margin-bottom:14px">
-      ${items.map(r => {
+      ${editItems.map(r => {
         const val = typeof _editScores[r.key] === 'number' ? _editScores[r.key] : 0;
         return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <span style="font-size:12px;color:var(--text2);width:100px;flex-shrink:0">${r.label}</span>
@@ -2633,12 +2749,31 @@ window.imageCard = async (evalId) => {
     const vals = keys.map(k => Number(sc?.[k]||0)).filter(v => v > 0);
     return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0;
   }
-  const isNewFormat = typeof sc.poomsae1 !== 'undefined';
-  const pAvg = isNewFormat ? keyAvg('poomsae1','poomsae2') : flatAvg(sc.poomsae);
-  const kAvg = isNewFormat ? keyAvg('kick1','kick2')       : flatAvg(sc.kick);
-  const eAvg = isNewFormat ? keyAvg('demo1','demo2')       : flatAvg(sc.extreme);
-  const cAvg = isNewFormat ? keyAvg('manner1','manner2')   : flatAvg(sc.character);
-  const sectAvgs = [pAvg, kAvg, eAvg, cAvg].filter(v => v > 0);
+  const isNewFormat  = typeof sc.poomsae1 !== 'undefined';
+  const isCommonMode = e.mode === 'common' && Array.isArray(e.items) && e.items.length;
+  let pAvg, kAvg, eAvg, cAvg, etcAvg = 0;
+  const catGroups = {}, catItemsExist = {};
+  if (isCommonMode) {
+    const catSum = {}, catCnt = {};
+    for (const item of e.items) {
+      const cat = item.category || 'none';
+      if (!catGroups[cat]) catGroups[cat] = [];
+      catGroups[cat].push(item);
+      catItemsExist[cat] = true;
+      const v = Number(sc['c_' + item.id] || 0);
+      if (v > 0) { catSum[cat] = (catSum[cat]||0)+v; catCnt[cat] = (catCnt[cat]||0)+1; }
+    }
+    function catAvgImg(cat) { return catCnt[cat] ? catSum[cat] / catCnt[cat] : 0; }
+    pAvg = catAvgImg('poomsae'); kAvg = catAvgImg('kick');
+    eAvg = catAvgImg('extreme'); cAvg = catAvgImg('character');
+    etcAvg = catAvgImg('none');
+  } else {
+    pAvg = isNewFormat ? keyAvg('poomsae1','poomsae2') : flatAvg(sc.poomsae);
+    kAvg = isNewFormat ? keyAvg('kick1','kick2')       : flatAvg(sc.kick);
+    eAvg = isNewFormat ? keyAvg('demo1','demo2')       : flatAvg(sc.extreme);
+    cAvg = isNewFormat ? keyAvg('manner1','manner2')   : flatAvg(sc.character);
+  }
+  const sectAvgs = [pAvg, kAvg, eAvg, cAvg, etcAvg].filter(v => v > 0);
   const oAvg = sectAvgs.length ? sectAvgs.reduce((a,b)=>a+b,0)/sectAvgs.length : 0;
 
   const passedText   = e.passed===true?'합격':e.passed===false?'불합격':'-';
@@ -2670,18 +2805,27 @@ window.imageCard = async (evalId) => {
     ? 'background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5'
     : 'background:#f1f5f9;color:#6b7a8d;border:1.5px solid #9ca3af';
 
-  // 요약 카드 2x2
-  const summaryCards = [
-    ['🥋','품새',pAvg,'#3b82f6','#eff6ff'],
-    ['🦵','발차기',kAvg,'#f97316','#fff7ed'],
-    ['🔥','익스트림',eAvg,'#ef4444','#fff1f2'],
-    ['🌱','인성',cAvg,'#22c55e','#f0fdf4'],
-  ].map(([em,lb,av,bc,bg]) =>
-    `<div style="background:${bg};border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:12px;padding:10px 12px">
+  // 요약 카드: 공통 모드는 항목 있는 분류만, 띠별은 고정 4칸
+  function mkSummCard(em, lb, av, bc, bg) {
+    return `<div style="background:${bg};border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:12px;padding:10px 12px">
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${em} ${lb}</div>
       <div style="font-size:20px;font-weight:800;color:${bc};line-height:1">${av>0?av.toFixed(1):'미평가'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
-    </div>`
-  ).join('');
+    </div>`;
+  }
+  const summaryCards = isCommonMode
+    ? [
+        catItemsExist.poomsae   ? mkSummCard('🥋','품새',    pAvg,   '#3b82f6','#eff6ff') : '',
+        catItemsExist.kick      ? mkSummCard('🦵','발차기',   kAvg,   '#f97316','#fff7ed') : '',
+        catItemsExist.extreme   ? mkSummCard('🔥','익스트림', eAvg,   '#ef4444','#fff1f2') : '',
+        catItemsExist.character ? mkSummCard('🌱','인성',     cAvg,   '#22c55e','#f0fdf4') : '',
+        catItemsExist.none      ? mkSummCard('📦','기타',     etcAvg, '#8b5cf6','#f5f3ff') : '',
+      ].join('')
+    : [
+        mkSummCard('🥋','품새',    pAvg,'#3b82f6','#eff6ff'),
+        mkSummCard('🦵','발차기',  kAvg,'#f97316','#fff7ed'),
+        mkSummCard('🔥','익스트림',eAvg,'#ef4444','#fff1f2'),
+        mkSummCard('🌱','인성',    cAvg,'#22c55e','#f0fdf4'),
+      ].join('');
 
   function scoreRow(label, v) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
@@ -2694,8 +2838,15 @@ window.imageCard = async (evalId) => {
   let kickRows    = '';
   let extremeRows = '';
   let charRows    = '';
+  let etcRows     = '';
 
-  if (isNewFormat) {
+  if (isCommonMode) {
+    (catGroups['poomsae']   || []).forEach(item => { poomsaeRows += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
+    (catGroups['kick']      || []).forEach(item => { kickRows    += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
+    (catGroups['extreme']   || []).forEach(item => { extremeRows += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
+    (catGroups['character'] || []).forEach(item => { charRows    += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
+    (catGroups['none']      || []).forEach(item => { etcRows     += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
+  } else if (isNewFormat) {
     const cardGroup = getExamGroup(belt, st?.age);
     const cardItems = getActiveExamItems(cardGroup);
     cardItems.filter(i => i.key.startsWith('poomsae')).forEach(item => {
@@ -2733,53 +2884,30 @@ window.imageCard = async (evalId) => {
   const parentMsg = e.comment || '';
   const cvId = 'rv-' + Date.now();
 
-  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
-    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;">
-      <div style="color:#ffffff;font-size:18px;font-weight:800;">${academyName || ''}</div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
-        <div style="color:#bfdbfe;font-size:11px;">승급심사 평가결과</div>
-        <div style="color:#93c5fd;font-size:10px;">${issueDate}</div>
-      </div>
-    </div>
-    <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
-      <div>
-        <div style="color:#0f172a;font-size:28px;font-weight:700;line-height:1">${name}</div>
-        ${st.age ? `<div style="color:#64748b;font-size:12px;margin-top:4px">${st.age}세${st.school?' · '+st.school:''}</div>` : ''}
-      </div>
-      <div>${beltPill}</div>
-    </div>
-    <div style="background:#ffffff;display:flex">
-      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9">
-        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">심사일</div>
-        <div style="font-size:13px;font-weight:700;color:#1e293b">${e.date||'-'}</div>
-      </div>
-      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9;overflow:hidden">
-        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">회차</div>
-        <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round ? (String(e.round).includes('회차') ? e.round : e.round + '회차') : '-'}</div>
-      </div>
-      <div style="flex:1;padding:10px;text-align:center">
-        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">합격여부</div>
-        <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
-      </div>
-    </div>
-    <div style="background:#ffffff;padding:16px 20px;text-align:center">
-      <div style="margin-bottom:8px">
-        <span style="font-size:56px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'미평가'}</span>
-        <span style="font-size:16px;color:#94a3b8"> /5.0</span>
-      </div>
-      <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-top:8px;margin-bottom:12px">${passedText}</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">${summaryCards}</div>
-    </div>
-    <div style="background:#ffffff;padding:12px;text-align:center">
-      <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
-    </div>
-    ${parentMsg ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
-      <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
-      <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${parentMsg}</div>
-      <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
-    </div>` : ''}
-    <div style="margin-top:4px">
-      <div>
+  // 공통 모드 레이더: 점수 있는 분류가 3개 이상일 때만 표시
+  let showRadar = true, commonRadarVals = null, commonRadarLabels = null;
+  if (isCommonMode) {
+    const radarCats = [
+      catItemsExist.poomsae   && { label:'품새',    avg:pAvg },
+      catItemsExist.kick      && { label:'발차기',   avg:kAvg },
+      catItemsExist.extreme   && { label:'익스트림', avg:eAvg },
+      catItemsExist.character && { label:'인성',     avg:cAvg },
+      catItemsExist.none      && { label:'기타',     avg:etcAvg },
+    ].filter(Boolean).filter(c => c.avg > 0);
+    if (radarCats.length < 3) { showRadar = false; }
+    else { commonRadarVals = radarCats.map(c=>c.avg); commonRadarLabels = radarCats.map(c=>c.label); }
+  }
+
+  // 구역별 HTML: 공통 모드는 항목 있는 구역만, 띠별은 고정 4구역
+  const sectionsHtml = isCommonMode
+    ? [
+        poomsaeRows && `<div><div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🥋 품새</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${poomsaeRows}</div>`,
+        kickRows    && `<div><div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${kickRows}</div>`,
+        extremeRows && `<div><div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${extremeRows}</div>`,
+        charRows    && `<div><div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🌱 인성교육</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${charRows}</div>`,
+        etcRows     && `<div><div style="background:#4b5563;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">📦 기타</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${etcAvg>0?etcAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${etcRows}</div>`,
+      ].filter(Boolean).join('')
+    : `<div>
         <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
           <span style="font-size:13px;font-weight:700">🥋 품새</span>
           <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span>
@@ -2802,7 +2930,55 @@ window.imageCard = async (evalId) => {
           <span style="font-size:13px;font-weight:700">🌱 인성교육</span>
           <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span>
         </div>${charRows}
+      </div>`;
+
+  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
+    <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;">
+      <div style="color:#ffffff;font-size:18px;font-weight:800;">${academyName || ''}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
+        <div style="color:#bfdbfe;font-size:11px;">승급심사 평가결과</div>
+        <div style="color:#93c5fd;font-size:10px;">${issueDate}</div>
       </div>
+    </div>
+    <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
+      <div>
+        <div style="color:#0f172a;font-size:28px;font-weight:700;line-height:1">${name}</div>
+        ${st.age ? `<div style="color:#64748b;font-size:12px;margin-top:4px">${st.age}세${st.school?' · '+st.school:''}</div>` : ''}
+      </div>
+      <div>${beltPill}</div>
+    </div>
+    <div style="background:#ffffff;display:flex">
+      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">심사일</div>
+        <div style="font-size:13px;font-weight:700;color:#1e293b">${e.date||'-'}</div>
+      </div>
+      <div style="flex:1;padding:10px;text-align:center;border-right:1px solid #f1f5f9;overflow:hidden">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">회차</div>
+        <div style="font-size:12px;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.round ? ((r => r.endsWith('회차') || r.endsWith('회') ? r : r + '회차')(String(e.round))) : '-'}</div>
+      </div>
+      <div style="flex:1;padding:10px;text-align:center">
+        <div style="font-size:10px;color:#94a3b8;margin-bottom:2px">합격여부</div>
+        <div style="font-size:13px;font-weight:700;color:${passedColor}">${passedText}</div>
+      </div>
+    </div>
+    <div style="background:#ffffff;padding:16px 20px;text-align:center">
+      <div style="margin-bottom:8px">
+        <span style="font-size:56px;font-weight:700;color:#2563eb;line-height:1">${oAvg>0?oAvg.toFixed(1):'미평가'}</span>
+        <span style="font-size:16px;color:#94a3b8"> /5.0</span>
+      </div>
+      <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-top:8px;margin-bottom:12px">${passedText}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">${summaryCards}</div>
+    </div>
+    ${showRadar ? `<div style="background:#ffffff;padding:12px;text-align:center">
+      <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
+    </div>` : ''}
+    ${parentMsg ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
+      <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
+      <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${parentMsg}</div>
+      <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
+    </div>` : ''}
+    <div style="margin-top:4px">
+      ${sectionsHtml}
     </div>
     <div style="background:#ffffff">
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
@@ -2826,7 +3002,7 @@ window.imageCard = async (evalId) => {
   document.body.appendChild(wrap);
 
   const cv = document.getElementById(cvId);
-  if (cv) drawRadarChart(cv, sc);
+  if (cv) drawRadarChart(cv, sc, isCommonMode ? commonRadarVals : null, isCommonMode ? commonRadarLabels : null);
 
   showToast('🎨 카드 생성 중...');
 
@@ -2849,20 +3025,20 @@ window.imageCard = async (evalId) => {
   });
 };
 
-function drawRadarChart(canvas, scores) {
+function drawRadarChart(canvas, scores, overrideVals, labelsOverride) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const cx = W/2, cy = H/2;
   const R = 70;
-  const n = 4;
-  const labels = ['품새','발차기','익스트림','인성'];
+  const labels = labelsOverride || ['품새','발차기','익스트림','인성'];
+  const n = labels.length;
   function rka(...keys) {
     const v = keys.map(k=>Number(scores?.[k]||0)).filter(v=>v>0);
     return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
   }
-  const vals = typeof scores?.poomsae1 !== 'undefined'
+  const vals = overrideVals || (typeof scores?.poomsae1 !== 'undefined'
     ? [rka('poomsae1','poomsae2'), rka('kick1','kick2'), rka('demo1','demo2'), rka('manner1','manner2')]
-    : [avgScoreNum(scores.poomsae), avgScoreNum(scores.kick), avgScoreNum(scores.extreme), avgScoreNum(scores.character)];
+    : [avgScoreNum(scores.poomsae), avgScoreNum(scores.kick), avgScoreNum(scores.extreme), avgScoreNum(scores.character)]);
   const angles = Array.from({length:n}, (_,i) => -Math.PI/2 + (2*Math.PI/n)*i);
 
   ctx.clearRect(0, 0, W, H);
@@ -2930,8 +3106,9 @@ function drawRadarChart(canvas, scores) {
   vals.forEach((v, i) => {
     if (v > 0) {
       const rv = (v/5)*R;
-      const ox = Math.cos(angles[i])*13;
-      const oy = Math.sin(angles[i])*13;
+      // 점수 글자를 축 수직 방향으로 오프셋해 레이블과 겹치지 않게
+      const ox = -Math.sin(angles[i]) * 10;
+      const oy =  Math.cos(angles[i]) * 10;
       ctx.fillText(v.toFixed(1), cx+rv*Math.cos(angles[i])+ox, cy+rv*Math.sin(angles[i])+oy);
     }
   });
@@ -2941,6 +3118,461 @@ window.deleteEvalRecord = async (evalId) => {
   if (!confirm('이 심사 기록을 삭제합니다. 되돌릴 수 없습니다. 계속할까요?')) return;
   await remove(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`));
   showToast('🗑️ 삭제 완료');
+};
+
+// ── 공통 프로그램 모드 유틸 ──────────────────────────────────────────────
+
+function genItemId() {
+  return 'ci' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+const COMMON_CATEGORIES = [
+  { value: 'poomsae',   label: '품새' },
+  { value: 'kick',      label: '발차기' },
+  { value: 'extreme',   label: '시범·익스트림' },
+  { value: 'character', label: '인성' },
+  { value: 'none',      label: '분류 안 함' },
+];
+
+function catLabel(cat) {
+  const c = COMMON_CATEGORIES.find(c => c.value === cat);
+  return c ? c.label : '분류 안 함';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function getCommonItemsForStudent(ss, session) {
+  if (!session || session.mode !== 'common') return null;
+  const juniorAge = academyExamSettings.juniorMaxAge || 6;
+  const isJunior  = ss.age && Number(ss.age) <= juniorAge;
+  if (isJunior && session.useJuniorItems && session.juniorItems && session.juniorItems.length) {
+    return session.juniorItems;
+  }
+  return session.items || [];
+}
+
+function getCommonScoreDisplay(scores, items) {
+  const catSum = {}, catCnt = {};
+  for (const item of items) {
+    const v = Number(scores?.['c_' + item.id] || 0);
+    if (v > 0) {
+      const cat = item.category || 'none';
+      catSum[cat] = (catSum[cat] || 0) + v;
+      catCnt[cat] = (catCnt[cat] || 0) + 1;
+    }
+  }
+  function avg(cat) { return catCnt[cat] ? (catSum[cat] / catCnt[cat]).toFixed(1) : '-'; }
+  return { poomsae: avg('poomsae'), kick: avg('kick'), extreme: avg('extreme'), character: avg('character'), etc: avg('none') };
+}
+
+function getEvalModeData(ss) {
+  if (currentSession?.mode !== 'common') return {};
+  const items = getCommonItemsForStudent(ss, currentSession);
+  const data  = { mode: 'common', items: items || [] };
+  if (currentSession.useJuniorItems) data.useJuniorItems = true;
+  return data;
+}
+
+// ── 공통 채점 테이블 빌더 ────────────────────────────────────────────────
+
+function buildCommonChunkTable(belt, chunkStudents, chunkIndices, isFirst) {
+  const seen = new Set();
+  const masterItems = [];
+  (currentSession.items || []).forEach(item => {
+    if (!seen.has(item.id)) { seen.add(item.id); masterItems.push(item); }
+  });
+  if (currentSession.useJuniorItems && currentSession.juniorItems) {
+    currentSession.juniorItems.forEach(item => {
+      if (!seen.has(item.id)) { seen.add(item.id); masterItems.push(item); }
+    });
+  }
+
+  function getStudentKeys(ss) {
+    const items = getCommonItemsForStudent(ss, currentSession);
+    return new Set((items || []).map(i => i.id));
+  }
+
+  const labelCol = `
+    <div class="exam-col exam-col-label">
+      <div class="exam-cell row-header exam-cell-label">항목</div>
+      ${masterItems.map(item => `
+        <div class="exam-cell row-score exam-cell-label" style="flex-direction:column;align-items:flex-start;justify-content:center;gap:2px">
+          <span>${escHtml(item.label)}</span>
+          ${item.desc ? `<span style="font-size:10px;color:#9ca3af;line-height:1.3">${escHtml(item.desc)}</span>` : ''}
+          <span style="font-size:10px;color:#c084fc">${catLabel(item.category||'none')}</span>
+        </div>`).join('')}
+      <div class="exam-cell row-pf exam-cell-label">합격여부</div>
+      <div class="exam-cell row-comment exam-cell-label">한줄평</div>
+      <div class="exam-cell row-save exam-cell-label"></div>
+    </div>`;
+
+  const studentCols = chunkStudents.map((ss, ci) => {
+    const idx      = chunkIndices[ci];
+    const ssIds    = getStudentKeys(ss);
+    const scoreCells = masterItems.map(item => {
+      if (!ssIds.has(item.id)) return `<div class="exam-cell row-score" style="background:#f0f0f0"></div>`;
+      const key = 'c_' + item.id;
+      const val = (ss.scores || {})[key] || 0;
+      return `<div class="exam-cell row-score"><div class="score-btns">${
+        [5,4,3,2,1].map(v =>
+          `<button class="score-btn${val === v ? ' on' : ''}" onclick="setScore(${idx},'${key}',${v},this)">${v}</button>`
+        ).join('')
+      }</div></div>`;
+    }).join('');
+    return `
+      <div class="exam-col exam-col-student${ss.done ? ' done' : ''}" id="erow-${idx}">
+        <div class="exam-cell row-header exam-cell-header">
+          <div style="font-size:14px;font-weight:700">${ss.name}</div>
+          ${beltBadge(ss.belt, ss.grade)}
+          <div style="font-size:11px;color:#6b7280">공통 프로그램</div>
+          ${ss.done ? '<span style="font-size:12px;color:var(--green)">✅ 완료</span>' : ''}
+        </div>
+        ${scoreCells}
+        <div class="exam-cell row-pf">
+          <div style="display:flex;flex-direction:column;gap:6px;width:100%">
+            <button class="pf-btn pass${ss.passed === true  ? ' on' : ''}" onclick="setPassed(${idx},true)">✅ 합격</button>
+            <button class="pf-btn fail${ss.passed === false ? ' on' : ''}" onclick="setPassed(${idx},false)">❌ 불합격</button>
+            <button style="flex:1;padding:8px;border-radius:10px;border:2px solid #d1d5db;font-size:13px;font-weight:700;background:#f3f4f6;color:#6b7280;cursor:pointer;font-family:inherit" onclick="savePending(${idx})">⏸ 오늘 여기까지</button>
+          </div>
+        </div>
+        <div class="exam-cell row-comment">
+          <textarea class="comment-input" id="comment-${idx}" placeholder="한줄평..." style="height:100%;resize:none" oninput="scheduleDraftSave()">${ss.comment || ''}</textarea>
+        </div>
+        <div class="exam-cell row-save">
+          <button class="save-btn" style="margin:0" onclick="saveExamRow(${idx})">💾 저장</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  const groupHeader = isFirst ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+      <span style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--text2)">${beltBadge(belt, '')} ${belt}</span>
+      <button style="font-size:12px;padding:5px 12px;background:#22c55e;color:#fff;border:none;border-radius:6px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap" onclick="bulkPassGroup('${belt}')">✅ 이 부 전체 합격</button>
+    </div>` : '';
+
+  return `
+    <div class="exam-chunk-wrap">
+      ${groupHeader}
+      <div class="exam-chunk-table">${labelCol}${studentCols}</div>
+    </div>`;
+}
+
+// ── 프리셋 관리 ──────────────────────────────────────────────────────────
+
+async function loadExamPresets() {
+  const snap = await get(ref(db, `academies/${academyId}/settings/examPresets`));
+  examPresets = snap.val() || {};
+}
+
+function renderPresetListUI() {
+  const container = document.getElementById('presetListContainer');
+  if (!container) return;
+  const ids = Object.keys(examPresets);
+  if (!ids.length) {
+    container.innerHTML = '<div style="color:#9ca3af;font-size:13px;padding:8px 0">프리셋이 없습니다. 위 버튼으로 추가하세요.</div>';
+    return;
+  }
+  container.innerHTML = ids.map(id => {
+    const p          = examPresets[id];
+    const itemCount  = (p.items || []).length;
+    const juniorNote = p.useJuniorItems ? ` (유치부 ${(p.juniorItems||[]).length}개)` : '';
+    return `
+      <div style="background:#fff;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 14px">
+          <span style="font-size:14px;font-weight:700;flex:1">${escHtml(p.name || '이름없는 프리셋')}</span>
+          <span style="font-size:11px;color:#9ca3af">${itemCount}개 항목${juniorNote}</span>
+          <button onclick="openPresetEditor('${id}')" style="padding:4px 10px;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">편집</button>
+          <button onclick="duplicatePreset('${id}')" style="padding:4px 10px;background:#f0fdf4;color:#166534;border:1px solid #86efac;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">복제</button>
+          <button onclick="deletePreset('${id}')" style="padding:4px 10px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;font-size:12px;cursor:pointer;font-family:inherit">삭제</button>
+        </div>
+        <div id="presetEditor-${id}" class="hidden" style="border-top:1px solid var(--border);padding:14px"></div>
+      </div>`;
+  }).join('');
+}
+
+window.openPresetEditor = (id) => {
+  const editorEl = document.getElementById('presetEditor-' + id);
+  if (!editorEl) return;
+  if (!editorEl.classList.contains('hidden')) { editorEl.classList.add('hidden'); return; }
+  renderPresetEditorHTML(id);
+  editorEl.classList.remove('hidden');
+};
+
+function renderPresetEditorHTML(id) {
+  const p = examPresets[id];
+  if (!p) return;
+  const editorEl = document.getElementById('presetEditor-' + id);
+  if (!editorEl) return;
+  const items      = p.items      || [];
+  const juniorItems= p.juniorItems|| [];
+  const useJunior  = !!p.useJuniorItems;
+
+  function itemRowHTML(item, idx, arr, listKey) {
+    const catOpts = COMMON_CATEGORIES.map(c =>
+      `<option value="${c.value}"${item.category === c.value ? ' selected' : ''}>${c.label}</option>`).join('');
+    return `
+      <div class="preset-item-row">
+        <span style="color:#9ca3af;font-size:12px;min-width:18px">${idx+1}</span>
+        <input type="text" value="${escHtml(item.label)}" placeholder="항목 이름" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;font-family:inherit" oninput="updatePresetItemField('${id}','${listKey}','${item.id}','label',this.value)">
+        <select style="border:1px solid #ddd;border-radius:6px;padding:5px 6px;font-size:12px;font-family:inherit" onchange="updatePresetItemField('${id}','${listKey}','${item.id}','category',this.value)">${catOpts}</select>
+        <input type="text" value="${escHtml(item.desc||'')}" placeholder="설명(선택)" style="width:90px;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit" oninput="updatePresetItemField('${id}','${listKey}','${item.id}','desc',this.value)">
+        <button onclick="movePresetItem('${id}','${listKey}','${item.id}',-1)" ${idx===0?'disabled':''} style="padding:4px 7px;background:#f1f5f9;border:1px solid #ddd;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1">↑</button>
+        <button onclick="movePresetItem('${id}','${listKey}','${item.id}',1)" ${idx===arr.length-1?'disabled':''} style="padding:4px 7px;background:#f1f5f9;border:1px solid #ddd;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1">↓</button>
+        <button onclick="deletePresetItem('${id}','${listKey}','${item.id}')" style="padding:4px 7px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">✕</button>
+      </div>`;
+  }
+
+  editorEl.innerHTML = `
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px">프리셋 이름</label>
+      <input type="text" value="${escHtml(p.name||'')}" placeholder="프리셋 이름" id="presetName-${id}" style="width:100%;border:1px solid #ddd;border-radius:8px;padding:8px 12px;font-size:14px;font-family:inherit" oninput="updatePresetName('${id}',this.value)">
+    </div>
+    <div style="font-size:13px;font-weight:700;margin-bottom:6px">심사 항목 (최대 10개)</div>
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px">
+      ${items.length ? items.map((item,i)=>itemRowHTML(item,i,items,'main')).join('') : '<div style="padding:12px;text-align:center;color:#9ca3af;font-size:13px">항목을 추가해주세요</div>'}
+    </div>
+    ${items.length < 10 ? `<button onclick="addPresetItem('${id}','main')" style="font-size:12px;padding:6px 14px;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:7px;cursor:pointer;font-family:inherit;margin-bottom:12px">+ 항목 추가</button>` : ''}
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:10px;cursor:pointer">
+      <input type="checkbox" id="chkJunior-${id}" ${useJunior?'checked':''} onchange="toggleJuniorItems('${id}',this.checked)">
+      유치부 항목 따로 정하기
+    </label>
+    <div id="juniorItemsSection-${id}" ${!useJunior?'style="display:none"':''}>
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;color:#7c3aed">유치부 항목 (최대 10개)</div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:8px">
+        ${juniorItems.length ? juniorItems.map((item,i)=>itemRowHTML(item,i,juniorItems,'junior')).join('') : '<div style="padding:12px;text-align:center;color:#9ca3af;font-size:13px">항목을 추가해주세요</div>'}
+      </div>
+      ${juniorItems.length < 10 ? `<button onclick="addPresetItem('${id}','junior')" style="font-size:12px;padding:6px 14px;background:#faf5ff;color:#7c3aed;border:1px solid #d8b4fe;border-radius:7px;cursor:pointer;font-family:inherit;margin-bottom:12px">+ 항목 추가</button>` : ''}
+    </div>
+    <button onclick="savePreset('${id}')" style="width:100%;padding:10px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit">💾 저장</button>`;
+}
+
+window.updatePresetName = (id, val) => { if (examPresets[id]) examPresets[id].name = val; };
+
+window.updatePresetItemField = (id, listKey, itemId, field, val) => {
+  const p    = examPresets[id]; if (!p) return;
+  const list = listKey === 'junior' ? (p.juniorItems || []) : (p.items || []);
+  const item = list.find(i => i.id === itemId);
+  if (item) item[field] = val;
+};
+
+window.addPresetItem = (id, listKey) => {
+  const p = examPresets[id]; if (!p) return;
+  if (listKey === 'junior') {
+    if (!p.juniorItems) p.juniorItems = [];
+    if (p.juniorItems.length >= 10) { showToast('항목은 최대 10개까지'); return; }
+    p.juniorItems.push({ id: genItemId(), label: '', category: 'none', desc: '' });
+  } else {
+    if (!p.items) p.items = [];
+    if (p.items.length >= 10) { showToast('항목은 최대 10개까지'); return; }
+    p.items.push({ id: genItemId(), label: '', category: 'none', desc: '' });
+  }
+  renderPresetEditorHTML(id);
+};
+
+window.deletePresetItem = (id, listKey, itemId) => {
+  const p = examPresets[id]; if (!p) return;
+  if (listKey === 'junior') p.juniorItems = (p.juniorItems||[]).filter(i => i.id !== itemId);
+  else p.items = (p.items||[]).filter(i => i.id !== itemId);
+  renderPresetEditorHTML(id);
+};
+
+window.movePresetItem = (id, listKey, itemId, dir) => {
+  const p    = examPresets[id]; if (!p) return;
+  const list = listKey === 'junior' ? (p.juniorItems||[]) : (p.items||[]);
+  const idx  = list.findIndex(i => i.id === itemId); if (idx === -1) return;
+  const ni   = idx + dir;
+  if (ni < 0 || ni >= list.length) return;
+  [list[idx], list[ni]] = [list[ni], list[idx]];
+  renderPresetEditorHTML(id);
+};
+
+window.toggleJuniorItems = (id, checked) => {
+  const p = examPresets[id]; if (!p) return;
+  p.useJuniorItems = checked;
+  const sec = document.getElementById('juniorItemsSection-' + id);
+  if (sec) sec.style.display = checked ? '' : 'none';
+};
+
+window.savePreset = async (id) => {
+  const p = examPresets[id]; if (!p) return;
+  if (!p.name?.trim())                        { showToast('프리셋 이름을 입력해주세요'); return; }
+  if (!p.items?.length)                       { showToast('항목을 1개 이상 추가해주세요'); return; }
+  if (p.items.some(i => !i.label?.trim()))    { showToast('항목 이름을 모두 입력해주세요'); return; }
+  if (p.useJuniorItems) {
+    if (!p.juniorItems?.length) { showToast('유치부 항목을 추가하거나 "유치부 항목 따로 정하기"를 해제해주세요'); return; }
+    if (p.juniorItems.some(i => !i.label?.trim())) { showToast('유치부 항목 이름을 모두 입력해주세요'); return; }
+  }
+  p.updatedAt = Date.now();
+  await set(ref(db, `academies/${academyId}/settings/examPresets/${id}`), p);
+  showToast('✅ 프리셋 저장 완료');
+  renderPresetListUI();
+  updateSessionPresetOptions();
+};
+
+window.duplicatePreset = async (id) => {
+  const p     = examPresets[id]; if (!p) return;
+  const newId = push(ref(db, `academies/${academyId}/settings/examPresets`)).key;
+  const np    = JSON.parse(JSON.stringify(p));
+  np.name       = (p.name || '') + ' (복제)';
+  np.updatedAt  = Date.now();
+  np.items      = (np.items||[]).map(i => ({ ...i, id: genItemId() }));
+  if (np.juniorItems) np.juniorItems = np.juniorItems.map(i => ({ ...i, id: genItemId() }));
+  await set(ref(db, `academies/${academyId}/settings/examPresets/${newId}`), np);
+  examPresets[newId] = np;
+  showToast('✅ 프리셋 복제 완료');
+  renderPresetListUI();
+  updateSessionPresetOptions();
+};
+
+window.deletePreset = async (id) => {
+  const p = examPresets[id];
+  if (!confirm(`"${p?.name || '이름없는 프리셋'}" 프리셋을 삭제합니다.\n이미 등록된 회차에는 영향 없습니다. 계속할까요?`)) return;
+  await remove(ref(db, `academies/${academyId}/settings/examPresets/${id}`));
+  delete examPresets[id];
+  showToast('🗑️ 프리셋 삭제 완료');
+  renderPresetListUI();
+  updateSessionPresetOptions();
+};
+
+window.createNewPreset = async () => {
+  const newId = push(ref(db, `academies/${academyId}/settings/examPresets`)).key;
+  const np    = { name: '새 프리셋', items: [], juniorItems: [], useJuniorItems: false, updatedAt: Date.now() };
+  await set(ref(db, `academies/${academyId}/settings/examPresets/${newId}`), np);
+  examPresets[newId] = np;
+  renderPresetListUI();
+  updateSessionPresetOptions();
+  setTimeout(() => window.openPresetEditor(newId), 50);
+};
+
+window.onExamModeChange = async () => {
+  examMode = document.getElementById('examModeSelect')?.value || 'belt';
+  await saveExamSettings();
+  toggleCommonPresetSettingsSection();
+  updateCommonSessionSection();
+};
+
+window.toggleCommonPresetSettingsSection = () => {
+  const isCommon = (document.getElementById('examModeSelect')?.value || 'belt') === 'common';
+  const sec = document.getElementById('commonPresetSection');
+  if (sec) sec.classList.toggle('hidden', !isCommon);
+};
+
+// ── 회차 등록 시 공통 항목 UI ────────────────────────────────────────────
+
+function updateCommonSessionSection() {
+  const isCommon = examMode === 'common';
+  const sec = document.getElementById('commonSessionSection');
+  if (sec) sec.classList.toggle('hidden', !isCommon);
+  if (isCommon) { updateSessionPresetOptions(); renderSessionItemsEditor(); }
+}
+
+function updateSessionPresetOptions() {
+  const sel = document.getElementById('sessionPresetSelect');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">직접 입력 (빈 목록에서 시작)</option>' +
+    Object.entries(examPresets).map(([id, p]) =>
+      `<option value="${id}">${escHtml(p.name || '이름없는 프리셋')}</option>`
+    ).join('');
+}
+
+window.onSessionPresetSelect = () => {
+  const id = document.getElementById('sessionPresetSelect')?.value;
+  if (id && examPresets[id]) {
+    const p = examPresets[id];
+    _sessionEditItems = {
+      items:          JSON.parse(JSON.stringify(p.items || [])),
+      juniorItems:    p.useJuniorItems ? JSON.parse(JSON.stringify(p.juniorItems || [])) : null,
+      useJuniorItems: !!p.useJuniorItems,
+    };
+  } else {
+    _sessionEditItems = { items: [], juniorItems: null, useJuniorItems: false };
+  }
+  renderSessionItemsEditor();
+};
+
+function renderSessionItemsEditor() {
+  const container = document.getElementById('sessionItemsEditor');
+  if (!container) return;
+  if (!_sessionEditItems) _sessionEditItems = { items: [], juniorItems: null, useJuniorItems: false };
+  const { items, juniorItems, useJuniorItems } = _sessionEditItems;
+
+  function sessRow(item, idx, arr, listKey) {
+    const catOpts = COMMON_CATEGORIES.map(c =>
+      `<option value="${c.value}"${item.category === c.value ? ' selected' : ''}>${c.label}</option>`).join('');
+    return `
+      <div class="preset-item-row">
+        <span style="color:#9ca3af;font-size:12px;min-width:18px">${idx+1}</span>
+        <input type="text" value="${escHtml(item.label)}" placeholder="항목 이름" style="flex:1;min-width:0;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:13px;font-family:inherit" oninput="updateSessionItem('${listKey}','${item.id}','label',this.value)">
+        <select style="border:1px solid #ddd;border-radius:6px;padding:5px 6px;font-size:12px;font-family:inherit" onchange="updateSessionItem('${listKey}','${item.id}','category',this.value)">${catOpts}</select>
+        <input type="text" value="${escHtml(item.desc||'')}" placeholder="설명" style="width:80px;border:1px solid #ddd;border-radius:6px;padding:5px 8px;font-size:12px;font-family:inherit" oninput="updateSessionItem('${listKey}','${item.id}','desc',this.value)">
+        <button onclick="moveSessItem('${listKey}','${item.id}',-1)" ${idx===0?'disabled':''} style="padding:4px 7px;background:#f1f5f9;border:1px solid #ddd;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1">↑</button>
+        <button onclick="moveSessItem('${listKey}','${item.id}',1)" ${idx===arr.length-1?'disabled':''} style="padding:4px 7px;background:#f1f5f9;border:1px solid #ddd;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit;line-height:1">↓</button>
+        <button onclick="deleteSessItem('${listKey}','${item.id}')" style="padding:4px 7px;background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;border-radius:4px;font-size:12px;cursor:pointer;font-family:inherit">✕</button>
+      </div>`;
+  }
+
+  container.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px">
+      ${items.length ? items.map((item,i)=>sessRow(item,i,items,'main')).join('') : '<div style="padding:10px;text-align:center;color:#9ca3af;font-size:13px">항목 없음</div>'}
+    </div>
+    ${items.length < 10 ? `<button onclick="addSessItem('main')" style="font-size:12px;padding:5px 12px;background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;border-radius:7px;cursor:pointer;font-family:inherit;margin-bottom:8px">+ 항목 추가</button>` : ''}
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:8px;cursor:pointer">
+      <input type="checkbox" id="sessChkJunior" ${useJuniorItems?'checked':''} onchange="toggleSessJuniorItems(this.checked)">
+      유치부 항목 따로 정하기
+    </label>
+    ${useJuniorItems ? `
+      <div style="font-size:13px;font-weight:700;color:#7c3aed;margin-bottom:4px">유치부 항목</div>
+      <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:6px">
+        ${(juniorItems||[]).length ? (juniorItems||[]).map((item,i)=>sessRow(item,i,juniorItems||[],'junior')).join('') : '<div style="padding:10px;text-align:center;color:#9ca3af;font-size:13px">항목 없음</div>'}
+      </div>
+      ${(juniorItems||[]).length < 10 ? `<button onclick="addSessItem('junior')" style="font-size:12px;padding:5px 12px;background:#faf5ff;color:#7c3aed;border:1px solid #d8b4fe;border-radius:7px;cursor:pointer;font-family:inherit;margin-bottom:8px">+ 항목 추가</button>` : ''}
+    ` : ''}`;
+}
+
+window.updateSessionItem = (listKey, itemId, field, val) => {
+  if (!_sessionEditItems) return;
+  const list = listKey === 'junior' ? (_sessionEditItems.juniorItems||[]) : _sessionEditItems.items;
+  const item = list.find(i => i.id === itemId);
+  if (item) item[field] = val;
+};
+
+window.addSessItem = (listKey) => {
+  if (!_sessionEditItems) _sessionEditItems = { items: [], juniorItems: null, useJuniorItems: false };
+  if (listKey === 'junior') {
+    if (!_sessionEditItems.juniorItems) _sessionEditItems.juniorItems = [];
+    if (_sessionEditItems.juniorItems.length >= 10) { showToast('항목은 최대 10개까지'); return; }
+    _sessionEditItems.juniorItems.push({ id: genItemId(), label: '', category: 'none', desc: '' });
+  } else {
+    if (_sessionEditItems.items.length >= 10) { showToast('항목은 최대 10개까지'); return; }
+    _sessionEditItems.items.push({ id: genItemId(), label: '', category: 'none', desc: '' });
+  }
+  renderSessionItemsEditor();
+};
+
+window.deleteSessItem = (listKey, itemId) => {
+  if (!_sessionEditItems) return;
+  if (listKey === 'junior') _sessionEditItems.juniorItems = (_sessionEditItems.juniorItems||[]).filter(i => i.id !== itemId);
+  else _sessionEditItems.items = _sessionEditItems.items.filter(i => i.id !== itemId);
+  renderSessionItemsEditor();
+};
+
+window.moveSessItem = (listKey, itemId, dir) => {
+  if (!_sessionEditItems) return;
+  const list = listKey === 'junior' ? (_sessionEditItems.juniorItems||[]) : _sessionEditItems.items;
+  const idx  = list.findIndex(i => i.id === itemId); if (idx === -1) return;
+  const ni   = idx + dir;
+  if (ni < 0 || ni >= list.length) return;
+  [list[idx], list[ni]] = [list[ni], list[idx]];
+  renderSessionItemsEditor();
+};
+
+window.toggleSessJuniorItems = (checked) => {
+  if (!_sessionEditItems) return;
+  _sessionEditItems.useJuniorItems = checked;
+  if (checked && !_sessionEditItems.juniorItems) _sessionEditItems.juniorItems = [];
+  renderSessionItemsEditor();
 };
 </script>
 <div style="text-align:center;padding:16px;font-size:11px;color:#9ca3af">© 2026 FILLYO · fillyo.kr</div>
