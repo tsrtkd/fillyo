@@ -499,6 +499,14 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
         </div>
       </div>
 
+      <div class="sett-row">
+        <label class="sett-label">도장 전화번호</label>
+        <div class="sett-ctrl">
+          <input type="text" id="academyPhoneInput" placeholder="042-000-0000" onchange="saveAcademyPhone()">
+          <span class="sett-hint">비워 두면 결과카드에 전화번호가 표시되지 않습니다.</span>
+        </div>
+      </div>
+
       <div id="examSettingSavedMsg" style="color:#0B7B6B;font-size:12px;margin-top:8px;opacity:0;transition:opacity 0.5s;">✓ 설정이 저장됐습니다</div>
     </div>
 
@@ -1220,10 +1228,12 @@ onAuthStateChanged(auth, async (user) => {
 
   const phoneSnap = await get(ref(db, `academies/${academyId}/settings/academyPhone`));
   academyPhone = phoneSnap.val() || '';
-  if (!academyPhone) {
-    academyPhone = '042)585-8017';
-    await set(ref(db, `academies/${academyId}/settings/academyPhone`), academyPhone);
+  if (academyId !== 'ac_mq2avp88kwmd' && academyPhone === '042)585-8017') {
+    await remove(ref(db, `academies/${academyId}/settings/academyPhone`));
+    academyPhone = '';
   }
+  const phoneInput = document.getElementById('academyPhoneInput');
+  if (phoneInput) phoneInput.value = academyPhone;
 
   const phoneDisplaySnap = await get(ref(db, `academies/${academyId}/settings/academyPhoneDisplay`));
   academyPhoneDisplay = phoneDisplaySnap.val() || '';
@@ -1367,6 +1377,18 @@ window.saveExamSettings = async function() {
   await set(ref(db, `academies/${academyId}/settings/exam`), settings);
   academyExamSettings = settings;
   examMode = mode;
+  const el = document.getElementById('examSettingSavedMsg');
+  if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 2000); }
+};
+
+window.saveAcademyPhone = async function() {
+  const val = (document.getElementById('academyPhoneInput')?.value || '').trim();
+  if (val) {
+    await set(ref(db, `academies/${academyId}/settings/academyPhone`), val);
+  } else {
+    await remove(ref(db, `academies/${academyId}/settings/academyPhone`));
+  }
+  academyPhone = val;
   const el = document.getElementById('examSettingSavedMsg');
   if (el) { el.style.opacity = '1'; setTimeout(() => { el.style.opacity = '0'; }, 2000); }
 };
