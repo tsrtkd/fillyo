@@ -2752,11 +2752,16 @@ window.imageCard = async (evalId) => {
   const isNewFormat  = typeof sc.poomsae1 !== 'undefined';
   const isCommonMode = e.mode === 'common' && Array.isArray(e.items) && e.items.length;
   let pAvg, kAvg, eAvg, cAvg, etcAvg = 0;
+  const catGroups = {}, catItemsExist = {};
   if (isCommonMode) {
     const catSum = {}, catCnt = {};
     for (const item of e.items) {
+      const cat = item.category || 'none';
+      if (!catGroups[cat]) catGroups[cat] = [];
+      catGroups[cat].push(item);
+      catItemsExist[cat] = true;
       const v = Number(sc['c_' + item.id] || 0);
-      if (v > 0) { const cat = item.category || 'none'; catSum[cat] = (catSum[cat]||0)+v; catCnt[cat] = (catCnt[cat]||0)+1; }
+      if (v > 0) { catSum[cat] = (catSum[cat]||0)+v; catCnt[cat] = (catCnt[cat]||0)+1; }
     }
     function catAvgImg(cat) { return catCnt[cat] ? catSum[cat] / catCnt[cat] : 0; }
     pAvg = catAvgImg('poomsae'); kAvg = catAvgImg('kick');
@@ -2800,18 +2805,27 @@ window.imageCard = async (evalId) => {
     ? 'background:#fee2e2;color:#dc2626;border:1.5px solid #fca5a5'
     : 'background:#f1f5f9;color:#6b7a8d;border:1.5px solid #9ca3af';
 
-  // 요약 카드 2x2
-  const summaryCards = [
-    ['🥋','품새',pAvg,'#3b82f6','#eff6ff'],
-    ['🦵','발차기',kAvg,'#f97316','#fff7ed'],
-    ['🔥','익스트림',eAvg,'#ef4444','#fff1f2'],
-    ['🌱','인성',cAvg,'#22c55e','#f0fdf4'],
-  ].map(([em,lb,av,bc,bg]) =>
-    `<div style="background:${bg};border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:12px;padding:10px 12px">
+  // 요약 카드: 공통 모드는 항목 있는 분류만, 띠별은 고정 4칸
+  function mkSummCard(em, lb, av, bc, bg) {
+    return `<div style="background:${bg};border:1px solid #e2e8f0;border-left:4px solid ${bc};border-radius:12px;padding:10px 12px">
       <div style="font-size:11px;color:#64748b;margin-bottom:4px">${em} ${lb}</div>
       <div style="font-size:20px;font-weight:800;color:${bc};line-height:1">${av>0?av.toFixed(1):'미평가'}<span style="font-size:10px;color:#94a3b8;font-weight:400"> /5.0</span></div>
-    </div>`
-  ).join('');
+    </div>`;
+  }
+  const summaryCards = isCommonMode
+    ? [
+        catItemsExist.poomsae   ? mkSummCard('🥋','품새',    pAvg,   '#3b82f6','#eff6ff') : '',
+        catItemsExist.kick      ? mkSummCard('🦵','발차기',   kAvg,   '#f97316','#fff7ed') : '',
+        catItemsExist.extreme   ? mkSummCard('🔥','익스트림', eAvg,   '#ef4444','#fff1f2') : '',
+        catItemsExist.character ? mkSummCard('🌱','인성',     cAvg,   '#22c55e','#f0fdf4') : '',
+        catItemsExist.none      ? mkSummCard('📦','기타',     etcAvg, '#8b5cf6','#f5f3ff') : '',
+      ].join('')
+    : [
+        mkSummCard('🥋','품새',    pAvg,'#3b82f6','#eff6ff'),
+        mkSummCard('🦵','발차기',  kAvg,'#f97316','#fff7ed'),
+        mkSummCard('🔥','익스트림',eAvg,'#ef4444','#fff1f2'),
+        mkSummCard('🌱','인성',    cAvg,'#22c55e','#f0fdf4'),
+      ].join('');
 
   function scoreRow(label, v) {
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 16px;background:#ffffff;border-bottom:1px solid #f8fafc">
@@ -2824,22 +2838,14 @@ window.imageCard = async (evalId) => {
   let kickRows    = '';
   let extremeRows = '';
   let charRows    = '';
+  let etcRows     = '';
 
   if (isCommonMode) {
-    const catGroups = {};
-    for (const item of e.items) {
-      const cat = item.category || 'none';
-      if (!catGroups[cat]) catGroups[cat] = [];
-      catGroups[cat].push(item);
-    }
     (catGroups['poomsae']   || []).forEach(item => { poomsaeRows += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
     (catGroups['kick']      || []).forEach(item => { kickRows    += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
     (catGroups['extreme']   || []).forEach(item => { extremeRows += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
     (catGroups['character'] || []).forEach(item => { charRows    += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
-    if (catGroups['none'] && catGroups['none'].length) {
-      charRows += `<div style="background:#f8fafc;color:#374151;padding:7px 16px;font-size:12px;font-weight:600">기타</div>`;
-      catGroups['none'].forEach(item => { charRows += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
-    }
+    (catGroups['none']      || []).forEach(item => { etcRows     += scoreRow(item.label, Number(sc['c_'+item.id]||0)); });
   } else if (isNewFormat) {
     const cardGroup = getExamGroup(belt, st?.age);
     const cardItems = getActiveExamItems(cardGroup);
@@ -2878,6 +2884,54 @@ window.imageCard = async (evalId) => {
   const parentMsg = e.comment || '';
   const cvId = 'rv-' + Date.now();
 
+  // 공통 모드 레이더: 점수 있는 분류가 3개 이상일 때만 표시
+  let showRadar = true, commonRadarVals = null, commonRadarLabels = null;
+  if (isCommonMode) {
+    const radarCats = [
+      catItemsExist.poomsae   && { label:'품새',    avg:pAvg },
+      catItemsExist.kick      && { label:'발차기',   avg:kAvg },
+      catItemsExist.extreme   && { label:'익스트림', avg:eAvg },
+      catItemsExist.character && { label:'인성',     avg:cAvg },
+      catItemsExist.none      && { label:'기타',     avg:etcAvg },
+    ].filter(Boolean).filter(c => c.avg > 0);
+    if (radarCats.length < 3) { showRadar = false; }
+    else { commonRadarVals = radarCats.map(c=>c.avg); commonRadarLabels = radarCats.map(c=>c.label); }
+  }
+
+  // 구역별 HTML: 공통 모드는 항목 있는 구역만, 띠별은 고정 4구역
+  const sectionsHtml = isCommonMode
+    ? [
+        poomsaeRows && `<div><div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🥋 품새</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${poomsaeRows}</div>`,
+        kickRows    && `<div><div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${kickRows}</div>`,
+        extremeRows && `<div><div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${extremeRows}</div>`,
+        charRows    && `<div><div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">🌱 인성교육</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${charRows}</div>`,
+        etcRows     && `<div><div style="background:#4b5563;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:13px;font-weight:700">📦 기타</span><span style="font-size:12px;color:rgba(255,255,255,0.85)">${etcAvg>0?etcAvg.toFixed(1)+'/5.0':'미평가'}</span></div>${etcRows}</div>`,
+      ].filter(Boolean).join('')
+    : `<div>
+        <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🥋 품새</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span>
+        </div>${poomsaeRows}
+      </div>
+      <div>
+        <div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1)+'/5.0':'미평가'}</span>
+        </div>${kickRows}
+      </div>
+      <div>
+        <div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1)+'/5.0':'미평가'}</span>
+        </div>${extremeRows}
+      </div>
+      <div>
+        <div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
+          <span style="font-size:13px;font-weight:700">🌱 인성교육</span>
+          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span>
+        </div>${charRows}
+      </div>`;
+
   const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
     <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;">
       <div style="color:#ffffff;font-size:18px;font-weight:800;">${academyName || ''}</div>
@@ -2915,39 +2969,16 @@ window.imageCard = async (evalId) => {
       <div style="display:inline-block;${passedBadgeStyle};padding:4px 16px;border-radius:20px;font-size:13px;font-weight:700;margin-top:8px;margin-bottom:12px">${passedText}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:12px">${summaryCards}</div>
     </div>
-    <div style="background:#ffffff;padding:12px;text-align:center">
+    ${showRadar ? `<div style="background:#ffffff;padding:12px;text-align:center">
       <canvas id="${cvId}" width="220" height="220" style="display:block;margin:0 auto"></canvas>
-    </div>
+    </div>` : ''}
     ${parentMsg ? `<div style="background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px">
       <div style="font-size:11px;font-weight:700;color:#92400e">💬 학부모님께 드리는 말씀</div>
       <div style="font-size:14px;color:#1c1917;line-height:1.6;margin-top:6px">${parentMsg}</div>
       <div style="text-align:right;font-size:11px;color:#78716c;margin-top:6px">— 담당 사범</div>
     </div>` : ''}
     <div style="margin-top:4px">
-      <div>
-        <div style="background:#1e40af;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:700">🥋 품새</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${pAvg>0?pAvg.toFixed(1)+'/5.0':'미평가'}</span>
-        </div>${poomsaeRows}
-      </div>
-      <div>
-        <div style="background:#9a3412;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:700">🦵 발차기 & 겨루기</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${kAvg>0?kAvg.toFixed(1)+'/5.0':'미평가'}</span>
-        </div>${kickRows}
-      </div>
-      <div>
-        <div style="background:#7f1d1d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:700">🔥 익스트림 태권도</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${eAvg>0?eAvg.toFixed(1)+'/5.0':'미평가'}</span>
-        </div>${extremeRows}
-      </div>
-      <div>
-        <div style="background:#14532d;color:#ffffff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center">
-          <span style="font-size:13px;font-weight:700">🌱 인성교육</span>
-          <span style="font-size:12px;color:rgba(255,255,255,0.85)">${cAvg>0?cAvg.toFixed(1)+'/5.0':'미평가'}</span>
-        </div>${charRows}
-      </div>
+      ${sectionsHtml}
     </div>
     <div style="background:#ffffff">
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
@@ -2971,7 +3002,7 @@ window.imageCard = async (evalId) => {
   document.body.appendChild(wrap);
 
   const cv = document.getElementById(cvId);
-  if (cv) drawRadarChart(cv, sc, isCommonMode ? [pAvg, kAvg, eAvg, cAvg] : null);
+  if (cv) drawRadarChart(cv, sc, isCommonMode ? commonRadarVals : null, isCommonMode ? commonRadarLabels : null);
 
   showToast('🎨 카드 생성 중...');
 
@@ -2994,13 +3025,13 @@ window.imageCard = async (evalId) => {
   });
 };
 
-function drawRadarChart(canvas, scores, overrideVals) {
+function drawRadarChart(canvas, scores, overrideVals, labelsOverride) {
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
   const cx = W/2, cy = H/2;
   const R = 70;
-  const n = 4;
-  const labels = ['품새','발차기','익스트림','인성'];
+  const labels = labelsOverride || ['품새','발차기','익스트림','인성'];
+  const n = labels.length;
   function rka(...keys) {
     const v = keys.map(k=>Number(scores?.[k]||0)).filter(v=>v>0);
     return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
@@ -3075,8 +3106,9 @@ function drawRadarChart(canvas, scores, overrideVals) {
   vals.forEach((v, i) => {
     if (v > 0) {
       const rv = (v/5)*R;
-      const ox = Math.cos(angles[i])*13;
-      const oy = Math.sin(angles[i])*13;
+      // 점수 글자를 축 수직 방향으로 오프셋해 레이블과 겹치지 않게
+      const ox = -Math.sin(angles[i]) * 10;
+      const oy =  Math.cos(angles[i]) * 10;
       ctx.fillText(v.toFixed(1), cx+rv*Math.cos(angles[i])+ox, cy+rv*Math.sin(angles[i])+oy);
     }
   });
