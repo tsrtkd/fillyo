@@ -2469,6 +2469,7 @@ window.saveExamRow = async (idx) => {
       // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
       const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
+      await update(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), { resultBelt: next.nextBelt, resultGrade: next.nextGrade || '' });
       showToast(`🏆 저장 완료! ${ss.belt} → ${next.nextBelt} 승급 적용됨`);
       return;  // 심사 화면에 머뭄 — 다른 학생 입력 보존
     }
@@ -2510,6 +2511,7 @@ async function bulkPassStudents(indices) {
       // certDate는 건드리지 않음: 이미 품단인 학생의 급수만 오르는 것이므로 취득일 불변
       const updateData = { belt: next.nextBelt, grade: next.nextGrade || '' };
       await update(ref(db, `academies/${academyId}/exam/students/${ss.id}`), updateData);
+      await update(ref(db, `academies/${academyId}/exam/evaluations/${evalId}`), { resultBelt: next.nextBelt, resultGrade: next.nextGrade || '' });
     }
 
     ss.done   = true;
@@ -2602,10 +2604,14 @@ window.renderStatusTable = () => {
     const tempSs = { id: e.studentId, belt: e.belt, grade: e.grade || '', scores: e.scores, passed: e.passed };
     let resultCell = '-';
     if (e.passed === true) {
-      const next = calcNext(tempSs);
-      resultCell = next
-        ? `${beltBadge(e.belt || '', e.grade || '')} → ${beltBadge(next.nextBelt, next.nextGrade || '')}`
-        : beltBadge(e.belt || '', e.grade || '');
+      if (e.resultBelt) {
+        resultCell = `${beltBadge(e.belt || '', e.grade || '')} → ${beltBadge(e.resultBelt, e.resultGrade || '')}`;
+      } else {
+        const next = calcNext(tempSs);
+        resultCell = next
+          ? `${beltBadge(e.belt || '', e.grade || '')} → ${beltBadge(next.nextBelt, next.nextGrade || '')}`
+          : beltBadge(e.belt || '', e.grade || '');
+      }
     } else if (e.passed === false) {
       resultCell = `${beltBadge(e.belt || '', e.grade || '')} <span style="font-size:11px;color:var(--text2)">(유지)</span>`;
     } else if (e.passed === 'pending') {
