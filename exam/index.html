@@ -266,6 +266,25 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
 .sett-hint { font-size:11px; color:#999; }
 .preset-item-row { display:flex; align-items:center; gap:6px; padding:8px 10px; border-bottom:1px solid var(--border); background:#fff; }
 .preset-item-row:last-child { border-bottom:none; }
+
+/* ── CARD PHOTO MODAL ── */
+#cardPhotoUploadBtn {
+  display: flex;
+  width: 100%;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2563eb;
+  background: #eff6ff;
+  margin-bottom: 12px;
+}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -743,10 +762,10 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
       <img id="cardPhotoPreview" style="width:100%;border-radius:8px;display:block" alt="" />
       <button onclick="removeCardPhoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;line-height:1;padding:0">✕</button>
     </div>
-    <label id="cardPhotoUploadBtn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px dashed #cbd5e1;border-radius:12px;cursor:pointer;font-size:15px;font-weight:600;color:#2563eb;background:#eff6ff;margin-bottom:12px">
+    <div id="cardPhotoUploadBtn" onclick="document.getElementById('cardPhotoInput').click()">
       <span id="cardPhotoUploadText">📷 사진 넣기</span>
       <input type="file" accept="image/*" id="cardPhotoInput" style="display:none" onchange="cardPhotoFileChange(this)">
-    </label>
+    </div>
     <div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-bottom:4px">아이가 혼자 나온 사진을 권장합니다.<br>사진은 어디에도 저장되지 않고 이 카드에만 들어갑니다.</div>
     <div class="modal-btn-row">
       <button class="modal-btn secondary" onclick="closeModal('modalCardPhoto')">취소</button>
@@ -2887,10 +2906,14 @@ async function prepareCardPhoto(file) {
     i.src = url;
   });
   const iW = img.naturalWidth, iH = img.naturalHeight;
-  let srcW, srcH;
-  if (iW / iH > 4 / 3) { srcH = iH; srcW = srcH * 4 / 3; }
-  else { srcW = iW; srcH = srcW * 3 / 4; }
-  const cropX = (iW - srcW) / 2, cropY = (iH - srcH) / 2;
+  let srcW, srcH, cropX, cropY;
+  if (iW / iH > 4 / 3) {
+    srcH = iH; srcW = srcH * 4 / 3;
+    cropX = (iW - srcW) / 2; cropY = 0;
+  } else {
+    srcW = iW; srcH = srcW * 3 / 4;
+    cropX = 0; cropY = (iH - srcH) * 0.15;
+  }
   const oc = document.createElement('canvas');
   oc.width = 780; oc.height = 585;
   oc.getContext('2d').drawImage(img, cropX, cropY, srcW, srcH, 0, 0, 780, 585);
