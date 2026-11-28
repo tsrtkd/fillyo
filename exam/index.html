@@ -735,6 +735,26 @@ button { cursor: pointer; border: none; background: none; font-family: inherit; 
   </div>
 </div>
 
+<!-- 결과카드 사진 모달 -->
+<div class="modal-overlay" id="modalCardPhoto">
+  <div class="modal-box">
+    <div class="modal-title">🖼️ 결과카드 만들기</div>
+    <div id="cardPhotoPreviewWrap" style="display:none;position:relative;margin-bottom:12px">
+      <img id="cardPhotoPreview" style="width:100%;border-radius:8px;display:block" alt="" />
+      <button onclick="removeCardPhoto()" style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.55);color:#fff;border:none;border-radius:50%;width:28px;height:28px;font-size:14px;cursor:pointer;line-height:1;padding:0">✕</button>
+    </div>
+    <label id="cardPhotoUploadBtn" style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border:2px dashed #cbd5e1;border-radius:12px;cursor:pointer;font-size:15px;font-weight:600;color:#2563eb;background:#eff6ff;margin-bottom:12px">
+      <span id="cardPhotoUploadText">📷 사진 넣기</span>
+      <input type="file" accept="image/*" id="cardPhotoInput" style="display:none" onchange="cardPhotoFileChange(this)">
+    </label>
+    <div style="font-size:12px;color:#94a3b8;line-height:1.6;margin-bottom:4px">아이가 혼자 나온 사진을 권장합니다.<br>사진은 어디에도 저장되지 않고 이 카드에만 들어갑니다.</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn secondary" onclick="closeModal('modalCardPhoto')">취소</button>
+      <button class="modal-btn primary" onclick="buildCard()">카드 만들기</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -2855,6 +2875,76 @@ window.saveEvalEdit = async () => {
   showToast('✅ 수정 완료');
 };
 
+let _pendingCard = null;
+let _cardPhotoDataUrl = null;
+
+function getExifOrientation(buffer) {
+  const view = new DataView(buffer);
+  if (view.getUint16(0, false) !== 0xFFD8) return 1;
+  let offset = 2;
+  while (offset + 4 < view.byteLength) {
+    const marker = view.getUint16(offset, false);
+    const segLen = view.getUint16(offset + 2, false);
+    if (marker === 0xFFE1 && segLen >= 8) {
+      if (view.getUint32(offset + 4, false) === 0x45786966 &&
+          view.getUint16(offset + 8, false) === 0x0000) {
+        const tiffStart = offset + 10;
+        const little = view.getUint16(tiffStart, false) === 0x4949;
+        const ifd0Abs = tiffStart + view.getUint32(tiffStart + 4, little);
+        if (ifd0Abs + 2 > view.byteLength) break;
+        const entryCount = view.getUint16(ifd0Abs, little);
+        for (let i = 0; i < entryCount; i++) {
+          const ep = ifd0Abs + 2 + i * 12;
+          if (ep + 12 > view.byteLength) break;
+          if (view.getUint16(ep, little) === 0x0112) return view.getUint16(ep + 8, little);
+        }
+      }
+      break;
+    }
+    if ((marker & 0xFF00) !== 0xFF00 || marker === 0xFFDA) break;
+    offset += 2 + segLen;
+  }
+  return 1;
+}
+
+async function prepareCardPhoto(file) {
+  const buffer = await file.arrayBuffer();
+  const orient = getExifOrientation(buffer);
+  const url = URL.createObjectURL(file);
+  const img = await new Promise((res, rej) => {
+    const i = new Image();
+    i.onload = () => { URL.revokeObjectURL(url); res(i); };
+    i.onerror = () => { URL.revokeObjectURL(url); rej(new Error('load failed')); };
+    i.src = url;
+  });
+  const iW = img.naturalWidth, iH = img.naturalHeight;
+  const swap = [5, 6, 7, 8].includes(orient);
+  const normW = swap ? iH : iW, normH = swap ? iW : iH;
+  let srcW, srcH;
+  if (normW / normH > 4 / 3) { srcH = normH; srcW = srcH * 4 / 3; }
+  else { srcW = normW; srcH = srcW * 3 / 4; }
+  const cropX = (normW - srcW) / 2, cropY = (normH - srcH) / 2;
+  const nc = document.createElement('canvas');
+  nc.width = normW; nc.height = normH;
+  const nctx = nc.getContext('2d');
+  nctx.save();
+  switch (orient) {
+    case 2: nctx.transform(-1, 0, 0, 1, iW, 0); break;
+    case 3: nctx.transform(-1, 0, 0, -1, iW, iH); break;
+    case 4: nctx.transform(1, 0, 0, -1, 0, iH); break;
+    case 5: nctx.transform(0, 1, 1, 0, 0, 0); break;
+    case 6: nctx.transform(0, 1, -1, 0, iH, 0); break;
+    case 7: nctx.transform(0, -1, -1, 0, iH, iW); break;
+    case 8: nctx.transform(0, -1, 1, 0, 0, iW); break;
+  }
+  nctx.drawImage(img, 0, 0);
+  nctx.restore();
+  const oc = document.createElement('canvas');
+  oc.width = 780; oc.height = 585;
+  oc.getContext('2d').drawImage(nc, cropX, cropY, srcW, srcH, 0, 0, 780, 585);
+  return oc.toDataURL('image/jpeg', 0.9);
+}
+
 window.imageCard = async (evalId) => {
   // academyName 강제 재조회 (카드 생성 시점에 항상 확인)
   if (!academyName && academyId) {
@@ -3084,14 +3174,23 @@ window.imageCard = async (evalId) => {
         </div>${charRows}
       </div>`;
 
-  const cardHtml = `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
+  const capturedAcademyName = academyName || '';
+  const capturedAcademyPhone = academyPhone || '';
+  _pendingCard = {
+    name, cvId, sc, isCommonMode, commonRadarVals, commonRadarLabels,
+    makeHtml: (photoDataUrl) => {
+      const photoSection = photoDataUrl
+        ? `<div style="padding:4px 10px 0"><img src="${photoDataUrl}" style="width:100%;border-radius:8px;display:block" /></div>`
+        : '';
+      return `<div style="width:390px;font-family:'Apple SD Gothic Neo','Noto Sans KR',sans-serif;background:#ffffff">
     <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:16px 20px;">
-      <div style="color:#ffffff;font-size:18px;font-weight:800;">${academyName || ''}</div>
+      <div style="color:#ffffff;font-size:18px;font-weight:800;">${capturedAcademyName}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">
         <div style="color:#bfdbfe;font-size:11px;">승급심사 평가결과</div>
         <div style="color:#93c5fd;font-size:10px;">${issueDate}</div>
       </div>
     </div>
+    ${photoSection}
     <div style="background:#f0f7ff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid #e0eeff">
       <div>
         <div style="color:#0f172a;font-size:28px;font-weight:700;line-height:1">${name}</div>
@@ -3135,9 +3234,9 @@ window.imageCard = async (evalId) => {
     <div style="background:#ffffff">
       <div style="padding:12px 16px;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:15px;font-weight:700;color:#1e293b">${academyName||''}</div>
+          <div style="font-size:15px;font-weight:700;color:#1e293b">${capturedAcademyName}</div>
           <div style="font-size:11px;color:#64748b;margin-top:4px">본 결과지는 공식 발행된 심사 평가 결과입니다.</div>
-          ${academyPhone ? `<div style="font-size:11px;color:#64748b">문의: ☎ ${academyPhone}</div>` : ''}
+          ${capturedAcademyPhone ? `<div style="font-size:11px;color:#64748b">문의: ☎ ${capturedAcademyPhone}</div>` : ''}
         </div>
         <div style="text-align:right">
           <div style="width:80px;border-top:1px solid #cbd5e1"></div>
@@ -3147,17 +3246,61 @@ window.imageCard = async (evalId) => {
       <div style="height:6px;background:linear-gradient(to right,#60a5fa,#a78bfa,#f472b6);width:100%;display:block;"></div>
     </div>
   </div>`;
+    },
+  };
 
+  _cardPhotoDataUrl = null;
+  document.getElementById('cardPhotoInput').value = '';
+  document.getElementById('cardPhotoPreviewWrap').style.display = 'none';
+  document.getElementById('cardPhotoUploadBtn').style.display = '';
+  document.getElementById('cardPhotoUploadBtn').style.pointerEvents = '';
+  document.getElementById('cardPhotoUploadText').textContent = '📷 사진 넣기';
+  openModal('modalCardPhoto');
+};
+
+window.cardPhotoFileChange = async (input) => {
+  const file = input.files[0];
+  if (!file) return;
+  const btn = document.getElementById('cardPhotoUploadBtn');
+  const txt = document.getElementById('cardPhotoUploadText');
+  txt.textContent = '처리 중...';
+  btn.style.pointerEvents = 'none';
+  try {
+    const dataUrl = await prepareCardPhoto(file);
+    _cardPhotoDataUrl = dataUrl;
+    document.getElementById('cardPhotoPreview').src = dataUrl;
+    document.getElementById('cardPhotoPreviewWrap').style.display = 'block';
+    btn.style.display = 'none';
+  } catch (err) {
+    console.error(err);
+    showToast('⚠️ 사진을 불러올 수 없습니다');
+    txt.textContent = '📷 사진 넣기';
+    btn.style.pointerEvents = '';
+  }
+};
+
+window.removeCardPhoto = () => {
+  _cardPhotoDataUrl = null;
+  document.getElementById('cardPhotoInput').value = '';
+  document.getElementById('cardPhotoPreviewWrap').style.display = 'none';
+  const btn = document.getElementById('cardPhotoUploadBtn');
+  btn.style.display = '';
+  btn.style.pointerEvents = '';
+  document.getElementById('cardPhotoUploadText').textContent = '📷 사진 넣기';
+};
+
+window.buildCard = () => {
+  if (!_pendingCard) return;
+  closeModal('modalCardPhoto');
+  showToast('🎨 카드 생성 중...');
+  const { name, cvId, sc, isCommonMode, commonRadarVals, commonRadarLabels, makeHtml } = _pendingCard;
+  const cardHtml = makeHtml(_cardPhotoDataUrl);
   const wrap = document.createElement('div');
   wrap.style.cssText = 'position:fixed;left:-9999px;top:0;width:390px';
   wrap.innerHTML = cardHtml;
   document.body.appendChild(wrap);
-
   const cv = document.getElementById(cvId);
   if (cv) drawRadarChart(cv, sc, isCommonMode ? commonRadarVals : null, isCommonMode ? commonRadarLabels : null);
-
-  showToast('🎨 카드 생성 중...');
-
   html2canvas(wrap.firstElementChild, {
     scale: 2,
     backgroundColor: '#ffffff',
