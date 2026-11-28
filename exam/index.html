@@ -2878,38 +2878,7 @@ window.saveEvalEdit = async () => {
 let _pendingCard = null;
 let _cardPhotoDataUrl = null;
 
-function getExifOrientation(buffer) {
-  const view = new DataView(buffer);
-  if (view.getUint16(0, false) !== 0xFFD8) return 1;
-  let offset = 2;
-  while (offset + 4 < view.byteLength) {
-    const marker = view.getUint16(offset, false);
-    const segLen = view.getUint16(offset + 2, false);
-    if (marker === 0xFFE1 && segLen >= 8) {
-      if (view.getUint32(offset + 4, false) === 0x45786966 &&
-          view.getUint16(offset + 8, false) === 0x0000) {
-        const tiffStart = offset + 10;
-        const little = view.getUint16(tiffStart, false) === 0x4949;
-        const ifd0Abs = tiffStart + view.getUint32(tiffStart + 4, little);
-        if (ifd0Abs + 2 > view.byteLength) break;
-        const entryCount = view.getUint16(ifd0Abs, little);
-        for (let i = 0; i < entryCount; i++) {
-          const ep = ifd0Abs + 2 + i * 12;
-          if (ep + 12 > view.byteLength) break;
-          if (view.getUint16(ep, little) === 0x0112) return view.getUint16(ep + 8, little);
-        }
-      }
-      break;
-    }
-    if ((marker & 0xFF00) !== 0xFF00 || marker === 0xFFDA) break;
-    offset += 2 + segLen;
-  }
-  return 1;
-}
-
 async function prepareCardPhoto(file) {
-  const buffer = await file.arrayBuffer();
-  const orient = getExifOrientation(buffer);
   const url = URL.createObjectURL(file);
   const img = await new Promise((res, rej) => {
     const i = new Image();
@@ -2918,30 +2887,13 @@ async function prepareCardPhoto(file) {
     i.src = url;
   });
   const iW = img.naturalWidth, iH = img.naturalHeight;
-  const swap = [5, 6, 7, 8].includes(orient);
-  const normW = swap ? iH : iW, normH = swap ? iW : iH;
   let srcW, srcH;
-  if (normW / normH > 4 / 3) { srcH = normH; srcW = srcH * 4 / 3; }
-  else { srcW = normW; srcH = srcW * 3 / 4; }
-  const cropX = (normW - srcW) / 2, cropY = (normH - srcH) / 2;
-  const nc = document.createElement('canvas');
-  nc.width = normW; nc.height = normH;
-  const nctx = nc.getContext('2d');
-  nctx.save();
-  switch (orient) {
-    case 2: nctx.transform(-1, 0, 0, 1, iW, 0); break;
-    case 3: nctx.transform(-1, 0, 0, -1, iW, iH); break;
-    case 4: nctx.transform(1, 0, 0, -1, 0, iH); break;
-    case 5: nctx.transform(0, 1, 1, 0, 0, 0); break;
-    case 6: nctx.transform(0, 1, -1, 0, iH, 0); break;
-    case 7: nctx.transform(0, -1, -1, 0, iH, iW); break;
-    case 8: nctx.transform(0, -1, 1, 0, 0, iW); break;
-  }
-  nctx.drawImage(img, 0, 0);
-  nctx.restore();
+  if (iW / iH > 4 / 3) { srcH = iH; srcW = srcH * 4 / 3; }
+  else { srcW = iW; srcH = srcW * 3 / 4; }
+  const cropX = (iW - srcW) / 2, cropY = (iH - srcH) / 2;
   const oc = document.createElement('canvas');
   oc.width = 780; oc.height = 585;
-  oc.getContext('2d').drawImage(nc, cropX, cropY, srcW, srcH, 0, 0, 780, 585);
+  oc.getContext('2d').drawImage(img, cropX, cropY, srcW, srcH, 0, 0, 780, 585);
   return oc.toDataURL('image/jpeg', 0.9);
 }
 
